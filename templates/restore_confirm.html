@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Gjenopprett backup</h2>
+<p>Er du sikker på at du vil gjenopprette fra <strong>{{ filename }}</strong>?</p>
+<form method="post">
+    <button type="submit">Ja, gjenopprett</button>
+    <a href="{{ url_for('admin_backup') }}">Avbryt</a>
+</form>
+{% endblock %}

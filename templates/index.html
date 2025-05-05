@@ -1,0 +1,13 @@
+<!-- Fil: index.html -->
+{% extends 'base.html' %}
+{% block content %}
+<h2>Status</h2>
+<ul>
+    {% for port, info in statuses.items() %}
+    <li>
+        <strong>{{ port }}</strong>: {{ info.status }}
+        <a href="{{ url_for('open_port', port=port) }}" class="btn">Åpne/Lukk</a>
+    </li>
+    {% endfor %}
+</ul>
+{% endblock %}

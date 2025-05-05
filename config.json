@@ -1,0 +1,7 @@
+{
+  "ports": ["Port 1", "Port 2"],
+  "gpio": {},
+  "relay_pins": {},
+  "sensor_pins": {},
+  "admin": {"username": "admin", "password": "admin"}
+}

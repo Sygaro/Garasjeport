@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Tilgjengelige backups</h2>
+<p><a href="{{ url_for('create_backup_route') }}">📦 Ta ny backup</a></p>
+<ul>
+    {% for file in backups %}
+        <li>
+            {{ file }} -
+            <a href="{{ url_for('view_backup', filename=file) }}">📄 Vis</a> |
+            <a href="{{ url_for('restore_backup', filename=file) }}">⏪ Gjenopprett</a>
+        </li>
+    {% endfor %}
+</ul>
+{% endblock %}

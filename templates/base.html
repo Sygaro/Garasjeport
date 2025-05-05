@@ -1,0 +1,32 @@
+<!-- Fil: base.html -->
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <title>Garasje</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <header><h1>Garasjeportkontroll</h1></header>
+<nav>
+    <a href="{{ url_for('index') }}">🏠 Hjem</a> |
+    <a href="{{ url_for('admin') }}">⚙️ Admin</a> |
+    <a href="{{ url_for('admin_backup') }}">💾 Backup</a> |
+    <a href="{{ url_for('stats') }}">📊 Statistikk</a> |
+    <a href="{{ url_for('logs') }}">📜 Logger</a> |
+    <a href="{{ url_for('logout') }}">🚪 Logg ut</a>
+</nav>
+<hr>
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <ul class="flashes">
+    {% for category, message in messages %}
+      <li class="{{ category }}">{{ message }}</li>
+    {% endfor %}
+    </ul>
+  {% endif %}
+{% endwith %}
+
+    {% block content %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,2 @@
+{% extends 'base.html' %}
+{% block content %}<h2>Statistikk</h2><ul>{% for port, count in stats.items() %}<li>{{ port }}: {{ count }} ganger</li>{% endfor %}</ul>{% endblock %}

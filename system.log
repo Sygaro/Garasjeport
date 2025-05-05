@@ -1,0 +1,12 @@
+2025-05-05 18:06:52,330 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://10.20.0.170:5000
+2025-05-05 18:06:52,331 - INFO - [33mPress CTRL+C to quit[0m
+2025-05-05 18:06:52,345 - INFO -  * Restarting with stat
+2025-05-05 18:06:53,529 - WARNING -  * Debugger is active!
+2025-05-05 18:06:53,531 - INFO -  * Debugger PIN: 604-942-996
+2025-05-05 18:07:00,938 - INFO - 10.20.0.158 - - [05/May/2025 18:07:00] "[35m[1mGET / HTTP/1.1[0m" 500 -
+2025-05-05 18:07:01,034 - INFO - 10.20.0.158 - - [05/May/2025 18:07:01] "[36mGET /?__debugger__=yes&cmd=resource&f=debugger.js HTTP/1.1[0m" 304 -
+2025-05-05 18:07:01,038 - INFO - 10.20.0.158 - - [05/May/2025 18:07:01] "[36mGET /?__debugger__=yes&cmd=resource&f=style.css HTTP/1.1[0m" 304 -
+2025-05-05 18:07:01,075 - INFO - 10.20.0.158 - - [05/May/2025 18:07:01] "[36mGET /?__debugger__=yes&cmd=resource&f=console.png HTTP/1.1[0m" 304 -
