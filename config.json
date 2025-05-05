@@ -1,7 +1,16 @@
 {
-  "ports": ["Port 1", "Port 2"],
-  "gpio": {},
-  "relay_pins": {},
-  "sensor_pins": {},
-  "admin": {"username": "admin", "password": "admin"}
+    "relay_pins": {
+        "port1": 2,
+        "port2": 14
+    },
+    "sensor_pins": {
+        "port1": {
+            "open": 4,
+            "closed": 3
+        },
+        "port2": {
+            "open": 15,
+            "closed": 18
+        }
+    }
 }

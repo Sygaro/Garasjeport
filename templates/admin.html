@@ -1,31 +1,63 @@
-<!-- Fil: admin.html -->
-{% extends 'base.html' %}
+
+{% extends "base.html" %}
 {% block content %}
-<h2>Adminpanel</h2>
+<div class="container mt-4">
+  <h2>Adminpanel</h2>
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
 
-<form method="POST">
-    <h3>Portnavn</h3>
-    {% for name in config.ports %}
-        <label for="port{{ loop.index0 }}">Port {{ loop.index }} navn:</label>
-        <input type="text" name="ports" value="{{ name }}" required><br>
-    {% endfor %}
+  <hr>
+  <h3>GPIO-konfigurasjon</h3>
+  {% for port in config.relay_pins %}
+  <form method="POST" class="mb-4">
+    <input type="hidden" name="port" value="{{ port }}">
 
-    <h3>Rele-pinner</h3>
-    {% for name in config.ports %}
-        <label>Rele for {{ name }}:</label>
-        <input type="number" name="relay_{{ name }}" value="{{ config.relay_pins.get(name, '') }}"><br>
-    {% endfor %}
+    {% set current_relay = config.relay_pins[port] %}
+    {% set current_open = config.sensor_pins[port]["open"] %}
+    {% set current_closed = config.sensor_pins[port]["closed"] %}
 
-    <h3>Sensor-pinner</h3>
-    {% for name in config.ports %}
-        <h4>{{ name }}</h4>
-        <label>Åpen:</label>
-        <input type="number" name="sensor_open_{{ name }}" value="{{ config.sensor_pins.get(name, {}).get('open', '') }}"><br>
-        <label>Lukket:</label>
-        <input type="number" name="sensor_closed_{{ name }}" value="{{ config.sensor_pins.get(name, {}).get('closed', '') }}"><br>
-    {% endfor %}
+    <label>Rele for {{ port }}</label>
+    <select name="relay_bcm" class="form-control mb-2">
+      {% for gpio in available_gpio %}
+        <option value="{{ gpio.bcm }}"
+          {% if gpio.bcm == current_relay %}selected{% endif %}
+          {% if gpio.bcm in used_pins and gpio.bcm != current_relay %}disabled{% endif %}>
+          GPIO{{ gpio.bcm }} (Pin {{ gpio.pin }}){% if gpio.bcm in used_pins and gpio.bcm != current_relay %} - i bruk{% endif %}
+        </option>
+      {% endfor %}
+    </select>
 
-    <br>
-    <button type="submit">Lagre endringer</button>
-</form>
+    <label>Åpen-sensor</label>
+    <select name="sensor_open_bcm" class="form-control mb-2">
+      {% for gpio in available_gpio %}
+        <option value="{{ gpio.bcm }}"
+          {% if gpio.bcm == current_open %}selected{% endif %}
+          {% if gpio.bcm in used_pins and gpio.bcm != current_open %}disabled{% endif %}>
+          GPIO{{ gpio.bcm }} (Pin {{ gpio.pin }}){% if gpio.bcm in used_pins and gpio.bcm != current_open %} - i bruk{% endif %}
+        </option>
+      {% endfor %}
+    </select>
+
+    <label>Lukket-sensor</label>
+    <select name="sensor_closed_bcm" class="form-control mb-2">
+      {% for gpio in available_gpio %}
+        <option value="{{ gpio.bcm }}"
+          {% if gpio.bcm == current_closed %}selected{% endif %}
+          {% if gpio.bcm in used_pins and gpio.bcm != current_closed %}disabled{% endif %}>
+          GPIO{{ gpio.bcm }} (Pin {{ gpio.pin }}){% if gpio.bcm in used_pins and gpio.bcm != current_closed %} - i bruk{% endif %}
+        </option>
+      {% endfor %}
+    </select>
+
+    <button class="btn btn-primary mt-2">Oppdater {{ port }}</button>
+  </form>
+  {% endfor %}
 {% endblock %}
