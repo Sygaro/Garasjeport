@@ -34,4 +34,8 @@ logs/
 
 # Annet
 Thumbs.db
+<<<<<<< HEAD
 ._*
+=======
+._*.*
+>>>>>>> 37bd56f8bee39829907d0e1ff3d8c4b378c386a0
