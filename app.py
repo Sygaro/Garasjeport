@@ -1,27 +1,30 @@
 # Fil: app.py
-# Flask hovedapplikasjon, ruter og oppstartspunkt
+# Flask hovedapplikasjon for garasjeprosjektet
+# Inneholder ruter for adminpanel, portkontroll, kalibrering, backup og loggvisning
 
 from flask import Flask, render_template, redirect, url_for, request, flash
 from garage_controller import GarageController
+from logger import setup_logging
+from datetime import datetime
+from event_log import log_event
 import json
 import os
 import logging
-from logger import setup_logging
 import atexit
+from flask import Flask, render_template
 
-# Initialiser logger
+
+# 🚀 Initier logger og last konfig
 setup_logging()
-
-# Last inn config
 with open("config.json", "r", encoding="utf-8") as f:
     config = json.load(f)
 
-# Start Flask-app
+# 🌐 Start Flask
 app = Flask(__name__)
 app.secret_key = "supersecretkey"
 garage = GarageController(config)
 
-# Sørg for at GPIO ryddes ved exit
+# 🔚 Rydd opp GPIO ved avslutning
 atexit.register(garage.cleanup)
 
 @app.route("/")
@@ -32,6 +35,14 @@ def index():
             "status": garage.get_status(port)
         }
     return render_template("index.html", statuses=statuses)
+
+@app.template_filter("format_norsk_dato")
+def format_norsk_dato(value):
+    try:
+        dt = datetime.fromisoformat(value)
+        return dt.strftime("%d.%m.%Y %H:%M:%S")
+    except Exception:
+        return value  # fallback hvis parsing feiler
 
 @app.route("/open/<port>")
 def open_port(port):
@@ -102,6 +113,119 @@ def admin():
         used_pins.add(sensor.get("closed"))
 
     return render_template("admin.html", config=config, available_gpio=get_available_gpio(), used_pins=used_pins)
+
+
+
+# 🔧 Kalibreringsrute – lagrer åpne-/lukketid i sekunder
+@app.route("/admin/calibrate", methods=["POST"])
+def calibrate():
+    port = request.form.get("port")
+    open_val = request.form.get("open_time")
+    close_val = request.form.get("close_time")
+
+    try:
+        open_time = float(open_val)
+        close_time = float(close_val)
+
+        if not (0 <= open_time <= 60) or not (0 <= close_time <= 60):
+            raise ValueError("Tiden må være mellom 0 og 60 sekunder.")
+
+        with open("config.json", "r") as f:
+            config = json.load(f)
+
+        if "calibration" not in config:
+            config["calibration"] = {}
+
+        config["calibration"][port] = {
+            "open_time": open_time,
+            "close_time": close_time
+        }
+
+        with open("config.json", "w") as f:
+            json.dump(config, f, indent=4)
+
+        flash(f"Kalibrering lagret for {port}: Åpne: {open_time}s, Lukke: {close_time}s", "success")
+    except Exception as e:
+        flash(f"Feil under lagring av kalibrering: {e}", "danger")
+
+    return redirect("/admin")
+
+
+
+# Flask-rute for automatisk kalibrering via GPIO-måling
+
+@app.route("/admin/calibrate/auto/<port>")
+def auto_calibrate(port):
+    from datetime import datetime
+    varighet = garage.maal_aapnetid(port)
+
+    if varighet is None:
+        flash(f"❌ Kalibrering feilet for {port}", "danger")
+        return redirect("/admin")
+
+    try:
+        with open("config.json", "r") as f:
+            config = json.load(f)
+
+        if "calibration" not in config:
+            config["calibration"] = {}
+
+        if port not in config["calibration"]:
+            config["calibration"][port] = {}
+
+        # ✅ Oppdater bare åpne-feltene
+        config["calibration"][port]["open_time"] = varighet
+        config["calibration"][port]["source"] = "auto"
+        config["calibration"][port]["timestamp"] = datetime.now().isoformat(timespec="seconds")
+
+        with open("config.json", "w") as f:
+            json.dump(config, f, indent=4)
+
+        log_event("calibration", "Automatisk kalibrering lagret", port=port, data={"sekunder": varighet})
+        flash(f"✅ Automatisk kalibrering for {port}: {varighet} sek", "success")
+
+    except Exception as e:
+        log_event("error", "Kunne ikke lagre kalibrering", port=port, data={"feil": str(e)})
+        flash(f"Feil ved lagring: {e}", "danger")
+
+    return redirect("/admin")
+
+
+@app.route("/admin/calibrate/close/<port>")
+def auto_calibrate_close(port):
+    from datetime import datetime
+    varighet = garage.maal_lukketid(port)
+
+    if varighet is None:
+        flash(f"❌ Kalibrering av lukketid feilet for {port}", "danger")
+        return redirect("/admin")
+
+    try:
+        with open("config.json", "r") as f:
+            config = json.load(f)
+
+        if "calibration" not in config:
+            config["calibration"] = {}
+
+        if port not in config["calibration"]:
+            config["calibration"][port] = {}
+
+        config["calibration"][port]["close_time"] = varighet
+        config["calibration"][port]["source_close"] = "auto"
+        config["calibration"][port]["timestamp_close"] = datetime.now().isoformat(timespec="seconds")
+
+        with open("config.json", "w") as f:
+            json.dump(config, f, indent=4)
+
+        log_event("calibration", "Automatisk lukketid lagret", port=port, data={"sekunder": varighet})
+        flash(f"✅ Lukketid målt for {port}: {varighet} sek", "success")
+
+    except Exception as e:
+        log_event("error", "Feil ved lagring av lukketid", port=port, data={"feil": str(e)})
+        flash(f"Feil ved lagring: {e}", "danger")
+
+    return redirect("/admin")
+
 @app.route("/logout")
 def logout():
     session.clear()
@@ -117,10 +241,27 @@ def logs():
         log_content = ["Loggfil ikke funnet."]
     return render_template("logs.html", log_content=log_content)
 
+# 📜 Vis systemhendelser fra logs/events.log
+@app.route("/admin/log")
+def vis_eventlogg():
+    loggfil = "logs/events.log"
+    hendelser = []
+
+    if os.path.exists(loggfil):
+        with open(loggfil, "r", encoding="utf-8") as f:
+            for linje in f:
+                try:
+                    hendelser.append(json.loads(linje.strip()))
+                except json.JSONDecodeError:
+                    continue
+
+    hendelser.reverse()  # Vis nyeste først
+    return render_template("log.html", events=hendelser)
+
+
 @app.route("/stats")
 def stats():
-    dummy_stats = {"Port 1": 10, "Port 2": 7}
-    return render_template("stats.html", stats=dummy_stats)
+    return render_template("stats.html")
 
 @app.route("/admin/backup")
 def admin_backup():

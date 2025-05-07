@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <title>Garasje</title>
     <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/log_style.css">
 </head>
 <body>
     <header><h1>Garasjeportkontroll</h1></header>
@@ -14,6 +15,7 @@
     <a href="{{ url_for('admin_backup') }}">💾 Backup</a> |
     <a href="{{ url_for('stats') }}">📊 Statistikk</a> |
     <a href="{{ url_for('logs') }}">📜 Logger</a> |
+    <a href="{{ url_for('vis_eventlogg') }}">📜 Logger</a>
     <a href="{{ url_for('logout') }}">🚪 Logg ut</a>
 </nav>
 <hr>

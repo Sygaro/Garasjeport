@@ -1,0 +1,76 @@
+
+{% extends 'base.html' %}
+{% block content %}
+<h2>📜 Systemlogg</h2>
+<p>Filtrer hendelser etter type eller port.</p>
+
+<div style="margin-bottom: 10px;">
+  <label for="filterType">Type:</label>
+  <select id="filterType">
+    <option value="">Alle</option>
+    {% for t in events | map(attribute='type') | unique %}
+    <option value="{{ t }}">{{ t }}</option>
+    {% endfor %}
+  </select>
+
+  <label for="filterPort">Port:</label>
+  <select id="filterPort">
+    <option value="">Alle</option>
+    {% for p in events | map(attribute='port') | unique %}
+    <option value="{{ p }}">{{ p }}</option>
+    {% endfor %}
+  </select>
+</div>
+
+<table id="logTable" class="table table-sm table-bordered table-striped">
+  <thead>
+    <tr>
+      <th>🕒 Klokkeslett</th>
+      <th>📅 Dato</th>
+      <th>Type</th>
+      <th>Port</th>
+      <th>Melding</th>
+      <th>Data</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for e in events %}
+    {% set dt = e.time %}
+    {% set norsk_dato = dt[:10].split('-') %}
+    <tr>
+      <td>{{ dt[11:19] }}</td>
+      <td>{{ norsk_dato[2] }}.{{ norsk_dato[1] }}.{{ norsk_dato[0] }}</td>
+      <td>{{ e.type }}</td>
+      <td>{{ e.port or '' }}</td>
+      <td>{{ e.message }}</td>
+      <td><pre style="margin:0">{{ e.data | tojson(indent=0) if e.data else "" }}</pre></td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+
+<a href="/admin" class="btn btn-secondary btn-sm">🔙 Tilbake til admin</a>
+
+<script>
+  const typeFilter = document.getElementById('filterType');
+  const portFilter = document.getElementById('filterPort');
+  const rows = document.querySelectorAll('#logTable tbody tr');
+
+  function applyFilter() {
+    const type = typeFilter.value;
+    const port = portFilter.value;
+
+    rows.forEach(row => {
+      const rowType = row.children[2].textContent.trim();
+      const rowPort = row.children[3].textContent.trim();
+      row.style.display = (
+        (!type || rowType === type) &&
+        (!port || rowPort === port)
+      ) ? '' : 'none';
+    });
+  }
+
+  typeFilter.addEventListener('change', applyFilter);
+  portFilter.addEventListener('change', applyFilter);
+</script>
+{% endblock %}

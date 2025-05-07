@@ -60,4 +60,42 @@
     <button class="btn btn-primary mt-2">Oppdater {{ port }}</button>
   </form>
   {% endfor %}
+
+<!-- 🔧 Kalibrering av porter med visning og lukketid -->
+<hr>
+<h3>Kalibrering av porter</h3>
+<p>Viser automatisk og manuell kalibrering av åpne-/lukketid. Du kan også måle nye verdier.</p>
+
+{% for port in config.relay_pins.keys() %}
+<form method="POST" action="/admin/calibrate" class="mb-3">
+  <input type="hidden" name="port" value="{{ port }}">
+
+  {% set cal = config.get('calibration', {}).get(port, {}) %}
+
+  <div class="mb-2">
+    <strong>{{ port }}</strong><br>
+    Åpne: {{ cal.get('open_time', '–') }}s 
+    ({{ cal.get('source', 'manuell') }}, {{ cal.get('timestamp', '–') }})<br>
+    Lukke: {{ cal.get('close_time', '–') }}s 
+    ({{ cal.get('source_close', 'manuell') }}, {{ cal.get('timestamp_close', '–') }})
+  </div>
+
+  <div class="input-group mb-2">
+    <span class="input-group-text">Åpnetid (sek)</span>
+    <input type="number" step="0.1" min="0" max="60" name="open_time" class="form-control"
+           value="{{ cal.get('open_time', '') }}">
+  </div>
+
+  <div class="input-group mb-2">
+    <span class="input-group-text">Lukketid (sek)</span>
+    <input type="number" step="0.1" min="0" max="60" name="close_time" class="form-control"
+           value="{{ cal.get('close_time', '') }}">
+  </div>
+
+  <button type="submit" class="btn btn-primary btn-sm">💾 Lagre manuelt for {{ port }}</button>
+  <a href="/admin/calibrate/auto/{{ port }}" class="btn btn-outline-primary btn-sm">⚙️ Mål åpnetid</a>
+  <a href="/admin/calibrate/close/{{ port }}" class="btn btn-outline-secondary btn-sm">⚙️ Mål lukketid</a>
+</form>
+{% endfor %}
+
 {% endblock %}

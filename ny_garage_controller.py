@@ -16,7 +16,6 @@ from event_log import log_event
 
 class GarageController:
     def __init__(self, config):
-        self.config = config
         # Last inn rele- og sensor-pinner fra config
         self.relay_pins = config.get("relay_pins", {})
         self.sensor_pins = config.get("sensor_pins", {})
@@ -106,59 +105,4 @@ class GarageController:
             return None
         varighet = round(maaling["slutt"] - maaling["start"], 2)
         log_event("calibration", "Målt åpnetid fullført", port=port, data={"sekunder": varighet})
-        return varighet
-
-
-    def maal_lukketid(self, port, timeout=30):
-        relay_pin = self.config["relay_pins"].get(port)
-        sensor_pins = self.config["sensor_pins"].get(port, {})
-        open_sensor = sensor_pins.get("open")
-        closed_sensor = sensor_pins.get("closed")
-
-        if not all([relay_pin, open_sensor, closed_sensor]):
-            log_event("error", "Mangler GPIO-konfig for port", port=port)
-            return None
-
-        status_closed = GPIO.input(closed_sensor)
-        status_open = GPIO.input(open_sensor)
-
-        if status_closed == GPIO.HIGH:
-            log_event("info", "Port allerede lukket – ingen måling", port=port)
-            return 0.0
-
-        log_event("calibration", "Starter måling av lukketid", port=port)
-
-        maaling = {"start": None, "slutt": None}
-
-        def open_faller(channel):
-            maaling["start"] = time.perf_counter()
-            log_event("sensor", "Åpen sensor inaktiv – start lukketid", port=port)
-
-        def closed_stiger(channel):
-            maaling["slutt"] = time.perf_counter()
-            log_event("sensor", "Lukket sensor aktiv – stopp lukketid", port=port)
-
-        GPIO.add_event_detect(open_sensor, GPIO.FALLING, callback=open_faller, bouncetime=200)
-        GPIO.add_event_detect(closed_sensor, GPIO.RISING, callback=closed_stiger, bouncetime=200)
-
-        # Send pulssignal for å lukke port
-        GPIO.output(relay_pin, GPIO.HIGH)
-        time.sleep(0.5)
-        GPIO.output(relay_pin, GPIO.LOW)
-
-        start_tid = time.time()
-        while time.time() - start_tid < timeout:
-            if maaling["start"] and maaling["slutt"]:
-                break
-            time.sleep(0.1)
-
-        GPIO.remove_event_detect(open_sensor)
-        GPIO.remove_event_detect(closed_sensor)
-
-        if not (maaling["start"] and maaling["slutt"]):
-            log_event("error", "Kalibrering lukketid feilet – ingen fullføring", port=port, data={"timeout": timeout})
-            return None
-
-        varighet = round(maaling["slutt"] - maaling["start"], 2)
-        log_event("calibration", "Målt lukketid fullført", port=port, data={"sekunder": varighet})
         return varighet

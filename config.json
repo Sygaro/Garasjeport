@@ -12,5 +12,23 @@
             "open": 15,
             "closed": 18
         }
+    },
+    "calibration": {
+        "port1": {
+            "open_time": 0.0,
+            "close_time": 0.0,
+            "source": "auto",
+            "timestamp": "2025-05-07T23:37:46",
+            "source_close": "auto",
+            "timestamp_close": "2025-05-07T23:37:48"
+        },
+        "port2": {
+            "open_time": 0.0,
+            "close_time": 0.0,
+            "source": "auto",
+            "timestamp": "2025-05-07T23:37:50",
+            "source_close": "auto",
+            "timestamp_close": "2025-05-07T23:37:50"
+        }
     }
 }
