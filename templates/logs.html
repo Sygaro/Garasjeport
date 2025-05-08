@@ -1,2 +1,10 @@
-{% extends 'base.html' %}
-{% block content %}<h2>Logger</h2><pre>{% for line in log_content %}{{ line }}{% endfor %}</pre>{% endblock %}
+{% extends "base.html" %}
+{% block content %}
+<h2>Systemlogg</h2>
+
+<pre class="bg-dark text-light p-3" style="height: 500px; overflow-y: scroll;">
+{% for line in log_content %}
+{{ line }}
+{% endfor %}
+</pre>
+{% endblock %}

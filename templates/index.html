@@ -1,13 +1,34 @@
-<!-- Fil: index.html -->
-{% extends 'base.html' %}
+{% extends "base.html" %}
 {% block content %}
-<h2>Status</h2>
-<ul>
-    {% for port, info in statuses.items() %}
-    <li>
-        <strong>{{ port }}</strong>: {{ info.status }}
-        <a href="{{ url_for('open_port', port=port) }}" class="btn">Åpne/Lukk</a>
-    </li>
-    {% endfor %}
-</ul>
+<h1>Garasjeportkontroller v1.0</h1>
+<p class="text-muted" style="color: inherit;">Oversikt over porter, status og kalibrering</p>
+
+<div class="row">
+  {% for port, data in statuses.items() %}
+  <div class="col-md-4">
+    <div class="card mb-4">
+      <div class="card-body">
+        <h5 class="card-title">Port {{ port }}</h5>
+
+        <p>Status: 
+          {% if data.status %}
+            <span class="badge bg-success">Åpen</span>
+          {% else %}
+            <span class="badge bg-secondary">Lukket</span>
+          {% endif %}
+        </p>
+
+        {% if config.calibration and config.calibration.get(port) %}
+          <p class="mb-1 text-muted">
+            Åpne-tid: {{ config.calibration[port].open_time }}s<br>
+            Lukke-tid: {{ config.calibration[port].close_time }}s
+          </p>
+        {% endif %}
+
+        <a href="{{ url_for('open_port', port=port) }}" class="btn btn-primary">Åpne port</a>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
 {% endblock %}

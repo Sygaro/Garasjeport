@@ -2,7 +2,7 @@
 # Flask hovedapplikasjon for garasjeprosjektet
 # Inneholder ruter for adminpanel, portkontroll, kalibrering, backup og loggvisning
 
-from flask import Flask, render_template, redirect, url_for, request, flash
+from flask import Flask, render_template, redirect, url_for, request, flash, session
 from garage_controller import GarageController
 from logger import setup_logging
 from datetime import datetime
@@ -27,7 +27,32 @@ garage = GarageController(config)
 # 🔚 Rydd opp GPIO ved avslutning
 atexit.register(garage.cleanup)
 
+from functools import wraps
+
+def login_required_if_enabled(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        with open("config.json", "r") as fconf:
+            conf = json.load(fconf)
+        if conf.get("require_login") and not session.get("logged_in"):
+            flash("Du må logge inn for å få tilgang.", "warning")
+            return redirect("/login")
+        return f(*args, **kwargs)
+    return wrapper
+
+
+def login_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not session.get("logged_in"):
+            flash("Logg inn for å få tilgang", "warning")
+            return redirect("/login")
+        return f(*args, **kwargs)
+    return decorated
+
+
 @app.route("/")
+@login_required_if_enabled
 def index():
     statuses = {}
     for port in config.get("ports", []):
@@ -37,6 +62,7 @@ def index():
     return render_template("index.html", statuses=statuses)
 
 @app.template_filter("format_norsk_dato")
+@login_required_if_enabled
 def format_norsk_dato(value):
     try:
         dt = datetime.fromisoformat(value)
@@ -45,6 +71,7 @@ def format_norsk_dato(value):
         return value  # fallback hvis parsing feiler
 
 @app.route("/open/<port>")
+@login_required_if_enabled
 def open_port(port):
     if garage.open_port(port):
         flash(f"Porten {port} ble aktivert", "success")
@@ -57,6 +84,7 @@ def open_port(port):
 
 
 @app.route("/admin", methods=["GET", "POST"])
+@login_required_if_enabled
 def admin():
     """
     Adminpanel – lar brukeren konfigurere rele og sensor-pinner for porter.
@@ -118,6 +146,7 @@ def admin():
 
 # 🔧 Kalibreringsrute – lagrer åpne-/lukketid i sekunder
 @app.route("/admin/calibrate", methods=["POST"])
+@login_required_if_enabled
 def calibrate():
     port = request.form.get("port")
     open_val = request.form.get("open_time")
@@ -155,6 +184,7 @@ def calibrate():
 # Flask-rute for automatisk kalibrering via GPIO-måling
 
 @app.route("/admin/calibrate/auto/<port>")
+@login_required_if_enabled
 def auto_calibrate(port):
     from datetime import datetime
     varighet = garage.maal_aapnetid(port)
@@ -192,6 +222,7 @@ def auto_calibrate(port):
 
 
 @app.route("/admin/calibrate/close/<port>")
+@login_required_if_enabled
 def auto_calibrate_close(port):
     from datetime import datetime
     varighet = garage.maal_lukketid(port)
@@ -226,13 +257,39 @@ def auto_calibrate_close(port):
 
     return redirect("/admin")
 
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    with open("config.json", "r") as f:
+        config = json.load(f)
+    auth = config.get("auth", {})
+    correct_user = auth.get("username")
+    correct_pass = auth.get("password")
+
+    if request.method == "POST":
+        username = request.form.get("username")
+        password = request.form.get("password")
+
+        if username == correct_user and password == correct_pass:
+            session["logged_in"] = True
+            flash("Innlogging vellykket ✅", "success")
+            return redirect("/")
+        else:
+            flash("Feil brukernavn eller passord ❌", "danger")
+
+    return render_template("login.html")
+
+
+
 @app.route("/logout")
+@login_required_if_enabled
 def logout():
     session.clear()
     flash("Du er logget ut", "info")
     return redirect(url_for("login"))
 
 @app.route("/logs")
+@login_required_if_enabled
 def logs():
     try:
         with open("logs/garage.log", "r") as f:
@@ -243,6 +300,7 @@ def logs():
 
 # 📜 Vis systemhendelser fra logs/events.log
 @app.route("/admin/log")
+@login_required_if_enabled
 def vis_eventlogg():
     loggfil = "logs/events.log"
     hendelser = []
@@ -260,10 +318,12 @@ def vis_eventlogg():
 
 
 @app.route("/stats")
+@login_required_if_enabled
 def stats():
     return render_template("stats.html")
 
 @app.route("/admin/backup")
+@login_required_if_enabled
 def admin_backup():
     backup_dir = "backups"
     os.makedirs(backup_dir, exist_ok=True)
@@ -276,6 +336,7 @@ def admin_backup():
 
 # 📄 Viser innholdet i en backup
 @app.route("/admin/backup/view/<filename>")
+@login_required_if_enabled
 def view_backup(filename):
     path = os.path.join("backups", filename)
     if os.path.exists(path):
@@ -289,6 +350,7 @@ def view_backup(filename):
 # 🔁 Gjenoppretter backup etter bekreftelse
 
 @app.route("/backup")
+@login_required_if_enabled
 def view_backups():
     import os
     backup_dir = "backups"
@@ -296,6 +358,7 @@ def view_backups():
     return render_template("backup.html", backups=backups)
 
 @app.route("/create-backup")
+@login_required_if_enabled
 def create_backup():
     from datetime import datetime
     import shutil
@@ -307,6 +370,7 @@ def create_backup():
     return redirect("/backup")
 
 @app.route("/restore/<filename>")
+@login_required_if_enabled
 def restore_backup(filename):
     import shutil
     try:
@@ -315,6 +379,11 @@ def restore_backup(filename):
     except Exception as e:
         flash(f"Feil under gjenoppretting: {e}", "danger")
     return redirect("/admin")
+
+@app.context_processor
+def inject_config():
+    return dict(config=app.config, config_data=config)
+
 
 
 if __name__ == '__main__':    app.run(host='0.0.0.0', port=5000, debug=True)

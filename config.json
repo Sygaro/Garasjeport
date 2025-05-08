@@ -15,20 +15,19 @@
     },
     "calibration": {
         "port1": {
-            "open_time": 0.0,
-            "close_time": 0.0,
-            "source": "auto",
-            "timestamp": "2025-05-07T23:37:46",
-            "source_close": "auto",
-            "timestamp_close": "2025-05-07T23:37:48"
+            "open_time": 10.0,
+            "close_time": 12.0
         },
         "port2": {
-            "open_time": 0.0,
-            "close_time": 0.0,
-            "source": "auto",
-            "timestamp": "2025-05-07T23:37:50",
-            "source_close": "auto",
-            "timestamp_close": "2025-05-07T23:37:50"
+            "open_time": 14.0,
+            "close_time": 15.0
         }
-    }
+    },
+    "auth": {
+  "username": "admin",
+  "password": "1234"
+},
+
+    "require_login": true
+
 }

@@ -1,101 +1,83 @@
-
-{% extends "base.html" %}
+{% extends 'base.html' %}
 {% block content %}
-<div class="container mt-4">
-  <h2>Adminpanel</h2>
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      {% for category, message in messages %}
-        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-          {{ message }}
-          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-      {% endfor %}
-    {% endif %}
-  {% endwith %}
+<h2>⚙️ Adminpanel</h2>
+<p>Oppsett og kalibrering av porter</p>
 
-  <hr>
-  <h3>GPIO-konfigurasjon</h3>
+<div class="row">
   {% for port in config.relay_pins %}
-  <form method="POST" class="mb-4">
-    <input type="hidden" name="port" value="{{ port }}">
+  <div class="col-md-6">
+    <form method="POST" class="card mb-4 p-3">
+      <h5>{{ port }}</h5>
+      <input type="hidden" name="port" value="{{ port }}">
 
-    {% set current_relay = config.relay_pins[port] %}
-    {% set current_open = config.sensor_pins[port]["open"] %}
-    {% set current_closed = config.sensor_pins[port]["closed"] %}
+      {% set current_relay = config.relay_pins[port] %}
+      {% set current_open = config.sensor_pins[port]["open"] %}
+      {% set current_closed = config.sensor_pins[port]["closed"] %}
 
-    <label>Rele for {{ port }}</label>
-    <select name="relay_bcm" class="form-control mb-2">
-      {% for gpio in available_gpio %}
-        <option value="{{ gpio.bcm }}"
-          {% if gpio.bcm == current_relay %}selected{% endif %}
-          {% if gpio.bcm in used_pins and gpio.bcm != current_relay %}disabled{% endif %}>
-          GPIO{{ gpio.bcm }} (Pin {{ gpio.pin }}){% if gpio.bcm in used_pins and gpio.bcm != current_relay %} - i bruk{% endif %}
-        </option>
-      {% endfor %}
-    </select>
+      <label class="form-label">Rele (GPIO)</label>
+      <select name="relay_bcm" class="form-select mb-2">
+        {% for gpio in available_gpio %}
+          <option value="{{ gpio.bcm }}"
+            {% if gpio.bcm == current_relay %}selected{% endif %}
+            {% if gpio.bcm in used_pins and gpio.bcm != current_relay %}disabled{% endif %}>
+            GPIO{{ gpio.bcm }} (Pin {{ gpio.pin }}){% if gpio.bcm in used_pins and gpio.bcm != current_relay %} - i bruk{% endif %}
+          </option>
+        {% endfor %}
+      </select>
 
-    <label>Åpen-sensor</label>
-    <select name="sensor_open_bcm" class="form-control mb-2">
-      {% for gpio in available_gpio %}
-        <option value="{{ gpio.bcm }}"
-          {% if gpio.bcm == current_open %}selected{% endif %}
-          {% if gpio.bcm in used_pins and gpio.bcm != current_open %}disabled{% endif %}>
-          GPIO{{ gpio.bcm }} (Pin {{ gpio.pin }}){% if gpio.bcm in used_pins and gpio.bcm != current_open %} - i bruk{% endif %}
-        </option>
-      {% endfor %}
-    </select>
+      <label class="form-label">Åpen-sensor</label>
+      <select name="sensor_open_bcm" class="form-select mb-2">
+        {% for gpio in available_gpio %}
+          <option value="{{ gpio.bcm }}"
+            {% if gpio.bcm == current_open %}selected{% endif %}
+            {% if gpio.bcm in used_pins and gpio.bcm != current_open %}disabled{% endif %}>
+            GPIO{{ gpio.bcm }} (Pin {{ gpio.pin }}){% if gpio.bcm in used_pins and gpio.bcm != current_open %} - i bruk{% endif %}
+          </option>
+        {% endfor %}
+      </select>
 
-    <label>Lukket-sensor</label>
-    <select name="sensor_closed_bcm" class="form-control mb-2">
-      {% for gpio in available_gpio %}
-        <option value="{{ gpio.bcm }}"
-          {% if gpio.bcm == current_closed %}selected{% endif %}
-          {% if gpio.bcm in used_pins and gpio.bcm != current_closed %}disabled{% endif %}>
-          GPIO{{ gpio.bcm }} (Pin {{ gpio.pin }}){% if gpio.bcm in used_pins and gpio.bcm != current_closed %} - i bruk{% endif %}
-        </option>
-      {% endfor %}
-    </select>
+      <label class="form-label">Lukket-sensor</label>
+      <select name="sensor_closed_bcm" class="form-select mb-2">
+        {% for gpio in available_gpio %}
+          <option value="{{ gpio.bcm }}"
+            {% if gpio.bcm == current_closed %}selected{% endif %}
+            {% if gpio.bcm in used_pins and gpio.bcm != current_closed %}disabled{% endif %}>
+            GPIO{{ gpio.bcm }} (Pin {{ gpio.pin }}){% if gpio.bcm in used_pins and gpio.bcm != current_closed %} - i bruk{% endif %}
+          </option>
+        {% endfor %}
+      </select>
 
-    <button class="btn btn-primary mt-2">Oppdater {{ port }}</button>
-  </form>
+      <button class="btn btn-primary mt-2">💾 Oppdater {{ port }}</button>
+    </form>
+  </div>
   {% endfor %}
+</div>
 
-<!-- 🔧 Kalibrering av porter med visning og lukketid -->
 <hr>
-<h3>Kalibrering av porter</h3>
-<p>Viser automatisk og manuell kalibrering av åpne-/lukketid. Du kan også måle nye verdier.</p>
+<h3>🧭 Kalibrering</h3>
+<div class="row">
+  {% for port in config.relay_pins %}
+  <div class="col-md-6">
+    <form method="POST" action="/admin/calibrate" class="card mb-4 p-3">
+      <input type="hidden" name="port" value="{{ port }}">
+      {% set cal = config.get('calibration', {}).get(port, {}) %}
+      <h5>{{ port }}</h5>
+      <p>Åpne: {{ cal.get('open_time', '–') }}s • Lukke: {{ cal.get('close_time', '–') }}s</p>
 
-{% for port in config.relay_pins.keys() %}
-<form method="POST" action="/admin/calibrate" class="mb-3">
-  <input type="hidden" name="port" value="{{ port }}">
+      <div class="input-group mb-2">
+        <span class="input-group-text">Åpnetid (sek)</span>
+        <input type="number" step="0.1" min="0" max="60" name="open_time" class="form-control" value="{{ cal.get('open_time', '') }}">
+      </div>
+      <div class="input-group mb-2">
+        <span class="input-group-text">Lukketid (sek)</span>
+        <input type="number" step="0.1" min="0" max="60" name="close_time" class="form-control" value="{{ cal.get('close_time', '') }}">
+      </div>
 
-  {% set cal = config.get('calibration', {}).get(port, {}) %}
-
-  <div class="mb-2">
-    <strong>{{ port }}</strong><br>
-    Åpne: {{ cal.get('open_time', '–') }}s 
-    ({{ cal.get('source', 'manuell') }}, {{ cal.get('timestamp', '–') }})<br>
-    Lukke: {{ cal.get('close_time', '–') }}s 
-    ({{ cal.get('source_close', 'manuell') }}, {{ cal.get('timestamp_close', '–') }})
+      <button type="submit" class="btn btn-success btn-sm">💾 Lagre</button>
+      <a href="/admin/calibrate/auto/{{ port }}" class="btn btn-outline-primary btn-sm">⚙️ Mål åpnetid</a>
+      <a href="/admin/calibrate/close/{{ port }}" class="btn btn-outline-secondary btn-sm">⚙️ Mål lukketid</a>
+    </form>
   </div>
-
-  <div class="input-group mb-2">
-    <span class="input-group-text">Åpnetid (sek)</span>
-    <input type="number" step="0.1" min="0" max="60" name="open_time" class="form-control"
-           value="{{ cal.get('open_time', '') }}">
-  </div>
-
-  <div class="input-group mb-2">
-    <span class="input-group-text">Lukketid (sek)</span>
-    <input type="number" step="0.1" min="0" max="60" name="close_time" class="form-control"
-           value="{{ cal.get('close_time', '') }}">
-  </div>
-
-  <button type="submit" class="btn btn-primary btn-sm">💾 Lagre manuelt for {{ port }}</button>
-  <a href="/admin/calibrate/auto/{{ port }}" class="btn btn-outline-primary btn-sm">⚙️ Mål åpnetid</a>
-  <a href="/admin/calibrate/close/{{ port }}" class="btn btn-outline-secondary btn-sm">⚙️ Mål lukketid</a>
-</form>
-{% endfor %}
-
+  {% endfor %}
+</div>
 {% endblock %}
