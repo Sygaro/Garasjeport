@@ -1,6 +1,66 @@
 {% extends 'base.html' %}
 {% block content %}
 <h2>⚙️ Adminpanel</h2>
+
+<h3>⏱️ Session-timeout</h3>
+<form method="POST" class="card p-3 mb-4 col-md-4">
+  <input type="hidden" name="setting" value="timeout">
+  <label for="session_timeout" class="form-label">Varighet (minutter)</label>
+  <input type="number" name="session_timeout" min="1" max="1440" class="form-control mb-2"
+         value="{{ config.get('session_timeout_minutes', 30) }}">
+  <button class="btn btn-outline-primary btn-sm">💾 Lagre session-timeout</button>
+</form>
+
+<h3>🔔 Flash-meldingers visningstid</h3>
+<form method="POST" class="card p-3 mb-4 col-md-6">
+  <input type="hidden" name="setting" value="flash_timeout">
+  <div class="row">
+    {% for key in ['success', 'info', 'warning', 'danger'] %}
+    <div class="col-md-6 mb-2">
+      <label class="form-label">{{ key|capitalize }} (sekunder)</label>
+      <input type="number" name="flash_{{ key }}" min="1" max="300" class="form-control"
+             value="{{ config.get('flash_timeout', {}).get(key, 30) }}">
+    </div>
+    {% endfor %}
+  </div>
+  <button class="btn btn-outline-primary btn-sm mt-2">💾 Lagre visningstid</button>
+</form>
+
+
+
+  <h3>💾 Konfigurasjonsbackup</h3>
+<a href="/create-backup" class="btn btn-outline-secondary btn-sm mb-3">
+  📤 Ta ny backup av config.json
+</a>
+<h3>🧹 Automatisk sletting av gamle backups</h3>
+<form method="POST" class="card p-3 mb-4 col-md-4">
+  <input type="hidden" name="setting" value="retention_days">
+  <label for="retention_days" class="form-label">Behold backupfiler i (dager)</label>
+  <input type="number" min="1" max="365" name="retention_days" class="form-control mb-2"
+         value="{{ config.get('backup_retention_days', 30) }}">
+  <button class="btn btn-outline-primary btn-sm">💾 Lagre varighet</button>
+
+
+
+{% if neste_autoslett %}
+<p class="text-muted small">
+  Eldste backup er fra <strong>{{ eldste_dato.strftime('%d.%m.%Y %H:%M:%S') }}</strong><br>
+  Denne slettes automatisk når den er mer enn 
+  <strong>{{ config.get('backup_retention_days') }} dager gammel</strong> ({{ neste_autoslett.strftime('%d.%m.%Y %H:%M:%S') }})
+</p>
+{% else %}
+<p class="text-muted small">Ingen gyldig backupdato funnet.</p>
+{% endif %}
+
+<a href="/admin/backup/old" class="btn btn-outline-danger btn-sm mt-2">
+  🧹 Slett gamle backupfiler nå
+</a>
+
+
+</form>
+
+</form>
+
 <p>Oppsett og kalibrering av porter</p>
 
 <div class="row">
@@ -62,7 +122,31 @@
       <input type="hidden" name="port" value="{{ port }}">
       {% set cal = config.get('calibration', {}).get(port, {}) %}
       <h5>{{ port }}</h5>
-      <p>Åpne: {{ cal.get('open_time', '–') }}s • Lukke: {{ cal.get('close_time', '–') }}s</p>
+     <div class="small text-muted mb-2">
+       <strong>Åpne:</strong> {{ cal.get('open_time', '–') }}s
+  (
+  {% if cal.get('source') == 'auto' %}
+    ⚙️ automatisk
+  {% else %}
+    ✍️ manuell
+  {% endif %},
+  {{ cal.get('timestamp') | format_norsk_dato }},
+  {{ cal.get('timestamp') | siden_tidspunkt }}
+  )<br>
+
+  <strong>Lukke:</strong> {{ cal.get('close_time', '–') }}s
+  (
+  {% if cal.get('source_close') == 'auto' %}
+    ⚙️ automatisk
+  {% else %}
+    ✍️ manuell
+  {% endif %},
+  {{ cal.get('timestamp_close') | format_norsk_dato }},
+  {{ cal.get('timestamp_close') | siden_tidspunkt }}
+  )
+</div>
+
+
 
       <div class="input-group mb-2">
         <span class="input-group-text">Åpnetid (sek)</span>
@@ -73,7 +157,9 @@
         <input type="number" step="0.1" min="0" max="60" name="close_time" class="form-control" value="{{ cal.get('close_time', '') }}">
       </div>
 
-      <button type="submit" class="btn btn-success btn-sm">💾 Lagre</button>
+      <button name="action" value="save_open" class="btn btn-success btn-sm">💾 Lagre åpnetid</button>
+      <button name="action" value="save_close" class="btn btn-secondary btn-sm">💾 Lagre lukketid</button>
+
       <a href="/admin/calibrate/auto/{{ port }}" class="btn btn-outline-primary btn-sm">⚙️ Mål åpnetid</a>
       <a href="/admin/calibrate/close/{{ port }}" class="btn btn-outline-secondary btn-sm">⚙️ Mål lukketid</a>
     </form>

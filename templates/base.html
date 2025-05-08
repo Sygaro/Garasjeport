@@ -6,9 +6,12 @@
   <title>Garasjeportal</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="{{ url_for('static', filename='styles.css') }}" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+
 </head>
 <body class="bg-light" id="pageBody">
-  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+  {% if request.endpoint != 'login' %}
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
   <div class="container-fluid">
     <a class="navbar-brand" href="/">Garasjeport</a>
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -18,37 +21,67 @@
       <ul class="navbar-nav me-auto">
         <li class="nav-item"><a class="nav-link" href="/">🏠 Hjem</a></li>
         <li class="nav-item"><a class="nav-link" href="/admin">⚙️ Admin</a></li>
+        <li class="nav-item"><a class="nav-link" href="/backup">💾 Backup</a></li>
         <li class="nav-item"><a class="nav-link" href="/admin/log">📜 Logg</a></li>
         <li class="nav-item"><a class="nav-link" href="/stats">📈 Statistikk</a></li>
-        <li class="nav-item"><a class="nav-link" href="/backup">💾 Backup</a></li>
-        <ul class="navbar-nav">
-          {% if session.logged_in %}
-            <li class="nav-item"><a class="nav-link" href="/logout">🚪 Logg ut</a></li>
-          {% else %}
-            <li class="nav-item"><a class="nav-link" href="/login">🔐 Logg inn</a></li>
-          {% endif %}
-        </ul>
       </ul>
-      <button class="btn btn-outline-light btn-sm" onclick="toggleTheme()">🌓 Bytt modus</button>
+      <ul class="navbar-nav">
+        {% if session.logged_in %}
+          <button class="btn btn-outline-light btn-sm" onclick="toggleTheme()">🌓 Bytt modus</button>
+          <li class="nav-item"><a class="nav-link" href="/logout">🚪 Logg ut</a></li>
+        {% else %}
+          <li class="nav-item"><a class="nav-link" href="/login">🔐 Logg inn</a></li>
+        {% endif %}
+      </ul>
     </div>
   </div>
 </nav>
-
+{% endif %}
 
   <div class="container mt-4">
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         {% for category, message in messages %}
-          <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-            {{ message }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-          </div>
+          <div class="alert alert-{{ category }} alert-dismissible fade show position-relative" role="alert">
+  {{ message }}
+  <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  <div class="progress position-absolute bottom-0 start-0 w-100" style="height: 3px;">
+    <div class="progress-bar bg-dark bg-opacity-50" 
+         role="progressbar" 
+         style="width: 100%;" 
+         data-alert-class="alert-{{ category }}">
+    </div>
+  </div>
+</div>
+
         {% endfor %}
       {% endif %}
     {% endwith %}
 
     {% block content %}{% endblock %}
   </div>
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const timeoutMap = {
+      "alert-success": 10000,
+      "alert-info": 20000,
+      "alert-warning": 30000,
+      "alert-danger": 60000
+    };
+
+    document.querySelectorAll('.alert').forEach(alert => {
+      for (const cls of alert.classList) {
+        if (timeoutMap[cls]) {
+          setTimeout(() => {
+            alert.classList.remove('show');
+            alert.classList.add('fade');
+            setTimeout(() => alert.remove(), 500);
+          }, timeoutMap[cls]);
+        }
+      }
+    });
+  });
+</script>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
@@ -65,6 +98,45 @@
       if (theme === "dark") setTheme(true);
     })();
   </script>
+
+  <script>
+  // Skjul flashmeldinger etter 30 sekunder (30000 ms)
+  setTimeout(() => {
+    document.querySelectorAll('.alert').forEach(alert => {
+      alert.classList.remove('show');
+      alert.classList.add('fade');
+      setTimeout(() => alert.remove(), 500); // fjern fra DOM etter fade
+    });
+  }, 30000);
+</script>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const timeoutMap = {
+    "alert-success": 10000,
+    "alert-info": 20000,
+    "alert-warning": 30000,
+    "alert-danger": 60000
+  };
+
+  document.querySelectorAll('.alert').forEach(alert => {
+    let bar = alert.querySelector('.progress-bar');
+    let alertType = [...alert.classList].find(cls => timeoutMap[cls]);
+    if (!alertType || !bar) return;
+
+    const duration = timeoutMap[alertType];
+    bar.style.transition = `width ${duration}ms linear`;
+    setTimeout(() => { bar.style.width = '0%'; }, 100);  // start after render
+
+    setTimeout(() => {
+      alert.classList.remove('show');
+      alert.classList.add('fade');
+      setTimeout(() => alert.remove(), 500);
+    }, duration);
+  });
+});
+</script>
+
   {% block scripts %}{% endblock %}
 </body>
 </html>

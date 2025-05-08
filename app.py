@@ -2,10 +2,10 @@
 # Flask hovedapplikasjon for garasjeprosjektet
 # Inneholder ruter for adminpanel, portkontroll, kalibrering, backup og loggvisning
 
-from flask import Flask, render_template, redirect, url_for, request, flash, session
+from flask import Flask, render_template, redirect, url_for, request, flash, session, send_from_directory
 from garage_controller import GarageController
 from logger import setup_logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from event_log import log_event
 import json
 import os
@@ -21,6 +21,23 @@ with open("config.json", "r", encoding="utf-8") as f:
 
 # 🌐 Start Flask
 app = Flask(__name__)
+@app.before_request
+def session_timeout_check():
+    with open("config.json", "r") as f:
+        conf = json.load(f)
+
+    timeout_minutes = conf.get("session_timeout_minutes", 15)
+    timeout_seconds = timeout_minutes * 60
+
+    now = datetime.now().timestamp()
+    last = session.get("last_activity", now)
+    session["last_activity"] = now
+
+    if session.get("logged_in") and (now - last > timeout_seconds):
+        session.clear()
+        flash("Du ble logget ut pga. inaktivitet.", "warning")
+        return redirect("/login")
+
 app.secret_key = "supersecretkey"
 garage = GarageController(config)
 
@@ -70,6 +87,27 @@ def format_norsk_dato(value):
     except Exception:
         return value  # fallback hvis parsing feiler
 
+@app.template_filter("siden_tidspunkt")
+@login_required_if_enabled
+def siden_tidspunkt(iso_str):
+    try:
+        dt = datetime.fromisoformat(iso_str)
+        nå = datetime.now()
+        diff = nå - dt
+        dager = diff.days
+        sek = diff.seconds
+        if dager > 0:
+            return f"for {dager} dager siden"
+        elif sek >= 3600:
+            return f"for {sek // 3600} timer siden"
+        elif sek >= 60:
+            return f"for {sek // 60} minutter siden"
+        else:
+            return "nå nettopp"
+    except:
+        return ""
+
+
 @app.route("/open/<port>")
 @login_required_if_enabled
 def open_port(port):
@@ -82,16 +120,9 @@ def open_port(port):
 # Rute: /admin – konfigurasjon av porter og GPIO
 
 
-
 @app.route("/admin", methods=["GET", "POST"])
 @login_required_if_enabled
 def admin():
-    """
-    Adminpanel – lar brukeren konfigurere rele og sensor-pinner for porter.
-    Vis tilgjengelige GPIO-pinner (sortert etter fysisk pin).
-    Hindre duplikatbruk internt og globalt.
-    """
-
     config_path = "config.json"
 
     def get_available_gpio():
@@ -110,37 +141,124 @@ def admin():
         with open(config_path, "r") as f:
             config = json.load(f)
     except Exception as e:
-        flash(f"Feil ved lesing av config.json: {e}", "danger")
+        flash(f"Feil ved lasting av config.json: {e}", "danger")
         config = {"relay_pins": {}, "sensor_pins": {}}
 
+    # 📤 Håndter POST-skjemaer
     if request.method == "POST":
-        try:
-            port = request.form["port"]
-            new_relay = int(request.form["relay_bcm"])
-            new_open = int(request.form["sensor_open_bcm"])
-            new_closed = int(request.form["sensor_closed_bcm"])
+        setting = request.form.get("setting")
 
-            # Intern validering – sjekk for duplikatbruk i samme port
-            pin_values = [new_relay, new_open, new_closed]
-            if len(set(pin_values)) != len(pin_values):
-                flash("Samme GPIO-pinne kan ikke brukes flere ganger for samme port.", "danger")
-            else:
-                config["relay_pins"][port] = new_relay
-                config["sensor_pins"][port]["open"] = new_open
-                config["sensor_pins"][port]["closed"] = new_closed
+        # 🔐 Endre session-timeout
+        if setting == "timeout":
+            try:
+                timeout_val = request.form.get("session_timeout")
+                if not timeout_val:
+                    raise ValueError("Session-timeout mangler.")
+                val = int(timeout_val)
+
+                config["session_timeout_minutes"] = val
                 with open(config_path, "w") as fw:
                     json.dump(config, fw, indent=4)
-                flash(f"GPIO-pinner oppdatert for {port}", "success")
-        except Exception as e:
-            flash(f"Feil under oppdatering: {e}", "danger")
+                flash(f"Session-timeout oppdatert til {val} minutter", "success")
+            except Exception as e:
+                flash(f"Feil ved lagring av session-timeout: {e}", "danger")
 
-    # Globale brukte pinner for å disable i dropdowns
+        # 🔔 Flash-meldingers varighet
+        elif setting == "flash_timeout":
+            try:
+                flash_data = {}
+                for cat in ["success", "info", "warning", "danger"]:
+                    val = int(request.form.get(f"flash_{cat}", 30))
+                    if not (1 <= val <= 300):
+                        raise ValueError(f"Verdi for {cat} må være mellom 1 og 300 sekunder.")
+                    flash_data[cat] = val
+                config["flash_timeout"] = flash_data
+                with open(config_path, "w") as fw:
+                    json.dump(config, fw, indent=4)
+                flash("Visningstid for meldinger oppdatert.", "success")
+            except Exception as e:
+                flash(f"Feil ved lagring av flash-timeout: {e}", "danger")
+
+        # 📦 Endre antall dager backup beholdes
+        elif setting == "retention_days":
+            try:
+                days = int(request.form.get("retention_days"))
+                if not (1 <= days <= 365):
+                    raise ValueError("Velg mellom 1 og 365 dager.")
+                config["backup_retention_days"] = days
+                with open(config_path, "w") as fw:
+                    json.dump(config, fw, indent=4)
+                flash(f"Behold backupfiler i {days} dager", "success")
+            except Exception as e:
+                flash(f"Feil ved lagring av antall dager: {e}", "danger")
+
+        # ⚙️ Oppdater porter (GPIO-konfig)
+        elif request.form.get("port"):
+            try:
+                port = request.form["port"]
+                new_relay = int(request.form["relay_bcm"])
+                new_open = int(request.form["sensor_open_bcm"])
+                new_closed = int(request.form["sensor_closed_bcm"])
+
+                pin_values = [new_relay, new_open, new_closed]
+                if len(set(pin_values)) != len(pin_values):
+                    flash("Samme GPIO-pinne kan ikke brukes flere ganger for samme port.", "danger")
+                else:
+                    config["relay_pins"][port] = new_relay
+                    if port not in config["sensor_pins"]:
+                        config["sensor_pins"][port] = {}
+                    config["sensor_pins"][port]["open"] = new_open
+                    config["sensor_pins"][port]["closed"] = new_closed
+
+                    with open(config_path, "w") as fw:
+                        json.dump(config, fw, indent=4)
+                    flash(f"GPIO-pinner oppdatert for {port}", "success")
+            except Exception as e:
+                flash(f"Feil under oppdatering av porter: {e}", "danger")
+
+    # 🌐 Brukte pinner for å disable dem i dropdown
     used_pins = set(config.get("relay_pins", {}).values())
     for sensor in config.get("sensor_pins", {}).values():
         used_pins.add(sensor.get("open"))
         used_pins.add(sensor.get("closed"))
 
-    return render_template("admin.html", config=config, available_gpio=get_available_gpio(), used_pins=used_pins)
+    # 📂 Hent nyeste og eldste backup for visning
+    backup_dir = "backups"
+    latest_backup = None
+    eldste_dato = None
+    neste_autoslett = None
+
+    if os.path.exists(backup_dir):
+        files = sorted(os.listdir(backup_dir))
+        for f in files:
+            try:
+                if not f.endswith(".json"):
+                    continue
+                parts = f.replace(".json", "").split("_")
+                if len(parts) < 3:
+                    continue
+                dt = datetime.strptime(parts[-2] + "_" + parts[-1], "%Y%m%d_%H%M%S")
+                if not eldste_dato or dt < eldste_dato:
+                    eldste_dato = dt
+            except:
+                continue
+        if files:
+            latest_backup = files[-1]
+        if eldste_dato:
+            retention = config.get("backup_retention_days", 30)
+            neste_autoslett = eldste_dato + timedelta(days=retention)
+
+    # 📤 Render admin-panelet
+    return render_template(
+        "admin.html",
+        config=config,
+        available_gpio=get_available_gpio(),
+        used_pins=used_pins,
+        latest_backup=latest_backup,
+        eldste_dato=eldste_dato,
+        neste_autoslett=neste_autoslett
+    )
+
 
 
 
@@ -149,33 +267,45 @@ def admin():
 @login_required_if_enabled
 def calibrate():
     port = request.form.get("port")
-    open_val = request.form.get("open_time")
-    close_val = request.form.get("close_time")
+    action = request.form.get("action")  # NEW
 
     try:
-        open_time = float(open_val)
-        close_time = float(close_val)
-
-        if not (0 <= open_time <= 60) or not (0 <= close_time <= 60):
-            raise ValueError("Tiden må være mellom 0 og 60 sekunder.")
+        open_val = request.form.get("open_time")
+        close_val = request.form.get("close_time")
 
         with open("config.json", "r") as f:
             config = json.load(f)
 
         if "calibration" not in config:
             config["calibration"] = {}
+        if port not in config["calibration"]:
+            config["calibration"][port] = {}
 
-        config["calibration"][port] = {
-            "open_time": open_time,
-            "close_time": close_time
-        }
+        now = datetime.now().isoformat(timespec="seconds")
+
+        if action == "save_open":
+            open_time = float(open_val)
+            if not (0 <= open_time <= 60):
+                raise ValueError("Åpnetid må være mellom 0 og 60 sek.")
+            config["calibration"][port]["open_time"] = open_time
+            config["calibration"][port]["source"] = "manuell"
+            config["calibration"][port]["timestamp"] = now
+            flash(f"Åpnetid lagret for {port}", "success")
+
+        elif action == "save_close":
+            close_time = float(close_val)
+            if not (0 <= close_time <= 60):
+                raise ValueError("Lukketid må være mellom 0 og 60 sek.")
+            config["calibration"][port]["close_time"] = close_time
+            config["calibration"][port]["source_close"] = "manuell"
+            config["calibration"][port]["timestamp_close"] = now
+            flash(f"Lukketid lagret for {port}", "success")
 
         with open("config.json", "w") as f:
             json.dump(config, f, indent=4)
 
-        flash(f"Kalibrering lagret for {port}: Åpne: {open_time}s, Lukke: {close_time}s", "success")
     except Exception as e:
-        flash(f"Feil under lagring av kalibrering: {e}", "danger")
+        flash(f"Feil under lagring: {e}", "danger")
 
     return redirect("/admin")
 
@@ -328,7 +458,30 @@ def admin_backup():
     backup_dir = "backups"
     os.makedirs(backup_dir, exist_ok=True)
     backups = sorted(os.listdir(backup_dir), reverse=True)
-    return render_template("backup.html", backups=backups)
+    try:
+        with open("config.json", "r") as f:
+            config = json.load(f)
+        retention_days = config.get("backup_retention_days", 30)
+    except:
+        retention_days = 30
+
+    now = datetime.now()
+    deleted = 0
+    for f in os.listdir(backup_dir):
+        path = os.path.join(backup_dir, f)
+        try:
+            created = datetime.strptime(f.split('_')[-1].replace(".json", ""), "%Y%m%d_%H%M%S")
+            if (now - created).days > retention_days:
+                os.remove(path)
+                deleted += 1
+        except:
+            continue
+
+    if deleted:
+        flash(f"{deleted} gamle backupfiler ble automatisk fjernet", "info")
+
+    backups = sorted(os.listdir(backup_dir), reverse=True)
+    return render_template("backup.html", backups=backups, retention_days=retention_days)
 
 
 # 🚀 Lager ny backup av konfigurasjonsfilen
@@ -348,6 +501,11 @@ def view_backup(filename):
         return redirect(url_for("admin_backup"))
 
 # 🔁 Gjenoppretter backup etter bekreftelse
+
+@app.route("/download-backup/<filename>")
+@login_required_if_enabled
+def download_backup(filename):
+    return send_from_directory("backups", filename, as_attachment=True)
 
 @app.route("/backup")
 @login_required_if_enabled
@@ -369,6 +527,101 @@ def create_backup():
     flash("Backup opprettet", "success")
     return redirect("/backup")
 
+@app.route("/delete-backup/<filename>")
+@login_required_if_enabled
+def delete_backup(filename):
+    path = os.path.join("backups", filename)
+    try:
+        if os.path.exists(path):
+            os.remove(path)
+            flash(f"Backupfil '{filename}' ble slettet", "success")
+        else:
+            flash("Filen finnes ikke", "warning")
+    except Exception as e:
+        flash(f"Feil ved sletting: {e}", "danger")
+    return redirect(url_for("admin_backup"))
+
+@app.route("/delete-multiple-backups", methods=["POST"])
+@login_required_if_enabled
+def delete_multiple_backups():
+    files = request.form.getlist("selected_files")
+    deleted = 0
+    for f in files:
+        path = os.path.join("backups", f)
+        if os.path.exists(path):
+            os.remove(path)
+            deleted += 1
+    flash(f"{deleted} backupfiler slettet", "success")
+    return redirect(url_for("admin_backup"))
+
+@app.route("/admin/backup/old")
+@login_required_if_enabled
+def show_old_backups():
+    try:
+        with open("config.json", "r") as f:
+            config = json.load(f)
+        retention_days = config.get("backup_retention_days", 30)
+    except:
+        retention_days = 30
+
+    old_files = []
+    now = datetime.now()
+    backup_dir = "backups"
+    if os.path.exists(backup_dir):
+        for f in os.listdir(backup_dir):
+            try:
+                if not f.endswith(".json"):
+                    continue
+                parts = f.replace(".json", "").split("_")
+                if len(parts) < 3:
+                    continue
+                dt = datetime.strptime(parts[-2] + "_" + parts[-1], "%Y%m%d_%H%M%S")
+                age_days = (now - dt).days
+                if age_days > retention_days:
+                    old_files.append({
+                        "filename": f,
+                        "created": dt.strftime("%d.%m.%Y %H:%M:%S"),
+                        "age": age_days
+                    })
+            except:
+                continue
+
+    return render_template("confirm_delete_old.html", old_files=old_files, retention_days=retention_days)
+
+@app.route("/admin/backup/delete-old", methods=["POST"])
+@login_required_if_enabled
+def delete_old_backups():
+    deleted = 0
+    backup_dir = "backups"
+
+    try:
+        with open("config.json", "r") as f:
+            config = json.load(f)
+        retention_days = config.get("backup_retention_days", 30)
+    except:
+        retention_days = 30
+
+    now = datetime.now()
+
+    for f in os.listdir(backup_dir):
+        try:
+            if not f.endswith(".json"):
+                continue
+            parts = f.replace(".json", "").split("_")
+            if len(parts) < 3:
+                continue
+            dt = datetime.strptime(parts[-2] + "_" + parts[-1], "%Y%m%d_%H%M%S")
+            if (now - dt).days > retention_days:
+                os.remove(os.path.join(backup_dir, f))
+                deleted += 1
+        except:
+            continue
+
+    flash(f"{deleted} gamle backupfiler ble slettet.", "success")
+    return redirect(url_for("admin_backup"))
+
+
+
 @app.route("/restore/<filename>")
 @login_required_if_enabled
 def restore_backup(filename):
@@ -382,6 +635,12 @@ def restore_backup(filename):
 
 @app.context_processor
 def inject_config():
+    try:
+        with open("config.json", "r") as f:
+            config_data = json.load(f)
+    except:
+        config_data = {}
+    return dict(config_data=config_data)
     return dict(config=app.config, config_data=config)
 
 
