@@ -1,12 +1,12 @@
 {
     "relay_pins": {
-        "port1": 2,
+        "port1": 3,
         "port2": 7
     },
     "sensor_pins": {
         "port1": {
             "open": 10,
-            "closed": 3
+            "closed": 2
         },
         "port2": {
             "open": 9,
@@ -19,16 +19,16 @@
             "close_time": 11.0,
             "source": "manuell",
             "source_close": "manuell",
-            "timestamp": "2025-05-08T23:04:47",
-            "timestamp_close": "2025-05-08T23:04:53"
+            "timestamp": "2025-05-11T14:58:17",
+            "timestamp_close": "2025-05-11T14:58:14"
         },
         "port2": {
             "open_time": 13.0,
             "close_time": 14.0,
             "source": "manuell",
-            "timestamp": "2025-05-08T23:04:59",
+            "timestamp": "2025-05-11T15:34:56",
             "source_close": "manuell",
-            "timestamp_close": "2025-05-08T23:05:04"
+            "timestamp_close": "2025-05-09T00:25:40"
         }
     },
     "flash_timeout": {
@@ -43,5 +43,11 @@
     },
     "session_timeout_minutes": 61,
     "require_login": false,
-    "backup_retention_days": 365
+    "backup_retention_days": 365,
+    "session_timeout": 59,
+    "flash_duration": 29,
+    "logging": {
+        "level": "DEBUG",
+        "rotate_days": 6
+    }
 }

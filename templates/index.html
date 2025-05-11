@@ -1,31 +1,23 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Garasjeportkontroller v1.0</h1>
-<p class="text-muted" style="color: inherit;">Oversikt over porter, status og kalibrering</p>
+<h2 class="mb-4 text-body">📊 Oversikt over porter, status og kalibrering</h2>
 
-<div class="row">
-  {% for port, data in statuses.items() %}
-  <div class="col-md-4">
-    <div class="card mb-4">
+<div class="row g-4">
+  {% for port, info in statuses.items() %}
+  <div class="col-md-6">
+    <div class="card shadow-sm bg-body-tertiary">
       <div class="card-body">
-        <h5 class="card-title">Port {{ port }}</h5>
-
+        <h5 class="card-title">{{ port|capitalize }}</h5>
         <p>Status: 
-          {% if data.status %}
+          {% if info.status == "open" %}
             <span class="badge bg-success">Åpen</span>
+          {% elif info.status == "closed" %}
+            <span class="badge bg-danger">Lukket</span>
           {% else %}
-            <span class="badge bg-secondary">Lukket</span>
+            <span class="badge bg-secondary">{{ info.status }}</span>
           {% endif %}
         </p>
-
-        {% if config.calibration and config.calibration.get(port) %}
-          <p class="mb-1 text-muted">
-            Åpne-tid: {{ config.calibration[port].open_time }}s<br>
-            Lukke-tid: {{ config.calibration[port].close_time }}s
-          </p>
-        {% endif %}
-
-        <a href="{{ url_for('open_port', port=port) }}" class="btn btn-primary">Åpne port</a>
+        <a href="/open/{{ port }}" class="btn btn-primary btn-sm">🚪 Aktiver {{ port }}</a>
       </div>
     </div>
   </div>

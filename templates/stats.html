@@ -1,26 +1,11 @@
 {% extends 'base.html' %}
 {% block content %}
-<h2>📈 Portstatistikk</h2>
-<canvas id="portStatsChart" height="100"></canvas>
-{% endblock %}
+<h2>📈 Statistikk</h2>
+<p>Visualisering og summering av portbruk og hendelser (placeholder).</p>
 
-{% block scripts %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-  const ctx = document.getElementById('portStatsChart').getContext('2d');
-  new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: ['Mandag', 'Tirsdag', 'Onsdag', 'Torsdag', 'Fredag'],
-      datasets: [
-        { label: 'Port 1', data: [5, 3, 7, 4, 6], backgroundColor: 'rgba(54, 162, 235, 0.7)' },
-        { label: 'Port 2', data: [2, 6, 4, 5, 3], backgroundColor: 'rgba(255, 206, 86, 0.7)' }
-      ]
-    },
-    options: {
-      responsive: true,
-      plugins: { legend: { position: 'top' } }
-    }
-  });
-</script>
+<div class="bg-body-tertiary p-4 rounded shadow-sm">
+  <p>⚠️ Statistikkmodul ikke implementert ennå.</p>
+</div>
+
+<a href="/" class="btn btn-secondary btn-sm mt-3">🔙 Tilbake til forsiden</a>
 {% endblock %}
