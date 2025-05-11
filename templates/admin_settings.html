@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>⚙️ Systeminnstillinger</h2>
+<p>Her kan du justere globale innstillinger for sesjoner, meldinger og logging.</p>
+
+<form method="POST" class="card p-4 bg-body-tertiary shadow-sm">
+
+  {# ⏱️ Sesjonstimeout #}
+  <div class="mb-3">
+    <label for="session_timeout" class="form-label">🕒 Sesjonstimeout (minutter)</label>
+    <input type="number" name="session_timeout" id="session_timeout" min="1" max="240" class="form-control"
+           value="{{ config.get('session_timeout', 60) }}">
+  </div>
+
+  {# 💬 Flash-meldinger #}
+  <div class="mb-3">
+    <label for="flash_duration" class="form-label">💬 Flash-melding visningstid (sekunder)</label>
+    <input type="number" name="flash_duration" id="flash_duration" min="1" max="60" class="form-control"
+           value="{{ config.get('flash_duration', 30) }}">
+  </div>
+
+  {# 📝 Logging-nivå #}
+  <div class="mb-3">
+    <label for="log_level" class="form-label">📝 Loggnivå</label>
+    <select name="log_level" id="log_level" class="form-select">
+      {% for lvl in ['DEBUG', 'INFO', 'WARNING', 'ERROR'] %}
+      <option value="{{ lvl }}" {% if lvl == config.get('logging', {}).get('level', 'INFO') %}selected{% endif %}>{{ lvl }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  {# 🗑️ Loggrotering #}
+  <div class="mb-3">
+    <label for="rotate_days" class="form-label">♻️ Slett loggfiler eldre enn (dager)</label>
+    <input type="number" name="rotate_days" id="rotate_days" min="1" max="30" class="form-control"
+           value="{{ config.get('logging', {}).get('rotate_days', 7) }}">
+  </div>
+
+  <button class="btn btn-primary mt-3">💾 Lagre endringer</button>
+</form>
+
+<a href="/admin" class="btn btn-secondary btn-sm mt-4">🔙 Tilbake</a>
+{% endblock %}

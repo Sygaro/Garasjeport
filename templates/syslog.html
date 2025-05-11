@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>📜 Applikasjonslogg</h2>
+<p>Logger fra system.log vises under.</p>
+
+<div class="card p-3 bg-body-tertiary shadow-sm">
+  <pre class="mb-0" style="white-space: pre-wrap;">{{ log_content | join('') }}</pre>
+</div>
+
+<a href="/admin" class="btn btn-secondary btn-sm mt-3">🔙 Tilbake</a>
+{% endblock %}

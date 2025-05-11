@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>📘 Hjelp</h2>
+
+<p>Dette systemet lar deg styre og overvåke én eller flere garasjeporter via webgrensesnitt.</p>
+
+<h4>🧭 Navigasjon</h4>
+<ul>
+  <li><strong>Forside:</strong> Status og styring av porter</li>
+  <li><strong>Admin:</strong> GPIO-konfig, kalibrering, innstillinger</li>
+  <li><strong>Backup:</strong> Se, last ned eller gjenopprett backup</li>
+  <li><strong>Logg:</strong> Se hendelser, filtrer etter type, port og dato</li>
+</ul>
+
+<h4>⚙️ Portstyring</h4>
+<p>Trykk på <strong>Åpne</strong>-knappen for å aktivere et relé som styrer porten. Statusindikatorene leser fra sensorer og viser om porten er åpen, lukket, eller i bevegelse.</p>
+
+<h4>🔧 Kalibrering</h4>
+<p>Systemet kan måle tiden det tar for porten å åpne/lukke og lagre dette i konfigurasjonen. Bruk manuelt eller automatisk måling under "Admin → Kalibrering".</p>
+
+<h4>📦 Backup</h4>
+<p>Systemet lagrer konfigurasjonen ved backup. Du kan laste ned eller gjenopprette enkeltfiler ved behov. Automatisk sletting skjer etter X dager.</p>
+
+<h4>🔒 Innlogging</h4>
+<p>Du kan aktivere/deaktivere innlogging i <code>config.json</code>:</p>
+<pre>{
+  "auth": {
+    "enabled": true,
+    "username": "admin",
+    "password": "hemmelig"
+  }
+}</pre>
+
+<h4>📢 Feil eller spørsmål?</h4>
+<p>Se systemlogg via <strong>Logg</strong>-menyen, eller kontakt utvikler.</p>
+{% endblock %}

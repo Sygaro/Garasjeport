@@ -13,6 +13,7 @@ from logger import setup_logging
 from datetime import datetime, timedelta
 from event_log import log_event
 from flask import Flask, render_template
+<<<<<<< HEAD
 from config import load_config, save_config
 from log_utils import apply_log_level
 from logger import setup_logging
@@ -27,6 +28,40 @@ setup_logging()  # Hvis du har ekstra handlers
 
 
 
+=======
+from logger import setup_logging
+
+
+
+
+# 🗂️ Last konfigurasjon før vi setter opp logging
+with open("config.json", "r", encoding="utf-8") as f:
+    config = json.load(f)
+>>>>>>> 36ebab37bf80cb7bf68bf526f7f4bf53054990e8
+
+# 🔧 Sett dynamisk loggnivå fra config.json
+log_level_str = config.get("logging", {}).get("level", "INFO")
+level = getattr(logging, log_level_str.upper(), logging.INFO)
+
+
+from logger import setup_logging
+
+werkzeug_logger = logging.getLogger('werkzeug')
+werkzeug_logger.setLevel(level)  # Samme level som din logger
+
+# Setter loggnivå for hele appen + werkzeug
+
+def apply_log_level(level_str):
+    level = getattr(logging, level_str.upper(), logging.INFO)
+    logging.basicConfig(level=level)
+    logging.getLogger('werkzeug').setLevel(level)
+
+
+setup_logging()  # Setter opp handlers først
+apply_log_level(log_level_str)  # 🚀 Setter nivå for logger + werkzeug
+
+
+
 
 # 🌐 Start Flask
 app = Flask(__name__)
@@ -37,7 +72,28 @@ garage = GarageController(config)
 
 @app.before_request
 def session_timeout_check():
+<<<<<<< HEAD
     config = load_config()  # alltid fersk config
+=======
+    with open("config.json", "r") as f:
+        conf = json.load(f)
+def apply_log_level(level_str):
+    """Setter loggnivå for hele applikasjonen, inkludert handlers og werkzeug."""
+    import logging
+    level = getattr(logging, level_str.upper(), logging.INFO)
+
+    root_logger = logging.getLogger()
+    root_logger.setLevel(level)
+
+    for handler in root_logger.handlers:
+        handler.setLevel(level)
+
+    # Juster også Flask sin interne HTTP-request-logger
+    logging.getLogger('werkzeug').setLevel(level)
+
+    logging.info(f"🔧 Loggnivå satt til: {level_str.upper()}")
+
+>>>>>>> 36ebab37bf80cb7bf68bf526f7f4bf53054990e8
 
     timeout_minutes = config.get("session_timeout_minutes", 15)
     timeout_seconds = timeout_minutes * 60
@@ -83,6 +139,10 @@ def apply_log_level(level_str):
     import logging
     level = getattr(logging, level_str.upper(), logging.INFO)
 
+<<<<<<< HEAD
+=======
+    logger = logging.getLogger()
+>>>>>>> 36ebab37bf80cb7bf68bf526f7f4bf53054990e8
     logger.setLevel(level)
 
     # Sørg for at alle handlerne følger nytt nivå
@@ -90,6 +150,10 @@ def apply_log_level(level_str):
         handler.setLevel(level)
 
     # 🚫 Juster også werkzeug-logging (Flask sin HTTP-requestlogger)
+<<<<<<< HEAD
+=======
+    logging.getLogger('werkzeug').setLevel(level)
+>>>>>>> 36ebab37bf80cb7bf68bf526f7f4bf53054990e8
 
     logging.info(f"Loggnivå satt til: {level_str.upper()}")
 
@@ -193,6 +257,11 @@ def admin():
             try:
                 new_level_str = request.form.get("log_level", "INFO").upper()
                 config["logging"]["level"] = new_level_str
+<<<<<<< HEAD
+=======
+                with open("config.json", "w") as f:
+                    json.dump(config, f, indent=2)
+>>>>>>> 36ebab37bf80cb7bf68bf526f7f4bf53054990e8
 
                 apply_log_level(new_level_str)  # 🔧 Oppdater loggnivå umiddelbart
 
@@ -638,9 +707,16 @@ def admin_ports():
         return sorted(gpio_map, key=lambda g: g["pin"])
 
     try:
+<<<<<<< HEAD
         config = load_config()
     except Exception as e:
         flash(f"Feil ved lasting av config: {e}", "danger")
+=======
+        with open(config_path, "r", encoding="utf-8") as f:
+            config = json.load(f)
+    except Exception as e:
+        flash(f"Feil ved lesing av config.json: {e}", "danger")
+>>>>>>> 36ebab37bf80cb7bf68bf526f7f4bf53054990e8
         config = {}
 
     if request.method == "POST" and request.form.get("port"):
@@ -706,17 +782,30 @@ def vis_syslog():
 @app.route("/admin/log-settings", methods=["GET", "POST"])
 @login_required_if_enabled
 def log_settings():
+<<<<<<< HEAD
     try:
         config = load_config()
     except:
         flash("Kunne ikke laste config.json", "danger")
+=======
+    config_path = "config.json"
+
+    try:
+        with open(config_path, "r", encoding="utf-8") as f:
+            config = json.load(f)
+    except Exception as e:
+        flash(f"❌ Kunne ikke lese config.json: {e}", "danger")
+>>>>>>> 36ebab37bf80cb7bf68bf526f7f4bf53054990e8
         return redirect("/admin")
 
     log_config = config.get("logging", {})
     level = log_config.get("level", "INFO")
     days = log_config.get("rotate_days", 7)
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 36ebab37bf80cb7bf68bf526f7f4bf53054990e8
     if request.method == "POST":
         try:
             new_level = request.form.get("log_level", "INFO")
@@ -727,8 +816,13 @@ def log_settings():
                 "rotate_days": new_days
             }
 
+<<<<<<< HEAD
             save_config(config)
 
+=======
+            with open(config_path, "w", encoding="utf-8") as f:
+                json.dump(config, f, indent=4)
+>>>>>>> 36ebab37bf80cb7bf68bf526f7f4bf53054990e8
 
             flash("✅ Logginnstillinger oppdatert", "success")
         except Exception as e:
@@ -742,12 +836,21 @@ def system_settings():
     config_path = "config.json"
 
     try:
+<<<<<<< HEAD
         config = load_config()
     except:
         flash("Kunne ikke laste config.json", "danger")
         return redirect("/admin")
 
 
+=======
+        with open(config_path, "r", encoding="utf-8") as f:
+            config = json.load(f)
+    except Exception as e:
+        flash(f"❌ Kunne ikke lese config.json: {e}", "danger")
+        return redirect("/admin")
+
+>>>>>>> 36ebab37bf80cb7bf68bf526f7f4bf53054990e8
     if request.method == "POST":
         try:
             config["session_timeout"] = int(request.form.get("session_timeout", 60))
@@ -758,8 +861,13 @@ def system_settings():
                 "rotate_days": int(request.form.get("rotate_days", 7))
             }
 
+<<<<<<< HEAD
             save_config(config)
 
+=======
+            with open(config_path, "w", encoding="utf-8") as f:
+                json.dump(config, f, indent=4)
+>>>>>>> 36ebab37bf80cb7bf68bf526f7f4bf53054990e8
 
             flash("✅ Systeminnstillinger oppdatert", "success")
         except Exception as e:
@@ -768,6 +876,7 @@ def system_settings():
     return render_template("admin_settings.html", config=config)
 
 
+<<<<<<< HEAD
 @app.route("/admin/calibrate", methods=["POST"])
 def calibrate_auto():
     if not is_logged_in():
@@ -788,6 +897,8 @@ def calibrate_auto():
 
 
     
+=======
+>>>>>>> 36ebab37bf80cb7bf68bf526f7f4bf53054990e8
 
 @app.context_processor
 def inject_config():
@@ -802,3 +913,63 @@ def inject_config():
 
 if __name__ == '__main__':    app.run(host='0.0.0.0', port=5000, debug=True)
 
+<<<<<<< HEAD
+=======
+
+@app.route("/admin/calibrate", methods=["POST"])
+def calibrate():
+    if not is_logged_in():
+        return redirect(url_for('login'))
+    config = load_config()
+    try:
+        port = request.form["port"]
+        open_time = float(request.form["open_time"])
+        close_time = float(request.form["close_time"])
+        config["calibration"][port] = {"open_time": open_time, "close_time": close_time}
+        with open(CONFIG_PATH, 'w') as f:
+            json.dump(config, f, indent=2)
+        flash(f"Kalibrering lagret for {port}: Åpne: {open_time}s, Lukke: {close_time}s", "success")
+    except Exception as e:
+        flash(f"Feil under lagring av kalibrering: {e}", "danger")
+    return redirect(url_for('admin'))
+
+@app.route("/admin/calibrate/auto/<port>")
+def auto_calibrate(port):
+    if not is_logged_in():
+        return redirect(url_for('login'))
+    result = calibrate_port(port)
+    if not result:
+        flash(f"❌ Kalibrering feilet for {port}", "danger")
+        return redirect(url_for('admin_ports'))
+    try:
+        config = load_config()
+        config["calibration"][port] = result
+        with open(CONFIG_PATH, 'w') as f:
+            json.dump(config, f, indent=2)
+        flash(f"✅ Automatisk kalibrering for {port}: Åpne {result['open_time']} sek, Lukke {result['close_time']} sek", "success")
+        log_event("calibration", "Automatisk kalibrering lagret", port=port, data=result)
+    except Exception as e:
+        flash(f"❌ Feil ved lagring av kalibrering: {e}", "danger")
+        log_event("error", "Kunne ikke lagre kalibrering", port=port, data={"feil": str(e)})
+    return redirect(url_for('admin_ports'))
+
+@app.route("/admin/calibrate/close/<port>")
+def auto_calibrate_close(port):
+    if not is_logged_in():
+        return redirect(url_for('login'))
+    result = calibrate_port(port)
+    if not result:
+        flash(f"❌ Kalibrering av lukketid feilet for {port}", "danger")
+        return redirect(url_for('admin_ports'))
+    try:
+        config = load_config()
+        config["calibration"][port]["close_time"] = result["close_time"]
+        with open(CONFIG_PATH, 'w') as f:
+            json.dump(config, f, indent=2)
+        flash(f"✅ Automatisk kalibrering av lukketid for {port}: {result['close_time']} sek", "success")
+        log_event("calibration", "Automatisk lukketid lagret", port=port, data=result)
+    except Exception as e:
+        flash(f"❌ Feil ved lagring av lukketid: {e}", "danger")
+        log_event("error", "Kunne ikke lagre lukketid kalibrering", port=port, data={"feil": str(e)})
+    return redirect(url_for('admin_ports'))
+>>>>>>> 36ebab37bf80cb7bf68bf526f7f4bf53054990e8
