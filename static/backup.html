@@ -1,0 +1,41 @@
+
+{% extends "base.html" %}
+{% block content %}
+<h2>💾 Backup av konfigurasjon</h2>
+<form method="POST" action="/admin/backup">
+  <button class="btn btn-primary btn-sm mb-3">📦 Ta ny backup</button>
+</form>
+
+{% if neste_autoslett %}
+<div class="alert alert-warning p-2 small mb-3">
+  Automatisk sletting av backupfiler eldre enn {{ retention_days }} dager skjer neste gang etter {{ neste_autoslett.strftime('%Y-%m-%d %H:%M') }}
+</div>
+{% endif %}
+
+{% if backups %}
+<div class="table-responsive">
+  <table class="table table-sm table-hover align-middle">
+    <thead class="table-light">
+      <tr>
+        <th>Filnavn</th>
+        <th>Handling</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for backup in backups %}
+      <tr>
+        <td>{{ backup }}</td>
+        <td>
+          <a href="/admin/backup/view?filename={{ backup }}" class="btn btn-outline-secondary btn-sm">👁 Vis</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<p>Ingen backupfiler funnet.</p>
+{% endif %}
+
+<a href="/admin/settings" class="btn btn-secondary btn-sm mt-3">⚙️ Tilbake til innstillinger</a>
+{% endblock %}

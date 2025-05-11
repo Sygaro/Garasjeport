@@ -1,0 +1,45 @@
+
+{% extends "base.html" %}
+{% block content %}
+<h2>⚙️ Systeminnstillinger</h2>
+<form method="POST" action="/admin/settings" class="bg-body-tertiary p-4 rounded shadow-sm">
+
+  <h5 class="mb-3">Session timeout</h5>
+  <div class="input-group input-group-sm mb-4">
+    <span class="input-group-text">Minutter</span>
+    <input type="number" name="session_timeout" min="1" max="240" class="form-control"
+           value="{{ config.get('session_timeout_minutes', 15) }}">
+    <input type="hidden" name="setting" value="timeout">
+  </div>
+
+  <h5 class="mb-3">Visningstid for flash-meldinger</h5>
+  {% for cat in ["success", "info", "warning", "danger"] %}
+  <div class="input-group input-group-sm mb-2">
+    <span class="input-group-text">{{ cat }}</span>
+    <input type="number" name="flash_{{ cat }}" min="1" max="300" class="form-control"
+           value="{{ config.get('flash_timeout', {}).get(cat, 30) }}">
+  </div>
+  {% endfor %}
+  <input type="hidden" name="setting" value="flash_timeout">
+
+  <h5 class="mt-4 mb-3">Backup-innstillinger</h5>
+  <div class="input-group input-group-sm mb-3">
+    <span class="input-group-text">Behold dager</span>
+    <input type="number" name="retention_days" min="1" max="365" class="form-control"
+           value="{{ config.get('backup_retention_days', 30) }}">
+    <input type="hidden" name="setting" value="retention_days">
+  </div>
+
+  <h5 class="mt-4 mb-3">Loggnivå</h5>
+  <select class="form-select form-select-sm mb-4" name="log_level">
+    {% for level in ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] %}
+      <option value="{{ level }}"
+        {% if config.get('logging', {}).get('level', 'INFO') == level %}selected{% endif %}>{{ level }}</option>
+    {% endfor %}
+  </select>
+  <input type="hidden" name="setting" value="log_level">
+
+  <button type="submit" class="btn btn-primary btn-sm">💾 Lagre innstillinger</button>
+</form>
+<a href="/admin/ports" class="btn btn-secondary btn-sm mt-3">🔌 Til porter og kalibrering</a>
+{% endblock %}
