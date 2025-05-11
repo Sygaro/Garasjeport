@@ -2,31 +2,44 @@
 # Flask hovedapplikasjon for garasjeprosjektet
 # Inneholder ruter for adminpanel, portkontroll, kalibrering, backup og loggvisning
 
+import json
+import os
+import logging
+import atexit
+
 from flask import Flask, render_template, redirect, url_for, request, flash, session, send_from_directory
 from garage_controller import GarageController
 from logger import setup_logging
 from datetime import datetime, timedelta
 from event_log import log_event
-import json
-import os
-import logging
-import atexit
 from flask import Flask, render_template
+from config import load_config, save_config
+from log_utils import apply_log_level
+from logger import setup_logging
 
 
-# 🚀 Initier logger og last konfig
-setup_logging()
-with open("config.json", "r", encoding="utf-8") as f:
-    config = json.load(f)
+# ✅ Last konfig én gang og sett logger ved oppstart
+config = load_config()
+auth = config.get("auth", {})
+log_level_str = config.get("logging", {}).get("level", "INFO")
+apply_log_level(log_level_str)
+setup_logging()  # Hvis du har ekstra handlers
+
+
+
 
 # 🌐 Start Flask
 app = Flask(__name__)
+app.secret_key = "supersecretkey"
+
+# 🚪 Init portkontroller
+garage = GarageController(config)
+
 @app.before_request
 def session_timeout_check():
-    with open("config.json", "r") as f:
-        conf = json.load(f)
+    config = load_config()  # alltid fersk config
 
-    timeout_minutes = conf.get("session_timeout_minutes", 15)
+    timeout_minutes = config.get("session_timeout_minutes", 15)
     timeout_seconds = timeout_minutes * 60
 
     now = datetime.now().timestamp()
@@ -38,9 +51,6 @@ def session_timeout_check():
         flash("Du ble logget ut pga. inaktivitet.", "warning")
         return redirect("/login")
 
-app.secret_key = "supersecretkey"
-garage = GarageController(config)
-
 # 🔚 Rydd opp GPIO ved avslutning
 atexit.register(garage.cleanup)
 
@@ -49,9 +59,7 @@ from functools import wraps
 def login_required_if_enabled(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
-        with open("config.json", "r") as fconf:
-            conf = json.load(fconf)
-        if conf.get("require_login") and not session.get("logged_in"):
+        if not session.get("logged_in"):
             flash("Du må logge inn for å få tilgang.", "warning")
             return redirect("/login")
         return f(*args, **kwargs)
@@ -66,6 +74,26 @@ def login_required(f):
             return redirect("/login")
         return f(*args, **kwargs)
     return decorated
+
+def apply_log_level(level_str):
+    """
+    Setter loggnivå dynamisk under runtime basert på en str som 'DEBUG', 'INFO' osv.
+    Oppdaterer både root logger og tilknyttede handlers.
+    """
+    import logging
+    level = getattr(logging, level_str.upper(), logging.INFO)
+
+    logger.setLevel(level)
+
+    # Sørg for at alle handlerne følger nytt nivå
+    for handler in logger.handlers:
+        handler.setLevel(level)
+
+    # 🚫 Juster også werkzeug-logging (Flask sin HTTP-requestlogger)
+
+    logging.info(f"Loggnivå satt til: {level_str.upper()}")
+
+
 
 
 @app.route("/")
@@ -138,10 +166,9 @@ def admin():
         return sorted(gpio_map, key=lambda g: g["pin"])
 
     try:
-        with open(config_path, "r") as f:
-            config = json.load(f)
+        config = load_config()
     except Exception as e:
-        flash(f"Feil ved lasting av config.json: {e}", "danger")
+        flash(f"Feil ved lasting av config: {e}", "danger")
         config = {"relay_pins": {}, "sensor_pins": {}}
 
     # 📤 Håndter POST-skjemaer
@@ -157,11 +184,23 @@ def admin():
                 val = int(timeout_val)
 
                 config["session_timeout_minutes"] = val
-                with open(config_path, "w") as fw:
-                    json.dump(config, fw, indent=4)
+                save_config(config)
                 flash(f"Session-timeout oppdatert til {val} minutter", "success")
             except Exception as e:
                 flash(f"Feil ved lagring av session-timeout: {e}", "danger")
+
+        if "log_level" in request.form:
+            try:
+                new_level_str = request.form.get("log_level", "INFO").upper()
+                config["logging"]["level"] = new_level_str
+
+                apply_log_level(new_level_str)  # 🔧 Oppdater loggnivå umiddelbart
+
+                flash(f"Loggnivå oppdatert til {new_level_str}", "success")
+            except Exception as e:
+                flash(f"Feil ved oppdatering av loggnivå: {e}", "danger")
+
+
 
         # 🔔 Flash-meldingers varighet
         elif setting == "flash_timeout":
@@ -173,8 +212,7 @@ def admin():
                         raise ValueError(f"Verdi for {cat} må være mellom 1 og 300 sekunder.")
                     flash_data[cat] = val
                 config["flash_timeout"] = flash_data
-                with open(config_path, "w") as fw:
-                    json.dump(config, fw, indent=4)
+                save_config(config)
                 flash("Visningstid for meldinger oppdatert.", "success")
             except Exception as e:
                 flash(f"Feil ved lagring av flash-timeout: {e}", "danger")
@@ -186,8 +224,7 @@ def admin():
                 if not (1 <= days <= 365):
                     raise ValueError("Velg mellom 1 og 365 dager.")
                 config["backup_retention_days"] = days
-                with open(config_path, "w") as fw:
-                    json.dump(config, fw, indent=4)
+                save_config(config)
                 flash(f"Behold backupfiler i {days} dager", "success")
             except Exception as e:
                 flash(f"Feil ved lagring av antall dager: {e}", "danger")
@@ -210,8 +247,7 @@ def admin():
                     config["sensor_pins"][port]["open"] = new_open
                     config["sensor_pins"][port]["closed"] = new_closed
 
-                    with open(config_path, "w") as fw:
-                        json.dump(config, fw, indent=4)
+                    save_config(config)
                     flash(f"GPIO-pinner oppdatert for {port}", "success")
             except Exception as e:
                 flash(f"Feil under oppdatering av porter: {e}", "danger")
@@ -265,7 +301,7 @@ def admin():
 # 🔧 Kalibreringsrute – lagrer åpne-/lukketid i sekunder
 @app.route("/admin/calibrate", methods=["POST"])
 @login_required_if_enabled
-def calibrate():
+def calibrate_manual():
     port = request.form.get("port")
     action = request.form.get("action")  # NEW
 
@@ -273,15 +309,6 @@ def calibrate():
         open_val = request.form.get("open_time")
         close_val = request.form.get("close_time")
 
-        with open("config.json", "r") as f:
-            config = json.load(f)
-
-        if "calibration" not in config:
-            config["calibration"] = {}
-        if port not in config["calibration"]:
-            config["calibration"][port] = {}
-
-        now = datetime.now().isoformat(timespec="seconds")
 
         if action == "save_open":
             open_time = float(open_val)
@@ -301,8 +328,6 @@ def calibrate():
             config["calibration"][port]["timestamp_close"] = now
             flash(f"Lukketid lagret for {port}", "success")
 
-        with open("config.json", "w") as f:
-            json.dump(config, f, indent=4)
 
     except Exception as e:
         flash(f"Feil under lagring: {e}", "danger")
@@ -316,83 +341,56 @@ def calibrate():
 @app.route("/admin/calibrate/auto/<port>")
 @login_required_if_enabled
 def auto_calibrate(port):
-    from datetime import datetime
-    varighet = garage.maal_aapnetid(port)
+    result = calibrate_port(port)  # bruker intern målelogikk
 
-    if varighet is None:
+    if not result:
         flash(f"❌ Kalibrering feilet for {port}", "danger")
-        return redirect("/admin")
+        return redirect(url_for('admin_ports'))
 
     try:
-        with open("config.json", "r") as f:
-            config = json.load(f)
+        config = load_config()
+        config["calibration"][port] = result
+        save_config(config)
 
-        if "calibration" not in config:
-            config["calibration"] = {}
+        flash(f"✅ Automatisk kalibrering for {port}: "
+              f"Åpne {result['open_time']} sek, Lukke {result['close_time']} sek", "success")
 
-        if port not in config["calibration"]:
-            config["calibration"][port] = {}
-
-        # ✅ Oppdater bare åpne-feltene
-        config["calibration"][port]["open_time"] = varighet
-        config["calibration"][port]["source"] = "auto"
-        config["calibration"][port]["timestamp"] = datetime.now().isoformat(timespec="seconds")
-
-        with open("config.json", "w") as f:
-            json.dump(config, f, indent=4)
-
-        log_event("calibration", "Automatisk kalibrering lagret", port=port, data={"sekunder": varighet})
-        flash(f"✅ Automatisk kalibrering for {port}: {varighet} sek", "success")
-
+        log_event("calibration", "Automatisk kalibrering lagret", port=port, data=result)
     except Exception as e:
         log_event("error", "Kunne ikke lagre kalibrering", port=port, data={"feil": str(e)})
-        flash(f"Feil ved lagring: {e}", "danger")
+        flash(f"❌ Feil ved lagring av kalibrering: {e}", "danger")
 
-    return redirect("/admin")
+    return redirect(url_for('admin_ports'))
+
 
 
 @app.route("/admin/calibrate/close/<port>")
 @login_required_if_enabled
 def auto_calibrate_close(port):
-    from datetime import datetime
-    varighet = garage.maal_lukketid(port)
+    result = calibrate_port(port)
 
-    if varighet is None:
+    if not result or "close_time" not in result:
         flash(f"❌ Kalibrering av lukketid feilet for {port}", "danger")
-        return redirect("/admin")
+        return redirect(url_for('admin_ports'))
 
     try:
-        with open("config.json", "r") as f:
-            config = json.load(f)
-
-        if "calibration" not in config:
-            config["calibration"] = {}
-
+        config = load_config()
         if port not in config["calibration"]:
             config["calibration"][port] = {}
+        config["calibration"][port]["close_time"] = result["close_time"]
+        save_config(config)
 
-        config["calibration"][port]["close_time"] = varighet
-        config["calibration"][port]["source_close"] = "auto"
-        config["calibration"][port]["timestamp_close"] = datetime.now().isoformat(timespec="seconds")
-
-        with open("config.json", "w") as f:
-            json.dump(config, f, indent=4)
-
-        log_event("calibration", "Automatisk lukketid lagret", port=port, data={"sekunder": varighet})
-        flash(f"✅ Lukketid målt for {port}: {varighet} sek", "success")
-
+        flash(f"✅ Automatisk lukketid målt for {port}: {result['close_time']} sek", "success")
+        log_event("calibration", "Automatisk lukketid lagret", port=port, data={"close_time": result["close_time"]})
     except Exception as e:
-        log_event("error", "Feil ved lagring av lukketid", port=port, data={"feil": str(e)})
-        flash(f"Feil ved lagring: {e}", "danger")
+        flash(f"❌ Feil ved lagring av lukketid: {e}", "danger")
+        log_event("error", "Kunne ikke lagre lukketid kalibrering", port=port, data={"feil": str(e)})
 
-    return redirect("/admin")
+    return redirect(url_for('admin_ports'))
 
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
-    with open("config.json", "r") as f:
-        config = json.load(f)
-    auth = config.get("auth", {})
     correct_user = auth.get("username")
     correct_pass = auth.get("password")
 
@@ -421,12 +419,16 @@ def logout():
 @app.route("/logs")
 @login_required_if_enabled
 def logs():
+    log_content = []
     try:
-        with open("logs/garage.log", "r") as f:
-            log_content = f.readlines()
+        with open("logs/garage.log", "r", encoding="utf-8") as f:
+            log_content = f.readlines()[-300:]  # Vis siste 300 linjer
     except FileNotFoundError:
-        log_content = ["Loggfil ikke funnet."]
-    return render_template("logs.html", log_content=log_content)
+        log_content = ["❌ Loggfil ikke funnet."]
+
+    return render_template("logs.html", log_content=log_content[::-1])  # nyeste først
+
+
 
 # 📜 Vis systemhendelser fra logs/events.log
 @app.route("/admin/log")
@@ -459,8 +461,7 @@ def admin_backup():
     os.makedirs(backup_dir, exist_ok=True)
     backups = sorted(os.listdir(backup_dir), reverse=True)
     try:
-        with open("config.json", "r") as f:
-            config = json.load(f)
+        config = load_config()
         retention_days = config.get("backup_retention_days", 30)
     except:
         retention_days = 30
@@ -558,8 +559,7 @@ def delete_multiple_backups():
 @login_required_if_enabled
 def show_old_backups():
     try:
-        with open("config.json", "r") as f:
-            config = json.load(f)
+        config = load_config()
         retention_days = config.get("backup_retention_days", 30)
     except:
         retention_days = 30
@@ -595,8 +595,7 @@ def delete_old_backups():
     backup_dir = "backups"
 
     try:
-        with open("config.json", "r") as f:
-            config = json.load(f)
+        config = load_config()
         retention_days = config.get("backup_retention_days", 30)
     except:
         retention_days = 30
@@ -621,6 +620,59 @@ def delete_old_backups():
     return redirect(url_for("admin_backup"))
 
 
+@app.route("/admin/ports", methods=["GET", "POST"])
+@login_required_if_enabled
+def admin_ports():
+    config_path = "config.json"
+
+    def get_available_gpio():
+        gpio_map = [
+            {"bcm": 2, "pin": 3}, {"bcm": 3, "pin": 5}, {"bcm": 4, "pin": 7}, {"bcm": 17, "pin": 11},
+            {"bcm": 27, "pin": 13}, {"bcm": 22, "pin": 15}, {"bcm": 10, "pin": 19}, {"bcm": 9, "pin": 21},
+            {"bcm": 11, "pin": 23}, {"bcm": 5, "pin": 29}, {"bcm": 6, "pin": 31}, {"bcm": 13, "pin": 33},
+            {"bcm": 19, "pin": 35}, {"bcm": 26, "pin": 37}, {"bcm": 14, "pin": 8}, {"bcm": 15, "pin": 10},
+            {"bcm": 18, "pin": 12}, {"bcm": 23, "pin": 16}, {"bcm": 24, "pin": 18}, {"bcm": 25, "pin": 22},
+            {"bcm": 8, "pin": 24}, {"bcm": 7, "pin": 26}, {"bcm": 12, "pin": 32}, {"bcm": 16, "pin": 36},
+            {"bcm": 20, "pin": 38}, {"bcm": 21, "pin": 40}
+        ]
+        return sorted(gpio_map, key=lambda g: g["pin"])
+
+    try:
+        config = load_config()
+    except Exception as e:
+        flash(f"Feil ved lasting av config: {e}", "danger")
+        config = {}
+
+    if request.method == "POST" and request.form.get("port"):
+        try:
+            port = request.form["port"]
+            new_relay = int(request.form["relay_bcm"])
+            new_open = int(request.form["sensor_open_bcm"])
+            new_closed = int(request.form["sensor_closed_bcm"])
+
+            if len({new_relay, new_open, new_closed}) < 3:
+                flash("Samme GPIO-pinne kan ikke brukes flere ganger for samme port.", "danger")
+            else:
+                config.setdefault("relay_pins", {})[port] = new_relay
+                config.setdefault("sensor_pins", {}).setdefault(port, {})
+                config["sensor_pins"][port]["open"] = new_open
+                config["sensor_pins"][port]["closed"] = new_closed
+
+                with open(config_path, "w", encoding="utf-8") as fw:
+                    json.dump(config, fw, indent=4)
+
+                flash(f"GPIO-pinner oppdatert for {port}", "success")
+        except Exception as e:
+            flash(f"Feil under oppdatering: {e}", "danger")
+
+    used_pins = set(config.get("relay_pins", {}).values())
+    for sensor in config.get("sensor_pins", {}).values():
+        used_pins.add(sensor.get("open"))
+        used_pins.add(sensor.get("closed"))
+
+    return render_template("admin_ports.html", config=config, available_gpio=get_available_gpio(), used_pins=used_pins)
+
+
 
 @app.route("/restore/<filename>")
 @login_required_if_enabled
@@ -633,16 +685,120 @@ def restore_backup(filename):
         flash(f"Feil under gjenoppretting: {e}", "danger")
     return redirect("/admin")
 
+@app.route("/help")
+def help_page():
+    return render_template("help.html")
+
+@app.route("/admin/syslog")
+@login_required_if_enabled
+def vis_syslog():
+    syslog_path = "/var/log/syslog"  # eller "/var/log/messages" på noen systemer
+    linjer = []
+
+    try:
+        with open(syslog_path, "r") as f:
+            linjer = f.readlines()[-300:]  # Vis de 300 siste linjene
+    except Exception as e:
+        linjer = [f"❌ Kunne ikke lese syslog: {e}"]
+
+    return render_template("syslog.html", log=linjer[::-1])  # nyeste først
+
+@app.route("/admin/log-settings", methods=["GET", "POST"])
+@login_required_if_enabled
+def log_settings():
+    try:
+        config = load_config()
+    except:
+        flash("Kunne ikke laste config.json", "danger")
+        return redirect("/admin")
+
+    log_config = config.get("logging", {})
+    level = log_config.get("level", "INFO")
+    days = log_config.get("rotate_days", 7)
+
+
+    if request.method == "POST":
+        try:
+            new_level = request.form.get("log_level", "INFO")
+            new_days = int(request.form.get("rotate_days", 7))
+
+            config["logging"] = {
+                "level": new_level,
+                "rotate_days": new_days
+            }
+
+            save_config(config)
+
+
+            flash("✅ Logginnstillinger oppdatert", "success")
+        except Exception as e:
+            flash(f"Feil under lagring: {e}", "danger")
+
+    return render_template("log_settings.html", level=level, days=days)
+
+@app.route("/admin/settings", methods=["GET", "POST"])
+@login_required_if_enabled
+def system_settings():
+    config_path = "config.json"
+
+    try:
+        config = load_config()
+    except:
+        flash("Kunne ikke laste config.json", "danger")
+        return redirect("/admin")
+
+
+    if request.method == "POST":
+        try:
+            config["session_timeout"] = int(request.form.get("session_timeout", 60))
+            config["flash_duration"] = int(request.form.get("flash_duration", 30))
+
+            config["logging"] = {
+                "level": request.form.get("log_level", "INFO"),
+                "rotate_days": int(request.form.get("rotate_days", 7))
+            }
+
+            save_config(config)
+
+
+            flash("✅ Systeminnstillinger oppdatert", "success")
+        except Exception as e:
+            flash(f"Feil under lagring: {e}", "danger")
+
+    return render_template("admin_settings.html", config=config)
+
+
+@app.route("/admin/calibrate", methods=["POST"])
+def calibrate_auto():
+    if not is_logged_in():
+        return redirect(url_for('login'))
+    config = load_config()
+    try:
+        port = request.form["port"]
+        open_time = float(request.form["open_time"])
+        close_time = float(request.form["close_time"])
+        config["calibration"][port] = {"open_time": open_time, "close_time": close_time}
+        with open(CONFIG_PATH, 'w') as f:
+            json.dump(config, f, indent=2)
+        flash(f"Kalibrering lagret for {port}: Åpne: {open_time}s, Lukke: {close_time}s", "success")
+    except Exception as e:
+        flash(f"Feil under lagring av kalibrering: {e}", "danger")
+    return redirect(url_for('admin'))
+
+
+
+    
+
 @app.context_processor
 def inject_config():
     try:
-        with open("config.json", "r") as f:
-            config_data = json.load(f)
+        config_data = load_config()
     except:
         config_data = {}
-    return dict(config_data=config_data)
-    return dict(config=app.config, config_data=config)
+    return dict(config=app.config, config_data=config_data)
+
 
 
 
 if __name__ == '__main__':    app.run(host='0.0.0.0', port=5000, debug=True)
+

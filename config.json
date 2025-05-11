@@ -1,47 +1,53 @@
 {
     "relay_pins": {
-        "port1": 2,
-        "port2": 7
+        "port1": 12,
+        "port2": 22
     },
     "sensor_pins": {
         "port1": {
-            "open": 10,
-            "closed": 3
+            "open": 13,
+            "closed": 14
         },
         "port2": {
-            "open": 9,
-            "closed": 12
+            "open": 23,
+            "closed": 24
         }
     },
     "calibration": {
         "port1": {
-            "open_time": 10.0,
-            "close_time": 11.0,
+            "open_time": 19.1,
+            "close_time": 9.1,
             "source": "manuell",
             "source_close": "manuell",
-            "timestamp": "2025-05-08T23:04:47",
-            "timestamp_close": "2025-05-08T23:04:53"
+            "timestamp": "2025-05-11T21:27:59",
+            "timestamp_close": "2025-05-11T21:28:04"
         },
         "port2": {
-            "open_time": 13.0,
-            "close_time": 14.0,
+            "open_time": 29.1,
+            "close_time": 39.1,
             "source": "manuell",
-            "timestamp": "2025-05-08T23:04:59",
+            "timestamp": "2025-05-11T21:28:08",
             "source_close": "manuell",
-            "timestamp_close": "2025-05-08T23:05:04"
+            "timestamp_close": "2025-05-11T21:28:13"
         }
     },
     "flash_timeout": {
-        "success": 11,
-        "info": 21,
-        "warning": 31,
-        "danger": 61
+        "success": 10,
+        "info": 20,
+        "warning": 30,
+        "danger": 60
     },
     "auth": {
         "username": "admin",
         "password": "1234"
     },
-    "session_timeout_minutes": 61,
+    "session_timeout_minutes": 60,
     "require_login": false,
-    "backup_retention_days": 365
+    "backup_retention_days": 361,
+    "session_timeout": 61,
+    "flash_duration": 30,
+    "logging": {
+        "level": "WARNING",
+        "rotate_days": 10
+    }
 }

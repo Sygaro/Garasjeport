@@ -1,18 +1,23 @@
+{# -------------------------------------------------------------------------- #}
+{# 💾 Visning av tilgjengelige backup-filer                                 #}
+{# Bruker tabell med tydelige knapper og støtter mørk/lys-modus             #}
+{# -------------------------------------------------------------------------- #}
 {% extends 'base.html' %}
 {% block content %}
-<h2>💾 Backupfiler</h2>
 
-<form method="POST" action="/delete-multiple-backups">
-  <table class="table table-sm table-bordered align-middle">
-    <thead class="table-light">
-      <tr>
-        <th><input type="checkbox" onclick="toggleAll(this)"></th>
-        <th>📄 Filnavn</th>
-        <th>🕓 Tidspunkt</th>
-        <th>🔧 Handlinger</th>
-      </tr>
-    </thead>
-    <tbody>
+ <h3>💾 Konfigurasjonsbackup</h3>
+<a href="/create-backup" class="btn btn-outline-secondary btn-sm mb-3">
+  📤 Ta ny backup av config.json
+</a>
+<h2>💾 Backupfiler</h2>
+<p>Her kan du vise, laste ned eller gjenopprette konfigurasjonsfiler.</p>
+
+
+<table class="table table-sm table-hover table-bordered bg-body-tertiary shadow-sm">
+  <thead class="table-light">
+    <tr><th>🗂️ Filnavn</th><th>Handlinger</th></tr>
+  </thead>
+  <tbody>
       {% for f in backups %}
       <tr>
         <td><input type="checkbox" name="selected_files" value="{{ f }}"></td>
@@ -37,17 +42,16 @@
         </td>
       </tr>
       {% endfor %}
-    </tbody>
-  </table>
+  </tbody>
+</table>
 
-  <div class="mt-3 d-flex justify-content-between align-items-center">
+ <div class="mt-3 d-flex justify-content-between align-items-center">
     <button class="btn btn-danger btn-sm" onclick="return confirm('Slett valgte filer?')">🗑️ Slett valgte</button>
     <div class="text-muted small">
       Automatisk sletting: eldre enn <strong>{{ retention_days }}</strong> dager
     </div>
   </div>
 </form>
-
 <script>
 function toggleAll(source) {
   document.querySelectorAll('input[name="selected_files"]').forEach(checkbox => {
@@ -55,4 +59,6 @@ function toggleAll(source) {
   });
 }
 </script>
+
+<a href="/admin" class="btn btn-secondary btn-sm mt-4">🔙 Tilbake til admin</a>
 {% endblock %}
