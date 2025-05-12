@@ -17,6 +17,7 @@ from flask import Flask, render_template, request
 from config import load_config, save_config, CONFIG_PATH, BACKUP_DIR
 from log_utils import apply_log_level
 from logger import setup_logging
+from calibration import calibrate_open, calibrate_close, calibrate_full, save_calibration, garage as calibration_garage
 
 
 # ✅ Last konfig én gang og sett logger ved oppstart
@@ -31,10 +32,15 @@ setup_logging()  # Hvis du har ekstra handlers
 
 # 🌐 Start Flask
 app = Flask(__name__)
-app.secret_key = "supersecretkey"
+# app.secret_key = "supersecretkey"
+app.secret_key = config.get("secret_key", "supersecretkey")
+
 
 # 🚪 Init portkontroller
 garage = GarageController(config)
+
+# 🔧 Kalibreringsruter (integrert med calibration.py)
+calibration_garage = garage  # deler garage-objektet med calibration.py
 
 @app.before_request
 def session_timeout_check():
@@ -56,6 +62,7 @@ def session_timeout_check():
 # 🔚 Rydd opp GPIO ved avslutning
 atexit.register(garage.cleanup)
 
+# 🔐 Login og session
 from functools import wraps
 
 def login_required_if_enabled(f):
@@ -88,7 +95,18 @@ def apply_log_level(level_str):
     logging.info(f"Loggnivå satt til: {level_str.upper()}")
 
 
-
+@app.before_request # Ny 12.05.25 ca 19:30
+def session_timeout_check():
+    config = load_config()
+    if config.get("login", False):
+        timeout = config.get("session_timeout_minutes", 15) * 60
+        now = datetime.now().timestamp()
+        last = session.get("last_activity", now)
+        if session.get("logged_in") and (now - last > timeout):
+            session.clear()
+            flash("Du ble logget ut pga. inaktivitet.", "warning")
+            return redirect("/login")
+        session["last_activity"] = now
 
 @app.route("/")
 @login_required_if_enabled
@@ -839,7 +857,48 @@ def calibrate_auto():
     return redirect(url_for('admin'))
 
 
+"""
+NY Kalibreringsrutine 12.05.25 ca kl 19:30
+-------------------------------------------
 
+"""
+
+# ✅ Kalibreringsruter (ny struktur)
+@app.route("/admin/calibrate/auto/<port>")
+@login_required_if_enabled
+def auto_calibrate(port):
+    result = calibrate_full(port)
+    if result is None:
+        flash(f"Kalibrering feilet for {port}", "danger")
+        return redirect("/admin/ports")
+    save_calibration(port, open_time=result["open_time"], close_time=result["close_time"], source="auto")
+    flash(f"Kalibrering fullført: åpne {result['open_time']}s, lukke {result['close_time']}s", "success")
+    return redirect("/admin/ports")
+
+@app.route("/admin/calibrate/close/<port>")
+@login_required_if_enabled
+def auto_calibrate_close(port):
+    duration = calibrate_close(port)
+    if duration is None:
+        flash(f"Lukketid kunne ikke måles for {port}", "danger")
+        return redirect("/admin/ports")
+    save_calibration(port, close_time=duration, source="auto")
+    flash(f"Lukketid for {port}: {duration:.2f} sek", "success")
+    return redirect("/admin/ports")
+
+@app.route("/admin/calibrate", methods=["POST"])
+@login_required_if_enabled
+def calibrate_manual():
+    port = request.form.get("port")
+    open_time = request.form.get("open_time", type=float)
+    close_time = request.form.get("close_time", type=float)
+    if not port:
+        flash("Ingen port valgt", "danger")
+        return redirect("/admin/ports")
+    save_calibration(port, open_time=open_time, close_time=close_time, source="manuell")
+    flash(f"Manuell kalibrering lagret for {port}", "success")
+    return redirect("/admin/ports")
+    
     
 
 @app.context_processor
@@ -854,4 +913,3 @@ def inject_config():
 
 
 if __name__ == '__main__':    app.run(host='0.0.0.0', port=5000, debug=True)
-

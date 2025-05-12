@@ -1,3 +1,4 @@
+
 {% extends "base.html" %}
 {% block content %}
 
@@ -87,11 +88,18 @@
                    value="{{ cal.get('close_time', '') }}">
           </div>
 
-          <div class="d-flex gap-2 flex-wrap">
+          <div class="d-flex gap-2 flex-wrap mb-2">
             <button type="submit" class="btn btn-primary btn-sm">💾 Lagre manuelt</button>
             <a href="/admin/calibrate/auto/{{ port }}" class="btn btn-outline-primary btn-sm">⚙️ Mål åpnetid</a>
             <a href="/admin/calibrate/close/{{ port }}" class="btn btn-outline-secondary btn-sm">⚙️ Mål lukketid</a>
           </div>
+
+          {% if cal.timestamp or cal.source %}
+          <p class="text-muted small mt-2 mb-0">
+            Sist oppdatert: {{ cal.timestamp or "–" }}<br>
+            Kilde: {{ cal.source or "ukjent" }}
+          </p>
+          {% endif %}
         </form>
       </div>
     </div>
