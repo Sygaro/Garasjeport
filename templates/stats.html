@@ -1,11 +1,34 @@
-{% extends 'base.html' %}
+
+{% extends "base.html" %}
 {% block content %}
-<h2>📈 Statistikk</h2>
-<p>Visualisering og summering av portbruk og hendelser (placeholder).</p>
+<h2>📊 Statistikk</h2>
 
-<div class="bg-body-tertiary p-4 rounded shadow-sm">
-  <p>⚠️ Statistikkmodul ikke implementert ennå.</p>
+{% if stats %}
+<div class="table-responsive">
+  <table class="table table-sm table-striped align-middle">
+    <thead class="table-light">
+      <tr>
+        <th>Port</th>
+        <th>Åpnet</th>
+        <th>Sist åpnet</th>
+        <th>Sist lukket</th>
+        <th>Totalt åpnet (sek)</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for port, data in stats.items() %}
+      <tr>
+        <td>{{ port }}</td>
+        <td>{{ data.get("opened", 0) }}</td>
+        <td>{{ data.get("last_opened", "–") }}</td>
+        <td>{{ data.get("last_closed", "–") }}</td>
+        <td>{{ data.get("open_duration", 0) }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
 </div>
-
-<a href="/" class="btn btn-secondary btn-sm mt-3">🔙 Tilbake til forsiden</a>
+{% else %}
+<p>Ingen statistikk tilgjengelig.</p>
+{% endif %}
 {% endblock %}

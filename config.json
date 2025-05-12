@@ -1,22 +1,12 @@
 {
     "relay_pins": {
-<<<<<<< HEAD
-        "port1": 12,
+        "port1": 17,
         "port2": 22
     },
     "sensor_pins": {
         "port1": {
             "open": 13,
             "closed": 14
-=======
-        "port1": 3,
-        "port2": 7
-    },
-    "sensor_pins": {
-        "port1": {
-            "open": 10,
-            "closed": 2
->>>>>>> 36ebab37bf80cb7bf68bf526f7f4bf53054990e8
         },
         "port2": {
             "open": 23,
@@ -29,27 +19,16 @@
             "close_time": 9.1,
             "source": "manuell",
             "source_close": "manuell",
-<<<<<<< HEAD
             "timestamp": "2025-05-11T21:27:59",
             "timestamp_close": "2025-05-11T21:28:04"
-=======
-            "timestamp": "2025-05-11T14:58:17",
-            "timestamp_close": "2025-05-11T14:58:14"
->>>>>>> 36ebab37bf80cb7bf68bf526f7f4bf53054990e8
         },
         "port2": {
             "open_time": 29.1,
             "close_time": 39.1,
             "source": "manuell",
-<<<<<<< HEAD
             "timestamp": "2025-05-11T21:28:08",
             "source_close": "manuell",
             "timestamp_close": "2025-05-11T21:28:13"
-=======
-            "timestamp": "2025-05-11T15:34:56",
-            "source_close": "manuell",
-            "timestamp_close": "2025-05-09T00:25:40"
->>>>>>> 36ebab37bf80cb7bf68bf526f7f4bf53054990e8
         }
     },
     "flash_timeout": {
@@ -64,20 +43,11 @@
     },
     "session_timeout_minutes": 60,
     "require_login": false,
-<<<<<<< HEAD
     "backup_retention_days": 361,
-    "session_timeout": 61,
+    "session_timeout": 60,
     "flash_duration": 30,
     "logging": {
-        "level": "WARNING",
-        "rotate_days": 10
-=======
-    "backup_retention_days": 365,
-    "session_timeout": 59,
-    "flash_duration": 29,
-    "logging": {
-        "level": "DEBUG",
-        "rotate_days": 6
->>>>>>> 36ebab37bf80cb7bf68bf526f7f4bf53054990e8
+        "level": "INFO",
+        "rotate_days": 7
     }
 }

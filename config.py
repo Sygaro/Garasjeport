@@ -10,6 +10,8 @@ import json
 import os
 
 CONFIG_PATH = "config.json"
+BACKUP_DIR = "backups"
+
 
 def load_config():
     if not os.path.exists(CONFIG_PATH):

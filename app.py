@@ -6,14 +6,15 @@ import json
 import os
 import logging
 import atexit
+import shutil
 
 from flask import Flask, render_template, redirect, url_for, request, flash, session, send_from_directory
 from garage_controller import GarageController
 from logger import setup_logging
 from datetime import datetime, timedelta
 from event_log import log_event
-from flask import Flask, render_template
-from config import load_config, save_config
+from flask import Flask, render_template, request
+from config import load_config, save_config, CONFIG_PATH, BACKUP_DIR
 from log_utils import apply_log_level
 from logger import setup_logging
 
@@ -37,19 +38,20 @@ garage = GarageController(config)
 
 @app.before_request
 def session_timeout_check():
-    config = load_config()  # alltid fersk config
+    config = load_config()
+    if config.get("login", False):  # bare sjekk timeout hvis login er aktivert
+        timeout_minutes = config.get("session_timeout_minutes", 15)
+        timeout_seconds = timeout_minutes * 60
 
-    timeout_minutes = config.get("session_timeout_minutes", 15)
-    timeout_seconds = timeout_minutes * 60
+        now = datetime.now().timestamp()
+        last = session.get("last_activity", now)
+        session["last_activity"] = now
 
-    now = datetime.now().timestamp()
-    last = session.get("last_activity", now)
-    session["last_activity"] = now
+        if session.get("logged_in") and (now - last > timeout_seconds):
+            session.clear()
+            flash("Du ble logget ut pga. inaktivitet.", "warning")
+            return redirect("/login")
 
-    if session.get("logged_in") and (now - last > timeout_seconds):
-        session.clear()
-        flash("Du ble logget ut pga. inaktivitet.", "warning")
-        return redirect("/login")
 
 # 🔚 Rydd opp GPIO ved avslutning
 atexit.register(garage.cleanup)
@@ -59,21 +61,13 @@ from functools import wraps
 def login_required_if_enabled(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
-        if not session.get("logged_in"):
-            flash("Du må logge inn for å få tilgang.", "warning")
-            return redirect("/login")
+        config = load_config()
+        if config.get("login", False):  # bare krev login hvis satt til true
+            if not session.get("logged_in"):
+                flash("Du må logge inn for å få tilgang.", "warning")
+                return redirect("/login")
         return f(*args, **kwargs)
     return wrapper
-
-
-def login_required(f):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        if not session.get("logged_in"):
-            flash("Logg inn for å få tilgang", "warning")
-            return redirect("/login")
-        return f(*args, **kwargs)
-    return decorated
 
 def apply_log_level(level_str):
     """
@@ -542,18 +536,69 @@ def delete_backup(filename):
         flash(f"Feil ved sletting: {e}", "danger")
     return redirect(url_for("admin_backup"))
 
-@app.route("/delete-multiple-backups", methods=["POST"])
+
+@app.route("/admin/backup/compare", methods=["GET", "POST"])
+@login_required_if_enabled
+def compare_backups():
+    files = sorted(f for f in os.listdir(BACKUP_DIR) if f.endswith(".json"))
+    comparison = None
+    file1, file2 = None, None
+
+    if request.method == "POST":
+        file1 = request.form.get("file1")
+        file2 = request.form.get("file2")
+        path1 = os.path.join(BACKUP_DIR, file1)
+        path2 = os.path.join(BACKUP_DIR, file2)
+
+        try:
+            with open(path1, "r", encoding="utf-8") as f1, open(path2, "r", encoding="utf-8") as f2:
+                data1 = json.load(f1)
+                data2 = json.load(f2)
+                comparison = {
+                    "only_in_1": {k: data1[k] for k in data1 if k not in data2},
+                    "only_in_2": {k: data2[k] for k in data2 if k not in data1},
+                    "differences": {
+                        k: (data1[k], data2[k])
+                        for k in data1 if k in data2 and data1[k] != data2[k]
+                    },
+                    "common_equal": {
+                        k: data1[k]
+                        for k in data1 if k in data2 and data1[k] == data2[k]
+                    }
+                }
+        except Exception as e:
+            flash(f"Feil ved sammenligning: {e}", "danger")
+
+    return render_template("compare_backups.html", files=files, comparison=comparison, file1=file1, file2=file2)
+
+
+@app.route("/delete-backup/multiple", methods=["POST"])
 @login_required_if_enabled
 def delete_multiple_backups():
+    from flask import request
+    import os
+
+    backup_dir = BACKUP_DIR  # hentet fra config.py
     files = request.form.getlist("selected_files")
+
+    if not files:
+        flash("Ingen filer valgt for sletting", "warning")
+        return redirect("/admin/backup")
+
     deleted = 0
     for f in files:
-        path = os.path.join("backups", f)
-        if os.path.exists(path):
-            os.remove(path)
-            deleted += 1
-    flash(f"{deleted} backupfiler slettet", "success")
-    return redirect(url_for("admin_backup"))
+        path = os.path.join(backup_dir, f)
+        try:
+            if os.path.exists(path):
+                os.remove(path)
+                deleted += 1
+        except Exception as e:
+            flash(f"❌ Feil ved sletting av {f}: {e}", "danger")
+
+    flash(f"🗑️ Slettet {deleted} filer", "info")
+    return redirect("/admin/backup")
+
+
 
 @app.route("/admin/backup/old")
 @login_required_if_enabled
@@ -677,13 +722,20 @@ def admin_ports():
 @app.route("/restore/<filename>")
 @login_required_if_enabled
 def restore_backup(filename):
-    import shutil
+    backup_dir = "backups"
+    source_path = os.path.join(BACKUP_DIR, filename)
+    if not os.path.exists(source_path):
+        flash(f"❌ Finner ikke backupfil: {filename}", "danger")
+        return redirect("/admin/backup")
+
     try:
-        shutil.copy(f"backups/{filename}", "config.json")
-        flash("Konfigurasjon gjenopprettet fra backup", "success")
+        shutil.copy(source_path, CONFIG_PATH)  # eller "config.json"
+        flash(f"✅ Gjenopprettet backup: {filename}", "success")
     except Exception as e:
-        flash(f"Feil under gjenoppretting: {e}", "danger")
-    return redirect("/admin")
+        flash(f"❌ Feil ved gjenoppretting: {e}", "danger")
+
+    return redirect("/admin/backup")  # eller "/admin/backup"
+
 
 @app.route("/help")
 def help_page():
@@ -769,6 +821,7 @@ def system_settings():
 
 
 @app.route("/admin/calibrate", methods=["POST"])
+@login_required_if_enabled
 def calibrate_auto():
     if not is_logged_in():
         return redirect(url_for('login'))
