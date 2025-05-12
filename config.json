@@ -1,48 +1,47 @@
 {
-    "relay_pins": {
-        "port1": 2,
-        "port2": 8
+  "relay_pins": {
+    "port1": 2,
+    "port2": 19
+  },
+  "sensor_pins": {
+    "port1": {
+      "open": 22,
+      "closed": 10
     },
-    "sensor_pins": {
-        "port1": {
-            "open": 3,
-            "closed": 15
-        },
-        "port2": {
-            "open": 12,
-            "closed": 5
-        }
-    },
-    "calibration": {
-        "port1": {
-            "open_time": 11.0,
-            "close_time": 21.0,
-            "source": "manuell",
-            "timestamp": "2025-05-13T00:32:51"
-        },
-        "port2": {
-            "open_time": 20.0,
-            "close_time": 22.0,
-            "source": "manuell",
-            "timestamp": "2025-05-13T00:32:52"
-        }
-    },
-    "flash_timeout": {
-        "success": 3,
-        "info": 10,
-        "warning": 31,
-        "danger": 61
-    },
-    "session_timeout_minutes": 119,
-    "login": false,
-    "backup_retention_days": 311,
-    "flash_duration": 30,
-    "logging": {
-        "level": "WARNING",
-        "rotate_days": 7
-    },
-    "auth": {
-        "username": "admin",
-        "password": "1234"
+    "port2": {
+      "open": 14,
+      "closed": 16
     }
+  },
+  "calibration": {
+    "port1": {
+      "open_time": 11.0,
+      "close_time": 21.0,
+      "source": "manuell",
+      "timestamp": "2025-05-13T00:32:51"
+    },
+    "port2": {
+      "open_time": 20.0,
+      "close_time": 22.0,
+      "source": "manuell",
+      "timestamp": "2025-05-13T00:32:52"
+    }
+  },
+  "flash_timeout": {
+    "success": 2,
+    "info": 8,
+    "warning": 31,
+    "danger": 61
+  },
+  "session_timeout_minutes": 118,
+  "backup_retention_days": 312,
+  "logging": {
+    "level": "WARNING",
+    "rotate_days": 7
+  },
+  "login": false,
+  "auth": {
+    "username": "admin",
+    "password": "1234"
+  }
 }
