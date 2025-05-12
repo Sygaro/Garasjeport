@@ -1,60 +1,100 @@
-<!DOCTYPE html>
+
+<!doctype html>
 <html lang="no">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="utf-8">
   <title>Garasjeport</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-  <link rel="stylesheet" href="/static/styles.css">
-</head>
-<body class="bg-body text-body">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="/static/styles.css" rel="stylesheet">
 
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-  <div class="container-fluid">
-    <a class="navbar-brand" href="/">Garasjeport</a>
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-    <div class="collapse navbar-collapse" id="mainNavbar">
-      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-        <li class="nav-item"><a class="nav-link {% if request.path == '/' %}active{% endif %}" href="/">Status</a></li>
-        <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle {% if '/admin' in request.path %}active{% endif %}" href="#" data-bs-toggle="dropdown">
-            Admin
-          </a>
-          <ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="/admin/settings">Systeminnstillinger</a></li>
-            <li><a class="dropdown-item" href="/admin/ports">Porter & Kalibrering</a></li>
-            <li><a class="dropdown-item" href="/admin/backup">Backup</a></li>
-          </ul>
-        </li>
-        <li class="nav-item"><a class="nav-link {% if '/logs' in request.path %}active{% endif %}" href="/logs">Logger</a></li>
-        <li class="nav-item"><a class="nav-link {% if '/stats' in request.path %}active{% endif %}" href="/stats">Statistikk</a></li>
-        {% if session.get("logged_in") %}
-          <li class="nav-item"><a class="nav-link" href="/logout">Logg ut</a></li>
-        {% endif %}
-      </ul>
-      <form method="POST" action="/theme/toggle">
-        <button class="btn btn-outline-light btn-sm" type="submit">🌓 Bytt tema</button>
-      </form>
-    </div>
-  </div>
+  <style>
+    .fade-out {
+      opacity: 0;
+      transition: opacity 0.8s ease-out;
+    }
+    .progress {
+      height: 4px;
+      background-color: transparent;
+      margin-top: 0.5rem;
+    }
+    .progress-bar {
+      background-color: rgba(0, 0, 0, 0.3);
+      width: 100%;
+      transition: width 1s linear;
+    }
+  </style>
+
+  <script>
+  document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll(".alert[data-timeout]").forEach(function (el) {
+      const timeout = parseInt(el.getAttribute("data-timeout"), 10);
+      const bar = el.querySelector(".progress-bar");
+      let remaining = timeout;
+      let interval = setInterval(() => {
+        remaining--;
+        bar.style.width = (remaining / timeout * 100) + "%";
+        if (remaining <= 0) {
+          clearInterval(interval);
+          el.classList.add("fade-out");
+          setTimeout(() => el.remove(), 1000);
+        }
+      }, 1000);
+    });
+
+    const toggleBtn = document.getElementById("themeToggle");
+    if (toggleBtn) {
+      toggleBtn.addEventListener("click", () => {
+        document.body.classList.toggle("dark-mode");
+        localStorage.setItem("theme", document.body.classList.contains("dark-mode") ? "dark" : "light");
+      });
+      if (localStorage.getItem("theme") === "dark") {
+        document.body.classList.add("dark-mode");
+      }
+    }
+  });
+  </script>
+</head>
+<body class="bg-body text-body" style="padding-top: 60px">
+<nav class="navbar fixed-top navbar-expand-lg navbar-dark bg-dark px-3">
+  <a class="navbar-brand" href="/">Garasjeport</a>
+  {% if session.get("logged_in") %}
+  <ul class="navbar-nav me-auto">
+    <li class="nav-item"><a class="nav-link" href="/admin/stats">Status</a></li>
+    <li class="nav-item"><a class="nav-link" href="/admin/ports">Porter</a></li>
+    <li class="nav-item"><a class="nav-link" href="/admin/settings">System</a></li>
+    <li class="nav-item"><a class="nav-link" href="/admin/backup">Backup</a></li>
+    <li class="nav-item"><a class="nav-link" href="/admin/log">Portlogg</a></li>
+    <li class="nav-item"><a class="nav-link" href="/logs">Systemlogg</a></li>
+    <li class="nav-item"><a class="nav-link" href="/help">Hjelp</a></li>
+  </ul>
+  <form class="d-flex" action="/logout" method="POST">
+    <button class="btn btn-sm btn-outline-light">Logg ut</button>
+  </form>
+  {% endif %}
+  <button id="themeToggle" class="btn btn-sm btn-outline-light ms-3">🌓</button>
 </nav>
 
-<div class="container mt-3">
+<main class="container py-4">
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
+      {% set timeouts = config.get("flash_timeout", {}) %}
       {% for category, message in messages %}
-        <div class="alert alert-{{ category }} alert-dismissible fade show small" role="alert">
+        {% set timeout = timeouts.get(category, 30) %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show"
+             role="alert"
+             data-timeout="{{ timeout }}">
           {{ message }}
-          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          <div class="progress"><div class="progress-bar"></div></div>
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
       {% endfor %}
     {% endif %}
   {% endwith %}
-
   {% block content %}{% endblock %}
-</div>
+</main>
 
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+{% block scripts %}{% endblock %}
 </body>
 </html>

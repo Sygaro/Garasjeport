@@ -1,34 +1,33 @@
 
 {% extends "base.html" %}
 {% block content %}
-<h2>📊 Statistikk</h2>
+<div class="container mt-4">
+  <h2 class="mb-4">📈 Statistikk for porter</h2>
 
-{% if stats %}
-<div class="table-responsive">
-  <table class="table table-sm table-striped align-middle">
-    <thead class="table-light">
-      <tr>
-        <th>Port</th>
-        <th>Åpnet</th>
-        <th>Sist åpnet</th>
-        <th>Sist lukket</th>
-        <th>Totalt åpnet (sek)</th>
-      </tr>
-    </thead>
-    <tbody>
-    {% for port, data in stats.items() %}
-      <tr>
-        <td>{{ port }}</td>
-        <td>{{ data.get("opened", 0) }}</td>
-        <td>{{ data.get("last_opened", "–") }}</td>
-        <td>{{ data.get("last_closed", "–") }}</td>
-        <td>{{ data.get("open_duration", 0) }}</td>
-      </tr>
+  <div class="row g-4">
+    {% for port in stats %}
+    <div class="col-md-6">
+      <div class="card border-primary">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0">🚪 {{ port.name | capitalize }}</h5>
+        </div>
+        <div class="card-body">
+          <p><strong>Status:</strong> 
+            {% if port.status == "open" %}
+              <span class="badge bg-success">Åpen</span>
+            {% elif port.status == "closed" %}
+              <span class="badge bg-secondary">Lukket</span>
+            {% else %}
+              <span class="badge bg-warning text-dark">Ukjent</span>
+            {% endif %}
+          </p>
+          <p><strong>Siste endring:</strong> {{ port.last_change }}</p>
+          <p><strong>Åpnet totalt:</strong> {{ port.open_count }} ganger</p>
+          <p><strong>Totalt åpen tid:</strong> {{ port.total_open_time }} min</p>
+        </div>
+      </div>
+    </div>
     {% endfor %}
-    </tbody>
-  </table>
+  </div>
 </div>
-{% else %}
-<p>Ingen statistikk tilgjengelig.</p>
-{% endif %}
 {% endblock %}

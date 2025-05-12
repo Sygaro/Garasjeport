@@ -17,8 +17,6 @@ from flask import Flask, render_template, request
 from config import load_config, save_config, CONFIG_PATH, BACKUP_DIR
 from log_utils import apply_log_level
 from logger import setup_logging
-from calibration import calibrate_open, calibrate_close, calibrate_full, save_calibration, garage as calibration_garage
-
 
 # ✅ Last konfig én gang og sett logger ved oppstart
 config = load_config()
@@ -28,17 +26,16 @@ apply_log_level(log_level_str)
 setup_logging()  # Hvis du har ekstra handlers
 
 
-
-
 # 🌐 Start Flask
 app = Flask(__name__)
 # app.secret_key = "supersecretkey"
 app.secret_key = config.get("secret_key", "supersecretkey")
 
-
 # 🚪 Init portkontroller
 garage = GarageController(config)
-
+import calibration
+calibration.garage = garage
+from calibration import calibrate_open, calibrate_close, calibrate_full, save_calibration
 # 🔧 Kalibreringsruter (integrert med calibration.py)
 calibration_garage = garage  # deler garage-objektet med calibration.py
 
@@ -308,99 +305,6 @@ def admin():
     )
 
 
-
-
-# 🔧 Kalibreringsrute – lagrer åpne-/lukketid i sekunder
-@app.route("/admin/calibrate", methods=["POST"])
-@login_required_if_enabled
-def calibrate_manual():
-    port = request.form.get("port")
-    action = request.form.get("action")  # NEW
-
-    try:
-        open_val = request.form.get("open_time")
-        close_val = request.form.get("close_time")
-
-
-        if action == "save_open":
-            open_time = float(open_val)
-            if not (0 <= open_time <= 60):
-                raise ValueError("Åpnetid må være mellom 0 og 60 sek.")
-            config["calibration"][port]["open_time"] = open_time
-            config["calibration"][port]["source"] = "manuell"
-            config["calibration"][port]["timestamp"] = now
-            flash(f"Åpnetid lagret for {port}", "success")
-
-        elif action == "save_close":
-            close_time = float(close_val)
-            if not (0 <= close_time <= 60):
-                raise ValueError("Lukketid må være mellom 0 og 60 sek.")
-            config["calibration"][port]["close_time"] = close_time
-            config["calibration"][port]["source_close"] = "manuell"
-            config["calibration"][port]["timestamp_close"] = now
-            flash(f"Lukketid lagret for {port}", "success")
-
-
-    except Exception as e:
-        flash(f"Feil under lagring: {e}", "danger")
-
-    return redirect("/admin")
-
-
-
-# Flask-rute for automatisk kalibrering via GPIO-måling
-
-@app.route("/admin/calibrate/auto/<port>")
-@login_required_if_enabled
-def auto_calibrate(port):
-    result = calibrate_port(port)  # bruker intern målelogikk
-
-    if not result:
-        flash(f"❌ Kalibrering feilet for {port}", "danger")
-        return redirect(url_for('admin_ports'))
-
-    try:
-        config = load_config()
-        config["calibration"][port] = result
-        save_config(config)
-
-        flash(f"✅ Automatisk kalibrering for {port}: "
-              f"Åpne {result['open_time']} sek, Lukke {result['close_time']} sek", "success")
-
-        log_event("calibration", "Automatisk kalibrering lagret", port=port, data=result)
-    except Exception as e:
-        log_event("error", "Kunne ikke lagre kalibrering", port=port, data={"feil": str(e)})
-        flash(f"❌ Feil ved lagring av kalibrering: {e}", "danger")
-
-    return redirect(url_for('admin_ports'))
-
-
-
-@app.route("/admin/calibrate/close/<port>")
-@login_required_if_enabled
-def auto_calibrate_close(port):
-    result = calibrate_port(port)
-
-    if not result or "close_time" not in result:
-        flash(f"❌ Kalibrering av lukketid feilet for {port}", "danger")
-        return redirect(url_for('admin_ports'))
-
-    try:
-        config = load_config()
-        if port not in config["calibration"]:
-            config["calibration"][port] = {}
-        config["calibration"][port]["close_time"] = result["close_time"]
-        save_config(config)
-
-        flash(f"✅ Automatisk lukketid målt for {port}: {result['close_time']} sek", "success")
-        log_event("calibration", "Automatisk lukketid lagret", port=port, data={"close_time": result["close_time"]})
-    except Exception as e:
-        flash(f"❌ Feil ved lagring av lukketid: {e}", "danger")
-        log_event("error", "Kunne ikke lagre lukketid kalibrering", port=port, data={"feil": str(e)})
-
-    return redirect(url_for('admin_ports'))
-
-
 @app.route("/login", methods=["GET", "POST"])
 def login():
     correct_user = auth.get("username")
@@ -420,13 +324,13 @@ def login():
     return render_template("login.html")
 
 
-
-@app.route("/logout")
-@login_required_if_enabled
+#logg ut
+@app.route("/logout", methods=["POST"])
 def logout():
     session.clear()
-    flash("Du er logget ut", "info")
-    return redirect(url_for("login"))
+    flash("Du er logget ut.", "info")
+    return redirect("/login")
+
 
 @app.route("/logs")
 @login_required_if_enabled
@@ -461,10 +365,60 @@ def vis_eventlogg():
     return render_template("log.html", events=hendelser)
 
 
-@app.route("/stats")
+
+
+@app.route("/admin/stats")
 @login_required_if_enabled
-def stats():
-    return render_template("stats.html")
+def port_stats():
+    import os
+    from datetime import datetime
+    log_path = "logs/events.log"
+    stats = {}
+    now = datetime.now()
+
+    ports = garage.sensor_pins.keys()
+
+    # Init per port
+    for port in ports:
+        stats[port] = {
+            "name": port,
+            "status": garage.get_port_status(port),  # Live-status
+            "last_change": "–",
+            "open_count": 0,
+            "total_open_time": 0,
+            "last_open_time": None
+        }
+
+    # Les logg for historikk
+    if os.path.exists(log_path):
+        with open(log_path, "r", encoding="utf-8") as f:
+            for line in f:
+                try:
+                    event = json.loads(line.strip())
+                    port = event.get("port")
+                    t = event.get("time")
+                    msg = event.get("message", "")
+                    if not port or port not in stats or not t:
+                        continue
+
+                    time_obj = datetime.fromisoformat(t)
+
+                    if "åpnet" in msg.lower():
+                        stats[port]["last_change"] = time_obj.strftime("%Y-%m-%d %H:%M")
+                        stats[port]["open_count"] += 1
+                        stats[port]["last_open_time"] = time_obj
+                    elif "lukket" in msg.lower():
+                        stats[port]["last_change"] = time_obj.strftime("%Y-%m-%d %H:%M")
+                        if stats[port]["last_open_time"]:
+                            delta = time_obj - stats[port]["last_open_time"]
+                            stats[port]["total_open_time"] += round(delta.total_seconds() / 60, 1)
+                            stats[port]["last_open_time"] = None
+                except:
+                    continue
+
+    return render_template("stats.html", stats=stats.values())
+
+
 
 @app.route("/admin/backup")
 @login_required_if_enabled
@@ -816,45 +770,34 @@ def system_settings():
     except:
         flash("Kunne ikke laste config.json", "danger")
         return redirect("/admin")
-
-
     if request.method == "POST":
         try:
-            config["session_timeout"] = int(request.form.get("session_timeout", 60))
-            config["flash_duration"] = int(request.form.get("flash_duration", 30))
+            setting = request.form.get("setting")
 
-            config["logging"] = {
-                "level": request.form.get("log_level", "INFO"),
-                "rotate_days": int(request.form.get("rotate_days", 7))
-            }
+            if setting == "timeout":
+                config["session_timeout_minutes"] = int(request.form.get("session_timeout", 15))
+
+            elif setting == "flash_timeout":
+                flash_data = {}
+                for cat in ["success", "info", "warning", "danger"]:
+                    val = int(request.form.get(f"flash_{cat}", 30))
+                    flash_data[cat] = val
+                config["flash_timeout"] = flash_data
+
+            elif setting == "retention_days":
+                config["backup_retention_days"] = int(request.form.get("retention_days", 30))
+
+            elif setting == "log_level":
+                level = request.form.get("log_level", "INFO")
+                config["logging"]["level"] = level
 
             save_config(config)
+            flash("✅ Innstilling lagret", "success")
 
-
-            flash("✅ Systeminnstillinger oppdatert", "success")
         except Exception as e:
             flash(f"Feil under lagring: {e}", "danger")
 
     return render_template("admin_settings.html", config=config)
-
-
-@app.route("/admin/calibrate", methods=["POST"])
-@login_required_if_enabled
-def calibrate_auto():
-    if not is_logged_in():
-        return redirect(url_for('login'))
-    config = load_config()
-    try:
-        port = request.form["port"]
-        open_time = float(request.form["open_time"])
-        close_time = float(request.form["close_time"])
-        config["calibration"][port] = {"open_time": open_time, "close_time": close_time}
-        with open(CONFIG_PATH, 'w') as f:
-            json.dump(config, f, indent=2)
-        flash(f"Kalibrering lagret for {port}: Åpne: {open_time}s, Lukke: {close_time}s", "success")
-    except Exception as e:
-        flash(f"Feil under lagring av kalibrering: {e}", "danger")
-    return redirect(url_for('admin'))
 
 
 """

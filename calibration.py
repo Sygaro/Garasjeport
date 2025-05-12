@@ -2,13 +2,14 @@
 # Fil: calibration.py
 # Modul for kalibrering av porter – måling av åpne/lukketid, lagring og feilhåndtering
 
+# Referanse til garage-controller (må settes i app.py eller ved init)
+garage = None  # denne må settes utenfra
+
 import time
 from datetime import datetime
 from config import load_config, save_config
 from event_log import log_event
 
-# Referanse til garage-controller (må settes i app.py eller ved init)
-garage = None  # denne må settes utenfra
 
 def calibrate_open(port, timeout=60):
     """Måler hvor lang tid det tar å åpne en port fra lukket posisjon."""
