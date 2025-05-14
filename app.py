@@ -884,25 +884,6 @@ def calibrate_manual():
     flash(f"Manuell kalibrering lagret for {port}", "success")
     return redirect("/admin/ports")
     
-    
-@app.route("/test/sensor/<port>")
-def test_sensor_status(port):
-    try:
-        open_val = garage.read_sensor(port, "open")
-        closed_val = garage.read_sensor(port, "closed")
-        return f"""
-        <h3>Status for {port}</h3>
-        <ul>
-            <li>Sensor åpen: {open_val}</li>
-            <li>Sensor lukket: {closed_val}</li>
-        </ul>
-        <a href='/admin/stats'>Tilbake</a>
-        """
-    except Exception as e:
-        return f"<p>Feil: {e}</p><a href='/admin/stats'>Tilbake</a>"
-
-
-
 
 @app.context_processor
 def inject_config():
