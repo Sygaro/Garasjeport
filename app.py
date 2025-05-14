@@ -833,11 +833,24 @@ def system_settings():
                 level = request.form.get("log_level", "INFO")
                 config["logging"]["level"] = level
 
-            save_config(config)
-            flash("✅ Innstilling lagret", "success")
+            # ⏱️ Lagre kalibrerings timeout
+            elif setting == "calibration_timeout":
+                try:
+                    timeout_val = int(request.form.get("calibration_max_seconds", 60))
+                    if not (10 <= timeout_val <= 120):
+                        raise ValueError("Verdien må være mellom 10 og 120 sekunder.")
+                    config["calibration_max_seconds"] = timeout_val
+                    save_config(config)
+                    flash(f"Maksimal kalibreringstid oppdatert til {timeout_val} sekunder", "success")
+                except Exception as e:
+                    flash(f"Feil ved lagring av kalibreringstid: {e}", "danger")
+
+                save_config(config)
+                flash("✅ Innstilling lagret", "success")
 
         except Exception as e:
             flash(f"Feil under lagring: {e}", "danger")
+
 
     return render_template("admin_settings.html", config=config)
 
@@ -868,7 +881,7 @@ def auto_calibrate_close(port):
         flash(f"Lukketid kunne ikke måles for {port}", "danger")
         return redirect("/admin/ports")
     save_calibration(port, close_time=duration, source="auto")
-    flash(f"Lukketid for {port}: {duration:.2f} sek", "success")
+    flash(f"{port} lukketid: {duration['total_time']:.2f} sek (delay {duration['rele_delay']:.2f}s)", "success")
     return redirect("/admin/ports")
 
 @app.route("/admin/calibrate", methods=["POST"])

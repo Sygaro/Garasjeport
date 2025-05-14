@@ -8,13 +8,13 @@ import os
 
 LOG_FILE = "logs/calibration_history.log"
 
-def log_calibration_measurement(port, action_type, rele_delay, sensor_transition, total_time, temp=None, humidity=None):
+def log_calibration_result(port, direction, rele_delay, sensor_to_sensor, total_time, temp=None, humidity=None):
     entry = {
         "time": datetime.now().isoformat(),
         "port": port,
-        "type": action_type,  # "open" eller "close"
+        "type": direction,  # "open" eller "close"
         "rele_delay": round(rele_delay, 3),
-        "sensor_to_sensor": round(sensor_transition, 3),
+        "sensor_to_sensor": round(sensor_to_sensor, 3),
         "total_time": round(total_time, 3),
         "temp": temp,
         "humidity": humidity

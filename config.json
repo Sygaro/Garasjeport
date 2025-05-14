@@ -15,16 +15,33 @@
   },
   "calibration": {
     "port1": {
-      "open_time": 0.3,
-      "close_time": 0.3,
+      "open_time": 0.0,
+      "close_time": {
+        "rele_delay": 0.3,
+        "sensor_to_sensor": 0.0,
+        "total_time": 0.3
+      },
       "source": "auto",
-      "timestamp": "2025-05-14T23:29:59"
+      "timestamp": "2025-05-14T23:29:59",
+      "close_delay": 0.3,
+      "timestamp_close": "2025-05-15T00:57:33.305747",
+      "source_close": "auto",
+      "open_delay": 0.3,
+      "timestamp_open": "2025-05-15T01:00:03.426814",
+      "source_open": "kalibrert"
     },
     "port2": {
       "open_time": 20.0,
-      "close_time": 0.3,
+      "close_time": {
+        "rele_delay": 0.3,
+        "sensor_to_sensor": 0.0,
+        "total_time": 0.3
+      },
       "source": "auto",
-      "timestamp": "2025-05-14T23:31:00"
+      "timestamp": "2025-05-14T23:31:00",
+      "close_delay": 0.3,
+      "timestamp_close": "2025-05-15T01:00:16.671421",
+      "source_close": "auto"
     }
   },
   "flash_timeout": {
@@ -43,5 +60,6 @@
   "auth": {
     "username": "admin",
     "password": "1234"
-  }
+  },
+  "calibration_max_seconds": 40
 }
