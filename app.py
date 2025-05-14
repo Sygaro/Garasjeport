@@ -9,14 +9,14 @@ import atexit
 import shutil
 
 from flask import Flask, render_template, redirect, url_for, request, flash, session, send_from_directory
-from garage_controller import GarageController
+from flask_socketio import SocketIO, emit
+from garage_controller import GarageController, sensor_callback
 from logger import setup_logging
 from datetime import datetime, timedelta
 from event_log import log_event
-from flask import Flask, render_template, request
 from config import load_config, save_config, CONFIG_PATH, BACKUP_DIR
 from log_utils import apply_log_level
-from logger import setup_logging
+
 
 # ✅ Last konfig én gang og sett logger ved oppstart
 config = load_config()
@@ -30,6 +30,7 @@ setup_logging()  # Hvis du har ekstra handlers
 app = Flask(__name__)
 # app.secret_key = "supersecretkey"
 app.secret_key = config.get("secret_key", "supersecretkey")
+socketio = SocketIO(app)
 
 # 🚪 Init portkontroller
 garage = GarageController(config)
@@ -145,14 +146,50 @@ def siden_tidspunkt(iso_str):
         return ""
 
 
-@app.route("/open/<port>")
+
+### Åpne port ###
+@app.route("/port/open/<port>")
 @login_required_if_enabled
 def open_port(port):
-    if garage.open_port(port):
-        flash(f"Porten {port} ble aktivert", "success")
-    else:
-        flash(f"Feil: kunne ikke åpne {port}", "danger")
-    return redirect(url_for("index"))
+    success, message = garage.try_send_pulse(port, action="open")
+    if message == "ukjent":
+        flash("Status er ukjent – vil du forsøke å aktivere motor?", "warning")
+        return render_template("confirm_action.html", port=port, action="open")
+    flash(message, "success" if success else "danger")
+    return redirect("/admin/stats")
+
+### Lukke port ###
+@app.route("/port/close/<port>")
+@login_required_if_enabled
+def close_port(port):
+    success, message = garage.try_send_pulse(port, action="close")
+    if message == "ukjent":
+        flash("Status er ukjent – vil du forsøke å aktivere motor?", "warning")
+        return render_template("confirm_action.html", port=port, action="close")
+    flash(message, "success" if success else "danger")
+    return redirect("/admin/stats")
+
+### Åpne/lukke port ved ukjent status###
+@app.route("/port/force/<action>/<port>")
+@login_required_if_enabled
+def force_port_action(action, port):
+    if action not in ("open", "close"):
+        flash("Ugyldig handling", "danger")
+        return redirect("/admin/stats")
+
+    pin = garage.relay_pins.get(port)
+    if pin is None:
+        flash(f"Ukjent port: {port}", "danger")
+        return redirect("/admin/stats")
+
+    # Send puls
+    garage.send_pulse_raw(port)
+
+    flash(f"Signal sendt til {port} – motor forsøkes aktivert ({action})", "info")
+    return redirect("/admin/stats")
+
+
+
 
 # Rute: /admin – konfigurasjon av porter og GPIO
 
@@ -365,31 +402,29 @@ def vis_eventlogg():
     return render_template("log.html", events=hendelser)
 
 
-
-
 @app.route("/admin/stats")
 @login_required_if_enabled
 def port_stats():
     import os
-    from datetime import datetime
+    from datetime import datetime, timedelta
     log_path = "logs/events.log"
     stats = {}
+    history = {}
     now = datetime.now()
 
     ports = garage.sensor_pins.keys()
 
-    # Init per port
     for port in ports:
         stats[port] = {
             "name": port,
-            "status": garage.get_port_status(port),  # Live-status
+            "status": garage.get_port_status(port),
             "last_change": "–",
             "open_count": 0,
             "total_open_time": 0,
             "last_open_time": None
         }
+        history[port] = {}
 
-    # Les logg for historikk
     if os.path.exists(log_path):
         with open(log_path, "r", encoding="utf-8") as f:
             for line in f:
@@ -402,11 +437,14 @@ def port_stats():
                         continue
 
                     time_obj = datetime.fromisoformat(t)
+                    date_str = time_obj.strftime("%Y-%m-%d")
 
                     if "åpnet" in msg.lower():
                         stats[port]["last_change"] = time_obj.strftime("%Y-%m-%d %H:%M")
                         stats[port]["open_count"] += 1
                         stats[port]["last_open_time"] = time_obj
+                        history[port][date_str] = history[port].get(date_str, 0) + 1
+
                     elif "lukket" in msg.lower():
                         stats[port]["last_change"] = time_obj.strftime("%Y-%m-%d %H:%M")
                         if stats[port]["last_open_time"]:
@@ -416,8 +454,9 @@ def port_stats():
                 except:
                     continue
 
-    return render_template("stats.html", stats=stats.values())
+    last_7_days = [(now - timedelta(days=i)).strftime("%Y-%m-%d") for i in reversed(range(7))]
 
+    return render_template("stats.html", stats=stats.values(), history=history, days=last_7_days)
 
 
 @app.route("/admin/backup")
@@ -677,6 +716,9 @@ def admin_ports():
 
                 with open(config_path, "w", encoding="utf-8") as fw:
                     json.dump(config, fw, indent=4)
+                # Oppdater aktiv konfigurasjon etter lagring
+                garage.update_config(load_config())
+
 
                 flash(f"GPIO-pinner oppdatert for {port}", "success")
         except Exception as e:
@@ -843,6 +885,24 @@ def calibrate_manual():
     return redirect("/admin/ports")
     
     
+@app.route("/test/sensor/<port>")
+def test_sensor_status(port):
+    try:
+        open_val = garage.read_sensor(port, "open")
+        closed_val = garage.read_sensor(port, "closed")
+        return f"""
+        <h3>Status for {port}</h3>
+        <ul>
+            <li>Sensor åpen: {open_val}</li>
+            <li>Sensor lukket: {closed_val}</li>
+        </ul>
+        <a href='/admin/stats'>Tilbake</a>
+        """
+    except Exception as e:
+        return f"<p>Feil: {e}</p><a href='/admin/stats'>Tilbake</a>"
+
+
+
 
 @app.context_processor
 def inject_config():
@@ -855,4 +915,7 @@ def inject_config():
 
 
 
-if __name__ == '__main__':    app.run(host='0.0.0.0', port=5000, debug=True)
+if __name__ == '__main__':
+    socketio.run(app, host='0.0.0.0', port=5000, debug=True)
+
+

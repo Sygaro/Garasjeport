@@ -9,27 +9,92 @@ import time
 from datetime import datetime
 from config import load_config, save_config
 from event_log import log_event
+from calibration_logger import log_calibration_measurement
+
 
 
 def calibrate_open(port, timeout=60):
-    """Måler hvor lang tid det tar å åpne en port fra lukket posisjon."""
-    log_event("calibration", f"Starter måling av åpnetid for {port}")
-    duration = garage.maal_aapnetid(port, timeout=timeout)
-    if duration is None:
-        log_event("error", f"Åpning av {port} tok for lang tid (> {timeout}s)")
+    from time import time, sleep
+
+    log_event("calibration", f"Starter kalibrering av åpning for {port}", port=port)
+    start_pulse = time()
+    garage.send_pulse(port)  # Rele aktiveres
+
+    # Mål tid til "closed"-sensor går fra aktiv → inaktiv
+    delay_start = time()
+    delay_timeout = delay_start + timeout
+    while time() < delay_timeout:
+        if garage.read_sensor(port, "closed") == 0:
+            delay_duration = time() - start_pulse
+            break
+        sleep(0.01)
+    else:
+        log_event("error", f"Releforsinkelse for {port} overskredet", port=port)
         return None
-    log_event("calibration", f"Åpnetid for {port}: {round(duration,2)} sek")
-    return round(duration, 2)
+
+    # Nå venter vi på at "open" sensor skal bli aktiv
+    sensor_start = time()
+    sensor_timeout = sensor_start + timeout
+    while time() < sensor_timeout:
+        if garage.read_sensor(port, "open") == 1:
+            sensor_duration = time() - delay_start
+            total_duration = delay_duration + sensor_duration
+            log_event("calibration", f"Åpningstid for {port}: {total_duration:.2f}s", port=port)
+            log_calibration_measurement(
+                port=port,
+                action_type="open",
+                rele_delay=delay_duration,
+                sensor_transition=sensor_duration,
+                total_time=total_duration
+            )
+            return round(total_duration, 2)
+        sleep(0.01)
+
+    log_event("error", f"Åpning av {port} feilet – sensor ikke aktivert", port=port)
+    return None
+
 
 def calibrate_close(port, timeout=60):
-    """Måler hvor lang tid det tar å lukke en port fra åpen posisjon."""
-    log_event("calibration", f"Starter måling av lukketid for {port}")
-    duration = garage.maal_lukketid(port, timeout=timeout)
-    if duration is None:
-        log_event("error", f"Lukking av {port} tok for lang tid (> {timeout}s)")
+    from time import time, sleep
+
+    log_event("calibration", f"Starter kalibrering av lukking for {port}", port=port)
+    start_pulse = time()
+    garage.send_pulse(port)
+
+    # Mål tid til "open"-sensor går fra aktiv → inaktiv
+    delay_start = time()
+    delay_timeout = delay_start + timeout
+    while time() < delay_timeout:
+        if garage.read_sensor(port, "open") == 0:
+            delay_duration = time() - start_pulse
+            break
+        sleep(0.01)
+    else:
+        log_event("error", f"Releforsinkelse for {port} ved lukking overskredet", port=port)
         return None
-    log_event("calibration", f"Lukketid for {port}: {round(duration,2)} sek")
-    return round(duration, 2)
+
+    # Nå venter vi på at "closed" sensor blir aktiv
+    sensor_start = time()
+    sensor_timeout = sensor_start + timeout
+    while time() < sensor_timeout:
+        if garage.read_sensor(port, "closed") == 1:
+            sensor_duration = time() - delay_start
+            total_duration = delay_duration + sensor_duration
+            log_event("calibration", f"Lukketid for {port}: {total_duration:.2f}s", port=port)
+            log_calibration_measurement(
+                port=port,
+                action_type="close",
+                rele_delay=delay_duration,
+                sensor_transition=sensor_duration,
+                total_time=total_duration
+            )
+            return round(total_duration, 2)
+        sleep(0.01)
+
+    log_event("error", f"Lukking av {port} feilet – sensor ikke aktivert", port=port)
+    return None
+
+
 
 def calibrate_full(port, timeout=60):
     """Måler både åpne- og lukketid for porten."""
