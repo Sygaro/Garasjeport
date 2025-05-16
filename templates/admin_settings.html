@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>⚙️ Systeminnstillinger</h2>
+
+<!-- SESSION TIMEOUT -->
+<form method="POST" action="/admin/settings" class="mb-4 bg-body-tertiary p-3 rounded shadow-sm">
+  <input type="hidden" name="setting" value="timeout">
+  <h5>Session timeout</h5>
+  <div class="input-group input-group-sm">
+    <span class="input-group-text">Minutter</span>
+    <input type="number" name="session_timeout" min="1" max="240" class="form-control"
+           value="{{ config.get('session_timeout_minutes', 15) }}">
+  </div>
+  <button type="submit" class="btn btn-primary btn-sm mt-2">💾 Lagre session-timeout</button>
+</form>
+
+<!-- FLASH TIMEOUT -->
+<form method="POST" action="/admin/settings" class="mb-4 bg-body-tertiary p-3 rounded shadow-sm">
+  <input type="hidden" name="setting" value="flash_timeout">
+  <h5>Visningstid for meldinger (sekunder)</h5>
+  {% for cat in ["success", "info", "warning", "danger"] %}
+  <div class="input-group input-group-sm mb-2">
+    <span class="input-group-text">{{ cat }}</span>
+    <input type="number" name="flash_{{ cat }}" min="1" max="300" class="form-control"
+           value="{{ config.get('flash_timeout', {}).get(cat, 30) }}">
+  </div>
+  {% endfor %}
+  <button type="submit" class="btn btn-primary btn-sm">💾 Lagre flash-timeout</button>
+</form>
+
+<!-- BACKUP RETENTION -->
+<form method="POST" action="/admin/settings" class="mb-4 bg-body-tertiary p-3 rounded shadow-sm">
+  <input type="hidden" name="setting" value="retention_days">
+  <h5>Behold backupfiler (dager)</h5>
+  <div class="input-group input-group-sm mb-2">
+    <span class="input-group-text">Dager</span>
+    <input type="number" name="retention_days" min="1" max="365" class="form-control"
+           value="{{ config.get('backup_retention_days', 30) }}">
+  </div>
+  <button type="submit" class="btn btn-primary btn-sm">💾 Lagre backup-retensjon</button>
+</form>
+
+<!-- LOG LEVEL -->
+<form method="POST" action="/admin/settings" class="mb-4 bg-body-tertiary p-3 rounded shadow-sm">
+  <input type="hidden" name="setting" value="log_level">
+  <h5>Loggnivå</h5>
+  <select class="form-select form-select-sm mb-2" name="log_level">
+    {% for level in ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] %}
+      <option value="{{ level }}"
+        {% if config.get('logging', {}).get('level', 'INFO') == level %}selected{% endif %}>{{ level }}</option>
+    {% endfor %}
+  </select>
+  <button type="submit" class="btn btn-primary btn-sm">💾 Lagre loggnivå</button>
+</form>
+
+<!-- 🔧 SYSTEMINNSTILLINGER -->
+<div class="card mt-4">
+  <div class="card-header bg-secondary text-white">
+    Kalibreringsinnstillinger
+  </div>
+  <div class="card-body">
+    <form method="post">
+      <input type="hidden" name="setting" value="calibration_timeout">
+      <div class="mb-3">
+        <label for="calibration_max_seconds" class="form-label">Maksimal kalibreringstid (sekunder)</label>
+        <input type="number" class="form-control" id="calibration_max_seconds" name="calibration_max_seconds"
+               value="{{ config.get('calibration_max_seconds', 60) }}" min="10" max="120">
+      </div>
+      <button type="submit" class="btn btn-primary">Lagre</button>
+    </form>
+  </div>
+</div>
+<a href="/admin/ports" class="btn btn-secondary btn-sm mt-3">🔌 Til porter og kalibrering</a>
+{% endblock %}

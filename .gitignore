@@ -1,0 +1,40 @@
+# Filnavn: .gitignore
+# Beskriver hvilke filer og mapper som skal ignoreres av Git versjonskontrollsystem
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyc
+*.pyo
+*.pyd
+._*.py
+
+# Virtuelt miljø
+venv/
+ENV/
+env/
+
+# Backupfiler
+backups/
+*.bak
+*.old
+*.tmp
+
+# Editor- og OS-spesifikke filer
+*.swp
+*.swo
+*.DS_Store
+.idea/
+.vscode/
+
+# Logger
+logs/
+*.log
+
+
+# Annet
+Thumbs.db
+<<<<<<< HEAD
+._*
+=======
+._*.*

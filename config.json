@@ -1,0 +1,68 @@
+{
+  "relay_pins": {
+    "port1": 14,
+    "port2": 15
+  },
+  "sensor_pins": {
+    "port1": {
+      "open": 23,
+      "closed": 24
+    },
+    "port2": {
+      "open": 20,
+      "closed": 21
+    }
+  },
+  "calibration": {
+    "port1": {
+      "open_time": 10.0,
+      "close_time": {
+        "rele_delay": 0.3,
+        "sensor_to_sensor": 0.0,
+        "total_time": 0.3
+      },
+      "source": "auto",
+      "timestamp": "2025-05-14T23:29:59",
+      "close_delay": 0.3,
+      "timestamp_close": "2025-05-16T12:29:07.687262",
+      "source_close": "auto",
+      "open_delay": 0.3,
+      "timestamp_open": "2025-05-16T12:29:04.569620",
+      "source_open": "manuell"
+    },
+    "port2": {
+      "open_time": 15.0,
+      "close_time": {
+        "rele_delay": 0.3,
+        "sensor_to_sensor": 0.0,
+        "total_time": 0.3
+      },
+      "source": "auto",
+      "timestamp": "2025-05-14T23:31:00",
+      "close_delay": 0.3,
+      "timestamp_close": "2025-05-16T12:29:11.315303",
+      "source_close": "auto",
+      "open_delay": 0.3,
+      "timestamp_open": "2025-05-16T12:29:09.122625",
+      "source_open": "manuell"
+    }
+  },
+  "flash_timeout": {
+    "success": 2,
+    "info": 8,
+    "warning": 31,
+    "danger": 61
+  },
+  "session_timeout_minutes": 118,
+  "backup_retention_days": 312,
+  "logging": {
+    "level": "WARNING",
+    "rotate_days": 7
+  },
+  "login": false,
+  "auth": {
+    "username": "admin",
+    "password": "1234"
+  },
+  "calibration_max_seconds": 40
+}

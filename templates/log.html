@@ -1,0 +1,159 @@
+
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+  <h2 class="mb-4">📜 Logg for garasjeporter</h2>
+  <p>Filtrer hendelser etter type, port eller datoperiode. Klikk 🔍 for detaljer.</p>
+
+  {% set port_values = events | map(attribute="port") | select | list | unique %}
+  {% set type_values = events | map(attribute="type") | select | list | unique %}
+
+  <div class="row g-3 align-items-end mb-4">
+    <div class="col-md-3">
+      <label for="filterType" class="form-label">Type</label>
+      <select id="filterType" class="form-select">
+        <option value="">Alle</option>
+        {% for t in type_values %}
+          <option value="{{ t }}">{{ t.title() }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3">
+      <label for="filterPort" class="form-label">Port</label>
+      <select id="filterPort" class="form-select">
+        <option value="">Alle</option>
+        {% for p in port_values %}
+          <option value="{{ p }}">{{ p }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2">
+      <label for="startDate" class="form-label">Fra dato</label>
+      <input type="date" id="startDate" class="form-control">
+    </div>
+    <div class="col-md-2">
+      <label for="endDate" class="form-label">Til dato</label>
+      <input type="date" id="endDate" class="form-control">
+    </div>
+    <div class="col-md-2 d-flex gap-2">
+      <button id="resetFilters" class="btn btn-secondary w-100">Nullstill filtre</button>
+      <button id="exportCsv" class="btn btn-success w-100">Eksporter CSV</button>
+    </div>
+  </div>
+
+  <table class="table table-bordered table-hover" id="logTable">
+    <thead class="table-secondary">
+      <tr>
+        <th>Klokkeslett</th>
+        <th>Dato</th>
+        <th>Type</th>
+        <th>Port</th>
+        <th>Melding</th>
+        <th>Detaljer</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for event in events %}
+        {% set t = event.get("time", "") %}
+        {% set ts = t.split("T") if "T" in t else ["", ""] %}
+        {% set port_str = event.get("port") or "" %}
+        {% set is_error = event.get("type") == "error" %}
+        <tr class="log-row"
+            style="{{ 'background-color: #f8d7da;' if is_error else '' }}"
+            data-type="{{ event.get('type', '') }}"
+            data-port="{{ port_str }}"
+            data-date="{{ ts[0] }}"
+            data-entry="{{ event | tojson | safe }}">
+          <td>{{ ts[1][:8] }}</td>
+          <td>{{ ts[0] }}</td>
+          <td>{{ event.get("type", "") }}</td>
+          <td><span class="badge text-bg-{{ "warning" if "2" in port_str else "primary" }}">{{ port_str }}</span></td>
+          <td>{{ event.get("message", "") }}</td>
+          <td>
+            {% if event.get("data") %}
+              <button class="btn btn-outline-info btn-sm show-details" onclick="showDetails(this)">🔍</button>
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="modal fade" id="detailModal" tabindex="-1" aria-labelledby="detailModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Detaljer</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Lukk"></button>
+      </div>
+      <div class="modal-body" id="modalContent"></div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function showDetails(button) {
+  const row = button.closest('tr');
+  const raw = row.getAttribute('data-entry');
+  const modal = new bootstrap.Modal(document.getElementById("detailModal"));
+  try {
+    const obj = JSON.parse(raw);
+    document.getElementById("modalContent").innerHTML = "<pre>" + JSON.stringify(obj, null, 2) + "</pre>";
+  } catch (e) {
+    document.getElementById("modalContent").innerHTML = "Kunne ikke vise detaljer.";
+  }
+  modal.show();
+}
+
+function filterTable() {
+  const type = document.getElementById("filterType").value;
+  const port = document.getElementById("filterPort").value;
+  const fromDate = document.getElementById("startDate").value;
+  const toDate = document.getElementById("endDate").value;
+
+  document.querySelectorAll(".log-row").forEach(row => {
+    const matchesType = !type || row.dataset.type === type;
+    const matchesPort = !port || row.dataset.port === port;
+    const rowDate = row.dataset.date;
+    const matchesDate = (!fromDate || rowDate >= fromDate) &&
+                        (!toDate || rowDate <= toDate);
+    row.style.display = (matchesType && matchesPort && matchesDate) ? "" : "none";
+  });
+}
+
+function resetFilters() {
+  document.getElementById("filterType").value = "";
+  document.getElementById("filterPort").value = "";
+  document.getElementById("startDate").value = "";
+  document.getElementById("endDate").value = "";
+  filterTable();
+}
+
+["filterType", "filterPort", "startDate", "endDate"].forEach(id =>
+  document.getElementById(id).addEventListener("change", filterTable)
+);
+
+document.getElementById("resetFilters").addEventListener("click", resetFilters);
+
+document.getElementById("exportCsv").addEventListener("click", () => {
+  const rows = [["Klokkeslett", "Dato", "Type", "Port", "Melding"]];
+  document.querySelectorAll(".log-row").forEach(row => {
+    if (row.style.display !== "none") {
+      const cells = row.querySelectorAll("td");
+      rows.push(Array.from(cells).slice(0, 5).map(cell => cell.innerText.trim()));
+    }
+  });
+  const csv = rows.map(r => r.join(";")).join("\n");
+  const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "logg.csv";
+  link.click();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 class="mb-4 text-body">📊 Oversikt over porter, status og kalibrering</h2>
+
+<div class="row g-4">
+  {% for port, info in statuses.items() %}
+  <div class="col-md-6">
+    <div class="card shadow-sm bg-body-tertiary">
+      <div class="card-body">
+        <h5 class="card-title">{{ port|capitalize }}</h5>
+        <p>Status: 
+          {% if info.status == "open" %}
+            <span class="badge bg-success">Åpen</span>
+          {% elif info.status == "closed" %}
+            <span class="badge bg-danger">Lukket</span>
+          {% else %}
+            <span class="badge bg-secondary">{{ info.status }}</span>
+          {% endif %}
+        </p>
+        <a href="/open/{{ port }}" class="btn btn-primary btn-sm">🚪 Aktiver {{ port }}</a>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}
