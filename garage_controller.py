@@ -9,6 +9,13 @@ from event_log import log_event
 GPIO.cleanup()  # rydder gamle eventer
 
 class GarageController:
+
+    def init_sensor_events(self):
+        for port, sensorer in self.sensor_pins.items():
+            for posisjon, pin in sensorer.items():
+                self.legg_til_event(pin, self._sensor_callback)
+        print("✔️ Alle sensor-GPIO-eventer registrert.")
+
     def __init__(self, config):
         import RPi.GPIO as GPIO
         from garage_controller import sensor_callback  # sikrer tilgang
@@ -16,6 +23,7 @@ class GarageController:
         self.config = config
         self.relay_pins = config.get("relay_pins", {})
         self.sensor_pins = config.get("sensor_pins", {})
+        self.init_sensor_events()
 
         GPIO.setmode(GPIO.BCM)
         GPIO.setwarnings(False)
@@ -34,6 +42,23 @@ class GarageController:
                     GPIO.add_event_detect(sensor_pin, GPIO.BOTH, callback=sensor_callback, bouncetime=200)
                 except RuntimeError as e:
                     log_event("debug", f"⚠️ Feil ved GPIO {sensor_pin} for port {port}: {e}")
+
+
+
+    def _sensor_callback(self, pin):
+        print(f"📟 Sensor-endring oppdaget på GPIO {pin}")
+
+    def legg_til_event(self, pin, callback):
+        try:
+            GPIO.remove_event_detect(pin)
+        except RuntimeError:
+            pass
+        try:
+            GPIO.setup(pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+            GPIO.add_event_detect(pin, GPIO.BOTH, callback=callback, bouncetime=200)
+            print(f"✔️ Registrerte edge-detection for GPIO {pin}")
+        except RuntimeError as e:
+            print(f"❌ Feil ved registrering av edge detection for GPIO {pin}: {e}")
 
     def cleanup(self):
         GPIO.cleanup()
@@ -236,7 +261,4 @@ def sensor_callback(channel, socketio=None):
                         "status": status
                     })
                 return
-
-
-
 

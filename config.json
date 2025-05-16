@@ -15,7 +15,7 @@
   },
   "calibration": {
     "port1": {
-      "open_time": 0.0,
+      "open_time": 10.0,
       "close_time": {
         "rele_delay": 0.3,
         "sensor_to_sensor": 0.0,
@@ -24,14 +24,14 @@
       "source": "auto",
       "timestamp": "2025-05-14T23:29:59",
       "close_delay": 0.3,
-      "timestamp_close": "2025-05-15T00:57:33.305747",
+      "timestamp_close": "2025-05-16T12:29:07.687262",
       "source_close": "auto",
       "open_delay": 0.3,
-      "timestamp_open": "2025-05-15T01:00:03.426814",
-      "source_open": "kalibrert"
+      "timestamp_open": "2025-05-16T12:29:04.569620",
+      "source_open": "manuell"
     },
     "port2": {
-      "open_time": 20.0,
+      "open_time": 15.0,
       "close_time": {
         "rele_delay": 0.3,
         "sensor_to_sensor": 0.0,
@@ -40,8 +40,11 @@
       "source": "auto",
       "timestamp": "2025-05-14T23:31:00",
       "close_delay": 0.3,
-      "timestamp_close": "2025-05-15T01:00:16.671421",
-      "source_close": "auto"
+      "timestamp_close": "2025-05-16T12:29:11.315303",
+      "source_close": "auto",
+      "open_delay": 0.3,
+      "timestamp_open": "2025-05-16T12:29:09.122625",
+      "source_open": "manuell"
     }
   },
   "flash_timeout": {
