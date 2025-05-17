@@ -1,5 +1,5 @@
 
-# Fil: garage_controller.py (gpiod-versjon)
+# Fil: garage_controller.py (gpiod-versjon) 
 # Erstattet RPi.GPIO med gpiod v2
 
 import time
