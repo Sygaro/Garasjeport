@@ -1,32 +1,35 @@
 # ==========================================
 # Filnavn: config_routes.py
-# API-endepunkter for å lese/endre config.json
+# API-endepunkter for henting og lagring av config.json
 # ==========================================
 
 from flask import Blueprint, jsonify, request
-from controllers.config import load_config, save_config
+import json
+import os
 
 config_routes = Blueprint("config_routes", __name__)
 
+CONFIG_PATH = "config.json"
+
 @config_routes.route("/api/config", methods=["GET"])
 def get_config():
-    """
-    Returnerer hele konfigurasjonen (config.json)
-    """
-    config_data = load_config()
-    return jsonify(config_data), 200
+    """Returnerer hele config.json som JSON."""
+    if not os.path.exists(CONFIG_PATH):
+        return jsonify({"error": "Config ikke funnet"}), 404
+    with open(CONFIG_PATH, 'r') as f:
+        config = json.load(f)
+    return jsonify(config)
 
 @config_routes.route("/api/config", methods=["PUT"])
 def update_config():
-    """
-    Oppdaterer hele config.json basert på innsendt JSON.
-    """
-    new_config = request.get_json(force=True, silent=True)
-    if not new_config:
-        return jsonify({"error": "Ugyldig eller manglende JSON"}), 400
-
+    """Oppdaterer config.json basert på innsendt JSON-data."""
     try:
-        save_config(new_config)
-        return jsonify({"message": "Konfigurasjon oppdatert"}), 200
+        new_config = request.get_json()
+
+        with open(CONFIG_PATH, 'w') as f:
+            json.dump(new_config, f, indent=2)
+
+        return jsonify({"status": "OK", "message": "Konfigurasjon oppdatert"}), 200
+
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"status": "Feil", "message": str(e)}), 400
