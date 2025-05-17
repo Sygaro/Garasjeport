@@ -1,83 +1,74 @@
-
 {% extends "base.html" %}
+
 {% block content %}
 <div class="container mt-4">
-  <h2 class="mb-4">📈 Statistikk for porter</h2>
+  <h2>Systemstatus</h2>
 
-  <div class="row g-4 mb-5">
-    {% for port in stats %}
+  <div class="row mt-4">
     <div class="col-md-6">
-      <div class="card border-primary">
-        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-          <span>🚪 {{ port.name | capitalize }}</span>
-          <div>
-            <a href="/port/open/{{ port.name }}" class="btn btn-sm btn-success me-2">Åpne</a>
-            <a href="/port/close/{{ port.name }}" class="btn btn-sm btn-danger">Lukk</a>
-          </div>
+      <div class="card text-center">
+        <div class="card-header bg-primary text-white">
+          Port 1
         </div>
         <div class="card-body">
-          <p><strong>Status:</strong> 
-            {% if port.status == "åpen" %}
-              <span class="badge bg-success">Åpen</span>
-            {% elif port.status == "lukket" %}
-              <span class="badge bg-secondary">Lukket</span>
-            {% elif port.status == "sensorfeil" %}
-              <span class="badge bg-danger">Sensorfeil!</span>
-            {% else %}
-              <span class="badge bg-warning text-dark">Ukjent</span>
-            {% endif %}
-          </p>
-          <p><strong>Siste endring:</strong> {{ port.last_change }}</p>
-          <p><strong>Åpnet totalt:</strong> {{ port.open_count }} ganger</p>
-          <p><strong>Totalt åpen tid:</strong> {{ port.total_open_time }} min</p>
+          <h5>Status: <span id="port1Status" class="badge bg-secondary">Laster...</span></h5>
+          <button class="btn btn-outline-primary mt-2" onclick="triggerPort('port1')">Send Puls</button>
         </div>
       </div>
     </div>
-    {% endfor %}
+
+    <div class="col-md-6">
+      <div class="card text-center">
+        <div class="card-header bg-success text-white">
+          Port 2
+        </div>
+        <div class="card-body">
+          <h5>Status: <span id="port2Status" class="badge bg-secondary">Laster...</span></h5>
+          <button class="btn btn-outline-success mt-2" onclick="triggerPort('port2')">Send Puls</button>
+        </div>
+      </div>
+    </div>
   </div>
-
-  <h4 class="mb-4">📊 Åpninger siste 7 dager</h4>
-  <canvas id="openChart" height="150"></canvas>
 </div>
-{% endblock %}
 
-{% block scripts %}
-{{ super() }}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-const ctx = document.getElementById('openChart').getContext('2d');
-const chartData = {
-  labels: {{ days | default([]) | tojson }},
-  datasets: [
-    {% for port, entries in history.items() %}
-    {
-      label: '{{ port }}',
-      data: [
-        {% for d in days %}
-          {{ entries.get(d, 0) | default(0) }}{% if not loop.last %}, {% endif %}
-        {% endfor %}
-      ],
-      fill: false,
-      borderColor: '{{ loop.cycle("red", "blue", "green", "orange", "purple") }}',
-      tension: 0.3
-    },
-    {% endfor %}
-  ]
-};
+function fetchStatus(port) {
+  fetch(`/api/status/${port}`)
+    .then(response => response.json())
+    .then(data => {
+      const statusBadge = document.getElementById(`${port}Status`);
+      statusBadge.textContent = data.status;
 
-new Chart(ctx, {
-  type: 'line',
-  data: chartData,
-  options: {
-    responsive: true,
-    plugins: {
-      legend: { position: 'top' },
-      title: {
-        display: true,
-        text: 'Antall åpninger per dag'
-      }
-    }
-  }
-});
+      // Fargestatus
+      const colorMap = {
+        open: 'bg-success',
+        closed: 'bg-primary',
+        moving: 'bg-warning text-dark',
+        partial_open: 'bg-warning text-dark',
+        sensor_error: 'bg-danger',
+        unknown: 'bg-secondary'
+      };
+
+      statusBadge.className = `badge ${colorMap[data.status] || 'bg-secondary'}`;
+    });
+}
+
+function updateAllStatuses() {
+  fetchStatus('port1');
+  fetchStatus('port2');
+}
+
+function triggerPort(port) {
+  fetch(`/api/pulse/${port}`, {
+    method: 'POST',
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ source: "frontend" })
+  }).then(res => {
+    updateAllStatuses();
+  });
+}
+
+setInterval(updateAllStatuses, 5000); // 5 sek intervall
+window.addEventListener('DOMContentLoaded', updateAllStatuses);
 </script>
 {% endblock %}

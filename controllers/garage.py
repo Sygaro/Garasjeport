@@ -3,9 +3,7 @@
 # Håndtering av portstyring via motorpuls
 # ==========================================
 
-from core.garage_controller import GarageController
-
-controller = GarageController()
+from core.system import controller
 
 def handle_port_pulse(port: str, source: str = "api") -> dict:
     """

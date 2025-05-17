@@ -3,9 +3,7 @@
 # Henter status fra GarageController
 # ==========================================
 
-from core.garage_controller import GarageController
-
-controller = GarageController()
+from core.system import controller
 
 def get_port_status(port: str) -> str:
     """
