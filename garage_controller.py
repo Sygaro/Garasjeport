@@ -1,189 +1,124 @@
-
-# Fil: garage_controller.py (gpiod-versjon) 
-# Erstattet RPi.GPIO med gpiod v2
-
 import time
-import gpiod
+import lgpio
 import threading
-from event_log import log_event
+from logger import GarageLogger
+from configparser import ConfigParser
+import json
 
-def sensor_callback(channel, socketio=None):
-    for port, sensors in garage.sensor_pins.items():
-        for position, pin in sensors.items():
-            if pin == channel:
-                status = garage.get_port_status(port)
-                if socketio:
-                    socketio.emit("status_update", {
-                        "port": port,
-                        "status": status
-                    })
-                return
+
+class GPIOManager:
+    _instance = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super(GPIOManager, cls).__new__(cls)
+            cls._instance.chip = lgpio.gpiochip_open(0)
+            cls._instance.claimed_pins = set()
+        return cls._instance
+
+    def claim_output(self, pin):
+        if pin not in self.claimed_pins:
+            lgpio.gpio_claim_output(self.chip, pin)
+            self.claimed_pins.add(pin)
+
+    def claim_input(self, pin):
+        if pin not in self.claimed_pins:
+            lgpio.gpio_claim_input(self.chip, pin, lgpio.SET_PULL_UP)
+            self.claimed_pins.add(pin)
+
+    def write(self, pin, value):
+        lgpio.gpio_write(self.chip, pin, value)
+
+    def read(self, pin):
+        return lgpio.gpio_read(self.chip, pin)
+
+    def set_alert(self, pin, callback):
+        lgpio.gpio_set_alert_func(self.chip, pin, callback)
+
+    def cleanup(self):
+        for pin in self.claimed_pins:
+            lgpio.gpio_free(self.chip, pin)
+        lgpio.gpiochip_close(self.chip)
 
 
 class GarageController:
-    def __init__(self, config):
-        from garage_controller import sensor_callback
+    def __init__(self, config_path='config.json'):
+        self.gpio = GPIOManager()
+        self.logger = GarageLogger()
+        self.config = self._load_config(config_path)
+        self.status = {'port1': 'unknown', 'port2': 'unknown'}
+        self.motion_timer = {}
+        self.motion_start_time = {}
+        self._setup_gpio()
 
-        self.config = config
-        self.relay_pins = config.get("relay_pins", {})
-        self.sensor_pins = config.get("sensor_pins", {})
+    def _load_config(self, path):
+        with open(path, 'r') as f:
+            return json.load(f)
 
-        self.chip = gpiod.Chip("gpiochip0")
-        self.relay_lines = {}  # {bcm: line}
-        self.sensor_lines = {}  # {bcm: line}
-        self.sensor_threads = []
-        self.stop_event = threading.Event()
+    def _setup_gpio(self):
+        for port in ['port1', 'port2']:
+            self.gpio.claim_output(self.config['relay_pins'][port])
+            for state in ['open', 'closed']:
+                sensor_pin = self.config['sensor_pins'][port][state]
+                self.gpio.claim_input(sensor_pin)
+                self.gpio.set_alert(sensor_pin, self._make_alert_callback(port))
 
-        # Sett opp releer (output)
-        for pin in self.relay_pins.values():
-            line = self.chip.get_line(pin)
-            line.request(consumer="garage", type=gpiod.LINE_REQ_DIR_OUT, default_vals=[1])
-            self.relay_lines[pin] = line
+    def _make_alert_callback(self, port):
+        def callback(chip, pin, level, tick):
+            self._update_port_status(port)
+        return callback
 
-        # Sett opp sensorer (input + pull-up + edge detection)
-        for port, sensors in self.sensor_pins.items():
-            for position, pin in sensors.items():
-                line = self.chip.get_line(pin)
-                line.request(consumer="garage", type=gpiod.LINE_REQ_EV_BOTH_EDGES, flags=gpiod.LINE_REQ_FLAG_BIAS_PULL_UP)
-                self.sensor_lines[pin] = line
-                thread = threading.Thread(target=self._monitor_sensor_line, args=(line, sensor_callback), daemon=True)
-                thread.start()
-                self.sensor_threads.append(thread)
+    def _update_port_status(self, port):
+        sensor_open = self._read_sensor(port, 'open')
+        sensor_closed = self._read_sensor(port, 'closed')
 
-        print("✔️ gpiod: Alle rele og sensor-GPIOer konfigurert.")
+        if sensor_open and not sensor_closed:
+            new_status = 'open'
+        elif not sensor_open and sensor_closed:
+            new_status = 'closed'
+        elif not sensor_open and not sensor_closed:
+            new_status = 'moving'
+            # Sjekk for timeout
+            if port in self.motion_start_time:
+                duration = time.time() - self.motion_start_time[port]
+                expected = self._get_max_motion_time(port)
+                if duration > expected + 2:
+                    new_status = 'partial_open'
+        elif sensor_open and sensor_closed:
+            new_status = 'sensor_error'
+        else:
+            new_status = 'unknown'
 
-    def _monitor_sensor_line(self, line, callback):
-        while not self.stop_event.is_set():
-            if line.event_wait(1):
-                event = line.event_read()
-                callback(line.offset())
+        if new_status != self.status[port]:
+            self.status[port] = new_status
+            self.logger.log_status_change(port, new_status)
 
-    def legg_til_event(self, pin, callback):
-        pass  # Ikke nødvendig lenger – håndteres automatisk
+    def _read_sensor(self, port, state):
+        pin = self.config['sensor_pins'][port][state]
+        return self.gpio.read(pin) == 0  # Aktiv lav
 
-    def cleanup(self):
-        self.stop_event.set()
-        for line in self.relay_lines.values():
-            line.set_value(1)
-            line.release()
-        for line in self.sensor_lines.values():
-            line.release()
-        self.chip.close()
+    def _get_max_motion_time(self, port):
+        return self.config['calibration'][port]['open_time']  # Bruk åpne som referanse
 
-    def update_config(self, new_config):
-        self.cleanup()
-        self.__init__(new_config)
-
-    def open_port(self, port):
-        pin = self.relay_pins.get(port)
-        if pin is None:
-            log_event("error", f"Ugyldig portnavn: {port}")
+    def activate_motor_relay(self, port, source='app'):
+        current_status = self.status[port]
+        if current_status == 'sensor_error':
+            self.logger.log_action(port, 'blocked', source, 'sensor_error')
             return False
-        line = self.relay_lines[pin]
-        log_event("action", f"Sender åpen/lukk-impuls til {port}", data={"gpio": pin})
-        line.set_value(0)
-        time.sleep(self.config.get("relay_pulse_length", 0.5))
-        line.set_value(1)
+
+        self.motion_start_time[port] = time.time()
+
+        relay_pin = self.config['relay_pins'][port]
+        self.gpio.write(relay_pin, 1)
+        time.sleep(0.3)
+        self.gpio.write(relay_pin, 0)
+
+        self.logger.log_action(port, 'pulse_sent', source)
         return True
 
-    def get_port_status(self, port):
-        pins = self.sensor_pins.get(port)
-        if not pins:
-            return "ukjent"
-        open_state = self.sensor_lines[pins.get("open")].get_value()
-        closed_state = self.sensor_lines[pins.get("closed")].get_value()
+    def get_current_status(self, port):
+        self._update_port_status(port)
+        return self.status[port]
 
-        if open_state == 0 and closed_state == 1:
-            return "åpen"
-        elif open_state == 1 and closed_state == 0:
-            return "lukket"
-        elif open_state == 1 and closed_state == 1:
-            return "ukjent"
-        elif open_state == 0 and closed_state == 0:
-            return "sensorfeil"
-        else:
-            return "ukjent"
-
-    def maal_aapnetid(self, port, timeout=60):
-        sensors = self.sensor_pins.get(port)
-        if not sensors:
-            return None
-        status = self.get_port_status(port)
-        if status == "åpen":
-            log_event("info", f"{port} er allerede åpen")
-            return None
-        self.open_port(port)
-        start = time.time()
-        while time.time() - start < timeout:
-            if self.sensor_lines[sensors.get("open")].get_value():
-                return time.time() - start
-            time.sleep(0.1)
-        return None
-
-    def maal_lukketid(self, port, timeout=60):
-        sensors = self.sensor_pins.get(port)
-        if not sensors:
-            return None
-        status = self.get_port_status(port)
-        if status == "lukket":
-            log_event("info", f"{port} er allerede lukket")
-            return None
-        self.open_port(port)
-        start = time.time()
-        while time.time() - start < timeout:
-            if self.sensor_lines[sensors.get("closed")].get_value():
-                return time.time() - start
-            time.sleep(0.1)
-        return None
-
-    def send_pulse(self, port):
-        pin = self.relay_pins.get(port)
-        if pin is None:
-            raise ValueError(f"Ukjent port: {port}")
-        line = self.relay_lines[pin]
-        line.set_value(0)
-        time.sleep(0.3)
-        line.set_value(1)
-
-    def read_sensor(self, port, position):
-        pin = self.sensor_pins.get(port, {}).get(position)
-        if pin is None:
-            raise ValueError(f"Sensor '{position}' mangler for port: {port}")
-        return self.sensor_lines[pin].get_value()
-
-    def try_send_pulse(self, port, action="open"):
-        status = self.get_port_status(port)
-        if action == "open":
-            if status == "åpen":
-                return False, "Porten er allerede åpen"
-            elif status == "sensorfeil":
-                return False, "Sensorfeil – portstatus kan ikke bekreftes"
-            elif status == "ukjent":
-                return False, "ukjent"
-        elif action == "close":
-            if status == "lukket":
-                return False, "Porten er allerede lukket"
-            elif status == "sensorfeil":
-                return False, "Sensorfeil – portstatus kan ikke bekreftes"
-            elif status == "ukjent":
-                return False, "ukjent"
-
-        pin = self.relay_pins.get(port)
-        if pin is None:
-            return False, f"Port {port} finnes ikke"
-        line = self.relay_lines[pin]
-        line.set_value(0)
-        time.sleep(0.3)
-        line.set_value(1)
-        return True, f"Signal sendt – porten forsøkes {action}et"
-
-    def send_pulse_raw(self, port):
-        pin = self.relay_pins.get(port)
-        if pin is None:
-            raise ValueError(f"Port {port} finnes ikke")
-        line = self.relay_lines[pin]
-        line.set_value(0)
-        time.sleep(0.3)
-        line.set_value(1)
-
-
+    def cleanup(self):
+        self.gpio.cleanup()

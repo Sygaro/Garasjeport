@@ -1,7 +1,7 @@
 {
   "relay_pins": {
-    "port1": 14,
-    "port2": 15
+    "port1": 17,
+    "port2": 22
   },
   "sensor_pins": {
     "port1": {
