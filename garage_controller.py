@@ -7,6 +7,19 @@ import gpiod
 import threading
 from event_log import log_event
 
+def sensor_callback(channel, socketio=None):
+    for port, sensors in garage.sensor_pins.items():
+        for position, pin in sensors.items():
+            if pin == channel:
+                status = garage.get_port_status(port)
+                if socketio:
+                    socketio.emit("status_update", {
+                        "port": port,
+                        "status": status
+                    })
+                return
+
+
 class GarageController:
     def __init__(self, config):
         from garage_controller import sensor_callback
@@ -174,14 +187,3 @@ class GarageController:
         line.set_value(1)
 
 
-def sensor_callback(channel, socketio=None):
-    for port, sensors in garage.sensor_pins.items():
-        for position, pin in sensors.items():
-            if pin == channel:
-                status = garage.get_port_status(port)
-                if socketio:
-                    socketio.emit("status_update", {
-                        "port": port,
-                        "status": status
-                    })
-                return
