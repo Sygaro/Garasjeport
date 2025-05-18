@@ -1,5 +1,42 @@
 # Filnavn: .gitignore
 # Beskriver hvilke filer og mapper som skal ignoreres av Git versjonskontrollsystem
+# Python
+__pycache__/
+*.py[cod]
+*.egg
+*.egg-info/
+dist/
+build/
+env/
+venv/
+
+# Raspberry Pi / systemfiler
+.DS_Store
+*.swp
+*.bak
+*.old
+
+# Logs and backups
+logs/
+backups/
+*.log
+*.gz
+*.zip
+
+# Systemd og install-script-cache
+*.service
+*.deb
+*.pid
+
+# IDE / editor
+.vscode/
+.idea/
+
+# Debug / test / temp
+*.tmp
+*.test
+*.swo
+*.orig
 
 # Python cache
 __pycache__/
