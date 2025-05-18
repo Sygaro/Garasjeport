@@ -1,19 +1,20 @@
 {
-  "polling_interval_ms": 1000,
-  "log_archive_retention_days": 30,
-  "log_rotation_days": 7,
+  "polling_interval_ms": 1099,
   "relay_pins": {
-    "port1": 18,
-    "port2": 24
+    "port1": 2,
+    "port2": 27
   },
   "sensor_pins": {
     "port1": {
-      "open": 23,
-      "closed": 25
+      "open": 12,
+      "closed": 13
     },
     "port2": {
-      "open": 20,
-      "closed": 21
+      "open": 22,
+      "closed": 23
     }
-  }
+  },
+  "calibration": {},
+  "log_rotation_days": 179,
+  "log_archive_retention_days": 89
 }

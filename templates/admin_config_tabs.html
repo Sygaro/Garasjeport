@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+  <h2>Systemkonfigurasjon</h2>
+
+  <!-- Tabs -->
+  <ul class="nav nav-tabs" id="configTabs" role="tablist">
+    <li class="nav-item">
+      <button class="nav-link active" id="gpio-tab" data-bs-toggle="tab" data-bs-target="#gpio" type="button" role="tab">GPIO</button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" id="system-tab" data-bs-toggle="tab" data-bs-target="#system" type="button" role="tab">System</button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" id="logging-tab" data-bs-toggle="tab" data-bs-target="#logging" type="button" role="tab">Logging</button>
+    </li>
+  </ul>
+
+  <!-- Tab panes -->
+  <div class="tab-content mt-3">
+    <!-- GPIO -->
+    <div class="tab-pane fade show active" id="gpio" role="tabpanel" aria-labelledby="gpio-tab">
+      <form id="gpioForm">
+        <h5>Relé-pinner</h5>
+        <input class="form-control mb-2" id="gpio_relay1" placeholder="Port 1">
+        <input class="form-control mb-2" id="gpio_relay2" placeholder="Port 2">
+
+        <h5>Sensor-pinner</h5>
+        <input class="form-control mb-2" id="gpio_sensor1_open" placeholder="P1 Åpen">
+        <input class="form-control mb-2" id="gpio_sensor1_closed" placeholder="P1 Lukket">
+        <input class="form-control mb-2" id="gpio_sensor2_open" placeholder="P2 Åpen">
+        <input class="form-control mb-2" id="gpio_sensor2_closed" placeholder="P2 Lukket">
+
+        <button type="submit" class="btn btn-primary mt-2">Lagre GPIO</button>
+      </form>
+    </div>
+
+    <!-- System -->
+    <div class="tab-pane fade" id="system" role="tabpanel" aria-labelledby="system-tab">
+      <form id="systemForm">
+        <label>Polling-intervall (ms)</label>
+        <input class="form-control mb-2" id="system_polling">
+
+        <label>Kalibrering Port 1</label>
+        <input class="form-control mb-2" id="system_cal_p1">
+
+        <label>Kalibrering Port 2</label>
+        <input class="form-control mb-2" id="system_cal_p2">
+
+        <button type="submit" class="btn btn-primary mt-2">Lagre System</button>
+      </form>
+    </div>
+
+    <!-- Logging -->
+    <div class="tab-pane fade" id="logging" role="tabpanel" aria-labelledby="logging-tab">
+      <form id="loggingForm">
+        <label>Loggrotasjon (dager)</label>
+        <input class="form-control mb-2" id="log_rotation">
+
+        <label>Behold arkiv (dager)</label>
+        <input class="form-control mb-2" id="log_retention">
+
+        <button type="submit" class="btn btn-primary mt-2">Lagre Logging</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast-container position-fixed bottom-0 end-0 p-3">
+    <div id="saveToast" class="toast text-bg-success">
+      <div class="d-flex">
+        <div class="toast-body" id="toastMsg">Lagret</div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toast(msg) {
+  document.getElementById("toastMsg").textContent = msg;
+  new bootstrap.Toast(document.getElementById("saveToast")).show();
+}
+
+function loadModule(mod, callback) {
+  fetch(`/api/config/${mod}`)
+    .then(res => res.json())
+    .then(data => callback(data));
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  // Init-load
+  loadModule("gpio", data => {
+    document.getElementById("gpio_relay1").value = data.relay_pins.port1;
+    document.getElementById("gpio_relay2").value = data.relay_pins.port2;
+    document.getElementById("gpio_sensor1_open").value = data.sensor_pins.port1.open;
+    document.getElementById("gpio_sensor1_closed").value = data.sensor_pins.port1.closed;
+    document.getElementById("gpio_sensor2_open").value = data.sensor_pins.port2.open;
+    document.getElementById("gpio_sensor2_closed").value = data.sensor_pins.port2.closed;
+  });
+
+  loadModule("system", data => {
+    document.getElementById("system_polling").value = data.polling_interval_ms;
+    document.getElementById("system_cal_p1").value = data.calibration.port1.open_time;
+    document.getElementById("system_cal_p2").value = data.calibration.port2.open_time;
+  });
+
+  loadModule("logging", data => {
+    document.getElementById("log_rotation").value = data.log_rotation_days;
+    document.getElementById("log_retention").value = data.log_archive_retention_days;
+  });
+
+  // Save GPIO
+  document.getElementById("gpioForm").addEventListener("submit", e => {
+    e.preventDefault();
+    fetch("/api/config/gpio", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        relay_pins: {
+          port1: parseInt(document.getElementById("gpio_relay1").value),
+          port2: parseInt(document.getElementById("gpio_relay2").value)
+        },
+        sensor_pins: {
+          port1: {
+            open: parseInt(document.getElementById("gpio_sensor1_open").value),
+            closed: parseInt(document.getElementById("gpio_sensor1_closed").value)
+          },
+          port2: {
+            open: parseInt(document.getElementById("gpio_sensor2_open").value),
+            closed: parseInt(document.getElementById("gpio_sensor2_closed").value)
+          }
+        }
+      })
+    }).then(() => toast("GPIO lagret"));
+  });
+
+  // Save System
+  document.getElementById("systemForm").addEventListener("submit", e => {
+    e.preventDefault();
+    fetch("/api/config/system", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        polling_interval_ms: parseInt(document.getElementById("system_polling").value),
+        calibration: {
+          port1: { open_time: parseInt(document.getElementById("system_cal_p1").value) },
+          port2: { open_time: parseInt(document.getElementById("system_cal_p2").value) }
+        }
+      })
+    }).then(() => toast("System lagret"));
+  });
+
+  // Save Logging
+  document.getElementById("loggingForm").addEventListener("submit", e => {
+    e.preventDefault();
+    fetch("/api/config/logging", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        log_rotation_days: parseInt(document.getElementById("log_rotation").value),
+        log_archive_retention_days: parseInt(document.getElementById("log_retention").value)
+      })
+    }).then(() => toast("Logging lagret"));
+  });
+});
+</script>
+{% endblock %}

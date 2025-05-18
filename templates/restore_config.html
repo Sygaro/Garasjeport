@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+  <h2>Gjenopprett config-backup</h2>
+
+  <div class="mb-3">
+    <label for="backupSelect" class="form-label">Velg backup:</label>
+    <select class="form-select" id="backupSelect"></select>
+  </div>
+
+  <button class="btn btn-primary" onclick="restoreBackup()">Gjenopprett valgt konfigurasjon</button>
+  <button class="btn btn-outline-secondary ms-2" onclick="downloadSelected()">Last ned</button>
+<div class="mb-3">
+  <a class="btn btn-outline-dark" href="/api/config/export">
+    Last ned full konfigurasjon (ZIP)
+  </a>
+</div>
+
+  <div class="toast-container position-fixed bottom-0 end-0 p-3">
+    <div id="restoreToast" class="toast text-bg-success" role="alert">
+      <div class="d-flex">
+        <div class="toast-body" id="restoreMsg">Gjenopprettet</div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function fetchBackups() {
+  fetch('/api/config/backups')
+    .then(res => res.json())
+    .then(data => {
+      const select = document.getElementById("backupSelect");
+      select.innerHTML = "";
+      data.backups.forEach(file => {
+        const option = document.createElement("option");
+        option.value = file;
+        option.textContent = file;
+        select.appendChild(option);
+      });
+    });
+}
+
+function restoreBackup() {
+  const filename = document.getElementById("backupSelect").value;
+  fetch('/api/config/restore', {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ filename })
+  }).then(res => res.json())
+    .then(data => {
+      document.getElementById("restoreMsg").textContent = data.message || "Gjenopprettet";
+      new bootstrap.Toast(document.getElementById("restoreToast")).show();
+    });
+}
+
+function downloadSelected() {
+  const filename = document.getElementById("backupSelect").value;
+  window.location.href = `/api/config/backup/${filename}`;
+}
+
+document.addEventListener("DOMContentLoaded", fetchBackups);
+</script>
+{% endblock %}

@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+  <h2>GPIO-konfigurasjon</h2>
+  <form id="gpioForm">
+    <label>Port 1 – Rele</label>
+    <input class="form-control mb-2" id="relay1">
+
+    <label>Port 2 – Rele</label>
+    <input class="form-control mb-2" id="relay2">
+
+    <button class="btn btn-primary">Lagre</button>
+  </form>
+
+  <div class="toast-container position-fixed bottom-0 end-0 p-3">
+    <div id="saveToast" class="toast text-bg-success">
+      <div class="d-flex">
+        <div class="toast-body" id="toastMsg">Lagret</div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toast(msg) {
+  document.getElementById("toastMsg").textContent = msg;
+  new bootstrap.Toast(document.getElementById("saveToast")).show();
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  fetch("/api/config/gpio")
+    .then(res => res.json())
+    .then(data => {
+      document.getElementById("relay1").value = data.relay_pins.port1;
+      document.getElementById("relay2").value = data.relay_pins.port2;
+    });
+
+  document.getElementById("gpioForm").addEventListener("submit", e => {
+    e.preventDefault();
+    fetch("/api/config/gpio", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        relay_pins: {
+          port1: parseInt(document.getElementById("relay1").value),
+          port2: parseInt(document.getElementById("relay2").value)
+        },
+        sensor_pins: {}  // dummy for struktur
+      })
+    }).then(() => toast("GPIO lagret"));
+  });
+});
+</script>
+{% endblock %}

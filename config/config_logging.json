@@ -1,0 +1,4 @@
+{
+  "log_rotation_days": 7,
+  "log_archive_retention_days": 30
+}

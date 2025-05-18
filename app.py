@@ -28,7 +28,7 @@ app.register_blueprint(log_routes)
 def index():
     return "<h3>Garage API er aktiv (modulær versjon)</h3>"
 
-@app.route("/admin/config")
+@app.route("/admin/config") 
 def config_editor():
     return render_template("admin_config_editor.html")
 
@@ -56,6 +56,27 @@ def get_config():
     with open("config.json") as f:
         config = json.load(f)
     return jsonify(config)
+
+@app.route("/admin/config/restore")
+def config_restore_page():
+    return render_template("restore_config.html")
+
+@app.route("/backup")
+def config_backup_page():
+    return render_template("backup.html")
+
+@app.route("/help")
+def system_doc_page():
+    return render_template("help.html")
+
+@app.route("/admin/config")
+def config_tabs_page():
+    return render_template("admin_config_tabs.html")
+
+@app.route("/admin/gpio")
+def gpio_ui():
+    return render_template("admin_gpio_config.html")
+
 
 
 if __name__ == "__main__":

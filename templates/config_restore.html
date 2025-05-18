@@ -1,0 +1,132 @@
+config_restore.html{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+  <h2>Gjenopprett konfigurasjon</h2>
+
+  <div class="mb-3">
+    <label for="modulSelect" class="form-label">Velg modul:</label>
+    <select class="form-select" id="modulSelect">
+      <option value="gpio">GPIO</option>
+      <option value="system">System</option>
+      <option value="logging">Logging</option>
+    </select>
+  </div>
+
+  <div class="mb-3">
+    <label for="backupList" class="form-label">Tidligere versjoner:</label>
+    <select class="form-select" id="backupList"></select>
+  </div>
+
+  <button class="btn btn-secondary" onclick="showDiff()">Vis sammenligning</button>
+  <button class="btn btn-outline-primary" onclick="restoreSelected()">Gjenopprett valgt</button>
+
+  <div class="row mt-4">
+    <div class="col-md-6">
+      <h5>Nåværende konfig</h5>
+      <pre id="currentView" class="bg-light p-2 border rounded small">Velg modul og backup...</pre>
+    </div>
+    <div class="col-md-6">
+      <h5>Valgt backup</h5>
+      <pre id="backupView" class="bg-light p-2 border rounded small"></pre>
+    </div>
+  </div>
+
+  <div class="toast-container position-fixed bottom-0 end-0 p-3">
+    <div id="restoreToast" class="toast text-bg-success">
+      <div class="d-flex">
+        <div class="toast-body" id="toastMsg">Gjenopprettet</div>
+        <button class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function loadBackups() {
+  const module = document.getElementById("modulSelect").value;
+  fetch(`/api/config/backups/${module}`)
+    .then(res => res.json())
+    .then(data => {
+      const list = document.getElementById("backupList");
+      list.innerHTML = "";
+      data.backups.forEach(f => {
+        const opt = document.createElement("option");
+        opt.value = f;
+        opt.textContent = f;
+        list.appendChild(opt);
+      });
+    });
+}
+
+function showDiff() {
+  const mod = document.getElementById("modulSelect").value;
+  const file = document.getElementById("backupList").value;
+
+  Promise.all([
+    fetch(`/api/config/${mod}`).then(res => res.json()),
+    fetch(`/api/config/backup/${file}`).then(res => res.json())
+  ])
+  .then(([curr, backup]) => {
+    document.getElementById("currentView").innerHTML = syntaxHighlight(curr);
+    document.getElementById("backupView").innerHTML = syntaxHighlight(backup, curr);
+  });
+}
+function syntaxHighlight(json, compare = null) {
+  if (typeof json !== 'object') return json;
+
+  const jsonStr = JSON.stringify(json, null, 2);
+  const compareStr = compare ? JSON.stringify(compare, null, 2) : null;
+
+  const lines = jsonStr.split('\n');
+  const highlight = lines.map((line, i) => {
+    let clean = line.trim();
+
+    if (!compareStr) {
+      return `<div>${escapeHtml(line)}</div>`;
+    }
+
+    const compareLine = compareStr.split('\n')[i] || "";
+
+    if (clean !== compareLine.trim()) {
+      return `<div style="background:#d1e7dd">${escapeHtml(line)}</div>`;
+    }
+    return `<div>${escapeHtml(line)}</div>`;
+  });
+
+  return highlight.join('');
+}
+
+function escapeHtml(text) {
+  return text.replace(/[&<>"']/g, function (m) {
+    return ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;'
+    })[m];
+  });
+}
+
+
+function restoreSelected() {
+  const mod = document.getElementById("modulSelect").value;
+  const file = document.getElementById("backupList").value;
+
+  fetch(`/api/config/restore/${mod}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ filename: file })
+  })
+  .then(res => res.json())
+  .then(data => {
+    document.getElementById("toastMsg").textContent = data.message;
+    new bootstrap.Toast(document.getElementById("restoreToast")).show();
+    showDiff();
+  });
+}
+
+document.getElementById("modulSelect").addEventListener("change", loadBackups);
+document.addEventListener("DOMContentLoaded", loadBackups);
+</script>
+{% endblock %}

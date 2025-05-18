@@ -107,8 +107,11 @@ class GarageController:
         return self.port_status[port]
 
     def reload_config(self):
+        """Laster inn config.json og oppdaterer interne verdier."""
         self.config = self._load_config(self.config_path)
-        self.polling_interval_ms = self.config.get('polling_interval_ms', 100)
+        self.polling_interval_ms = self.config.get("polling_interval_ms", 1000)
+        # Du kan også reinitialisere relepinner/sensorer her hvis ønskelig
+
 
     def cleanup(self):
         for pin in self.relay_pins.values():
