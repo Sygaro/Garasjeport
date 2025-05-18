@@ -20,11 +20,12 @@ init_environment()
 
 
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder="static", template_folder="templates")
 app.register_blueprint(port_routes)
 app.register_blueprint(status_routes)
 app.register_blueprint(config_routes)
 app.register_blueprint(log_routes)
+# Registrer web først for å sikre at "/" går til frontend
 app.register_blueprint(web)
 app.register_blueprint(api)
 
