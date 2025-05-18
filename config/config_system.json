@@ -3,14 +3,14 @@
   "language": "nb",
   "port_timings": {
     "port1": {
-      "open_time": 0,
-      "close_time": 0,
-      "timestamp": null
+      "open_time": 0.0,
+      "close_time": 0.0,
+      "timestamp": "2025-05-19T00:06:39.281571"
     },
     "port2": {
-      "open_time": 0,
-      "close_time": 0,
-      "timestamp": null
+      "open_time": 0.0,
+      "close_time": 0.0,
+      "timestamp": "2025-05-19T00:06:42.115999"
     }
   }
 }

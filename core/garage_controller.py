@@ -3,12 +3,14 @@
 # Garasjeport-kontroller – styrer porter via rele og sensorer
 # ========================================
 
-import lgpio, os
+import lgpio, os, json
 import time
+
 from datetime import datetime
 from config.config_paths import CONFIG_GPIO_PATH, CONFIG_SYSTEM_PATH
 from core.garage_logger import GarageLogger
-import json
+from utils.file_utils import load_json, save_json
+
 
 # print("[DEBUG] Laster GarageController fra:", __file__)
 
@@ -61,27 +63,30 @@ class GarageController:
     def is_sensor_active(self, pin):
         return lgpio.gpio_read(self.chip, pin) == 0  # Aktiv lav
 
-    def get_port_status(self, port):
-        pins = self.sensor_pins.get(port, {})
-        open_pin = pins.get("open")
-        closed_pin = pins.get("closed")
-
-        if open_pin is None or closed_pin is None:
+    def get_current_status(self, port):
+        """
+        Returnerer status for gitt port basert på sensorverdier.
+        Sensorene er normalt HIGH (1) og blir aktive ved LOW (0).
+        """
+        if port not in self.sensor_pins:
             return "unknown"
 
-        open_active = self.is_sensor_active(open_pin)
-        closed_active = self.is_sensor_active(closed_pin)
+        open_pin = self.sensor_pins[port]["open"]
+        closed_pin = self.sensor_pins[port]["closed"]
+
+        open_active = not lgpio.gpio_read(self.chip, open_pin)
+        closed_active = not lgpio.gpio_read(self.chip, closed_pin)
 
         if open_active and not closed_active:
             return "open"
-        elif not open_active and closed_active:
+        elif closed_active and not open_active:
             return "closed"
         elif not open_active and not closed_active:
-            return "partial"
+            return "moving"
         elif open_active and closed_active:
             return "sensor_error"
-        else:
-            return "unknown"
+        return "unknown"
+
 
     def pulse_relay(self, port, duration=0.5):
         pin = self.relay_pins.get(port)
@@ -92,7 +97,7 @@ class GarageController:
         lgpio.gpio_write(self.chip, pin, 0)
 
     def open_port(self, port):
-        status = self.get_port_status(port)
+        status = self.get_current_status(port)
         if status == "open":
             return {"status": "already_open"}
 
@@ -109,7 +114,7 @@ class GarageController:
         return {"status": "opening", **timing}
 
     def close_port(self, port):
-        status = self.get_port_status(port)
+        status = self.get_current_status(port)
         if status == "closed":
             return {"status": "already_closed"}
 
@@ -239,6 +244,70 @@ class GarageController:
             return config.get("port_timings", {}).get(port, {})
         except:
             return {}
+
+
+    def activate_port(self, port: str, direction: str):
+        """
+        Aktiverer rele for gitt port, måler tid og oppdaterer timing-data.
+        direction = 'open' eller 'close'
+        """
+        print(f"[GarageController] Starter bevegelse på {port} ({direction})")
+
+        if port not in self.relay_pins or port not in self.sensor_pins:
+            print(f"[GarageController] ❌ Ugyldig port: {port}")
+            return {"success": False, "error": "Ugyldig port"}
+
+        # 1. Sjekk status før aktivering
+        current_status = self.get_current_status(port)
+        if direction == "open" and current_status == "open":
+            return {"success": False, "message": f"{port} er allerede åpen"}
+        if direction == "close" and current_status == "closed":
+            return {"success": False, "message": f"{port} er allerede lukket"}
+
+        # 2. Send puls
+        pin = self.relay_pins[port]
+        lgpio.gpio_write(self.chip, pin, 1)
+        time.sleep(0.2)  # 200 ms puls
+        lgpio.gpio_write(self.chip, pin, 0)
+        self.logger.log_action(port, action=direction)
+
+        # 3. Start tidtaking
+        t0 = time.time()
+        timeout = self.get_expected_time(port, direction) + self.fail_margin
+        reached = False
+        expected_sensor = self.sensor_pins[port]["open"] if direction == "open" else self.sensor_pins[port]["closed"]
+
+        print(f"[GarageController] Venter på sensor-endring på GPIO{expected_sensor}...")
+
+        while time.time() - t0 < timeout:
+            level = lgpio.gpio_read(self.chip, expected_sensor)
+            if level == 1:
+                reached = True
+                break
+            time.sleep(0.1)
+
+        duration = round(time.time() - t0, 2)
+
+        # 4. Evaluer
+        if reached:
+            self.logger.log_timing(port, direction, duration)
+            self._update_port_timing(port, direction, duration)
+            return {"success": True, "duration": duration}
+        else:
+            self.logger.log_status_change(port, "delvis_åpen")
+            return {"success": False, "error": "Timeout – porten nådde ikke ønsket posisjon", "duration": duration}
+
+    def get_expected_time(self, port, direction):
+        timings = load_json(CONFIG_SYSTEM_PATH).get("port_timings", {})
+        return timings.get(port, {}).get(f"{direction}_time", 60)
+
+    def _update_port_timing(self, port, direction, duration):
+        config = load_json(CONFIG_SYSTEM_PATH)
+        config.setdefault("port_timings", {})
+        config["port_timings"].setdefault(port, {})
+        config["port_timings"][port][f"{direction}_time"] = duration
+        config["port_timings"][port]["timestamp"] = datetime.now().isoformat()
+        save_json(CONFIG_SYSTEM_PATH, config)
 
 
 
