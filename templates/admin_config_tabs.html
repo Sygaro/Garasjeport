@@ -6,20 +6,19 @@
   <!-- Tabs -->
   <ul class="nav nav-tabs" id="configTabs" role="tablist">
     <li class="nav-item">
-      <button class="nav-link active" id="gpio-tab" data-bs-toggle="tab" data-bs-target="#gpio" type="button" role="tab">GPIO</button>
+      <button class="nav-link active" id="gpio-tab" data-bs-toggle="tab" data-bs-target="#gpio" type="button">GPIO</button>
     </li>
     <li class="nav-item">
-      <button class="nav-link" id="system-tab" data-bs-toggle="tab" data-bs-target="#system" type="button" role="tab">System</button>
+      <button class="nav-link" id="system-tab" data-bs-toggle="tab" data-bs-target="#system" type="button">System</button>
     </li>
     <li class="nav-item">
-      <button class="nav-link" id="logging-tab" data-bs-toggle="tab" data-bs-target="#logging" type="button" role="tab">Logging</button>
+      <button class="nav-link" id="logging-tab" data-bs-toggle="tab" data-bs-target="#logging" type="button">Logging</button>
     </li>
   </ul>
 
-  <!-- Tab panes -->
   <div class="tab-content mt-3">
     <!-- GPIO -->
-    <div class="tab-pane fade show active" id="gpio" role="tabpanel" aria-labelledby="gpio-tab">
+    <div class="tab-pane fade show active" id="gpio" role="tabpanel">
       <form id="gpioForm">
         <h5>Relé-pinner</h5>
         <input class="form-control mb-2" id="gpio_relay1" placeholder="Port 1">
@@ -31,12 +30,12 @@
         <input class="form-control mb-2" id="gpio_sensor2_open" placeholder="P2 Åpen">
         <input class="form-control mb-2" id="gpio_sensor2_closed" placeholder="P2 Lukket">
 
-        <button type="submit" class="btn btn-primary mt-2">Lagre GPIO</button>
+        <button class="btn btn-primary mt-2">Lagre GPIO</button>
       </form>
     </div>
 
     <!-- System -->
-    <div class="tab-pane fade" id="system" role="tabpanel" aria-labelledby="system-tab">
+    <div class="tab-pane fade" id="system" role="tabpanel">
       <form id="systemForm">
         <label>Polling-intervall (ms)</label>
         <input class="form-control mb-2" id="system_polling">
@@ -47,12 +46,12 @@
         <label>Kalibrering Port 2</label>
         <input class="form-control mb-2" id="system_cal_p2">
 
-        <button type="submit" class="btn btn-primary mt-2">Lagre System</button>
+        <button class="btn btn-primary mt-2">Lagre System</button>
       </form>
     </div>
 
     <!-- Logging -->
-    <div class="tab-pane fade" id="logging" role="tabpanel" aria-labelledby="logging-tab">
+    <div class="tab-pane fade" id="logging" role="tabpanel">
       <form id="loggingForm">
         <label>Loggrotasjon (dager)</label>
         <input class="form-control mb-2" id="log_rotation">
@@ -60,14 +59,14 @@
         <label>Behold arkiv (dager)</label>
         <input class="form-control mb-2" id="log_retention">
 
-        <button type="submit" class="btn btn-primary mt-2">Lagre Logging</button>
+        <button class="btn btn-primary mt-2">Lagre Logging</button>
       </form>
     </div>
   </div>
 
   <!-- Toast -->
   <div class="toast-container position-fixed bottom-0 end-0 p-3">
-    <div id="saveToast" class="toast text-bg-success">
+    <div id="saveToast" class="toast text-bg-success" role="alert">
       <div class="d-flex">
         <div class="toast-body" id="toastMsg">Lagret</div>
         <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
@@ -89,7 +88,7 @@ function loadModule(mod, callback) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  // Init-load
+  // Load all modules
   loadModule("gpio", data => {
     document.getElementById("gpio_relay1").value = data.relay_pins.port1;
     document.getElementById("gpio_relay2").value = data.relay_pins.port2;
@@ -110,7 +109,7 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("log_retention").value = data.log_archive_retention_days;
   });
 
-  // Save GPIO
+  // Submit GPIO
   document.getElementById("gpioForm").addEventListener("submit", e => {
     e.preventDefault();
     fetch("/api/config/gpio", {
@@ -135,7 +134,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }).then(() => toast("GPIO lagret"));
   });
 
-  // Save System
+  // Submit System
   document.getElementById("systemForm").addEventListener("submit", e => {
     e.preventDefault();
     fetch("/api/config/system", {
@@ -151,7 +150,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }).then(() => toast("System lagret"));
   });
 
-  // Save Logging
+  // Submit Logging
   document.getElementById("loggingForm").addEventListener("submit", e => {
     e.preventDefault();
     fetch("/api/config/logging", {

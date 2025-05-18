@@ -1,16 +1,7 @@
 {
   "relay_pins": {
-    "port1": 17,
-    "port2": 27
+    "port1": 2,
+    "port2": 3
   },
-  "sensor_pins": {
-    "port1": {
-      "open": 22,
-      "closed": 23
-    },
-    "port2": {
-      "open": 24,
-      "closed": 25
-    }
-  }
+  "sensor_pins": {}
 }

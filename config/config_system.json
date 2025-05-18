@@ -1,5 +1,5 @@
 {
-  "polling_interval_ms": 100,
+  "polling_interval_ms": 1000,
   "calibration": {
     "port1": {
       "open_time": 10

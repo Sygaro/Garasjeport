@@ -3,8 +3,9 @@
 # Starter Flask-app og registrerer Blueprints
 # ==========================================
 
-from flask import Flask, jsonify, request, render_template
+import json
 
+from flask import Flask, jsonify, request, render_template
 from routes.port_routes import port_routes
 from routes.status_routes import status_routes
 from routes.config_routes import config_routes
@@ -49,13 +50,6 @@ def get_log(logtype):
 @app.route("/log")
 def log_page():
     return render_template("log.html")
-
-
-@app.route("/api/config", methods=["GET"])
-def get_config():
-    with open("config.json") as f:
-        config = json.load(f)
-    return jsonify(config)
 
 @app.route("/admin/config/restore")
 def config_restore_page():
