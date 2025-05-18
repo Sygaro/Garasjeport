@@ -20,5 +20,5 @@ Et webbasert system for styring og overvåkning av garasjeporter med støtte for
 ### 1. Klon repoet
 
 ```bash
-git clone https://github.com/Sygaro/Garasjeport.git
+git clone --branch opprydding_etter_GUI_improvement https://github.com/Sygaro/Garasjeport.git
 cd Garasjeport
