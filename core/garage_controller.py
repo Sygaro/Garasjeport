@@ -23,6 +23,8 @@ class GarageController:
         self.system_config["polling_interval_ms"]
         self.relay_pins = gpio_config['relay_pins']
         self.sensor_pins = gpio_config['sensor_pins']
+        self.chip = lgpio.gpiochip_open(0)  # åpner gpiochip 0 (standard)
+
 
 
     def _load_config(self, path):
@@ -110,8 +112,17 @@ class GarageController:
 
 
     def cleanup(self):
-        for pin in self.relay_pins.values():
-            lgpio.gpio_free(self.chip, pin)
-        for pin in self.sensor_pins.values():
-            lgpio.gpio_free(self.chip, pin)
-        lgpio.gpiochip_close(self.chip)
+        if hasattr(self, 'chip'):
+            for port in self.relay_pins:
+                try:
+                    lgpio.gpio_free(self.chip, self.relay_pins[port])
+                except Exception:
+                    pass  # eller logg feilen
+
+            for port in self.sensor_pins:
+                for pin in self.sensor_pins[port].values():
+                    try:
+                        lgpio.gpio_free(self.chip, pin)
+                    except Exception:
+                        pass  # pin var ikke aktiv, ignorér
+            lgpio.gpiochip_close(self.chip)

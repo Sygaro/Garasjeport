@@ -11,6 +11,8 @@ from routes.status_routes import status_routes
 from routes.config_routes import config_routes
 from routes.log_routes import log_routes
 from core.bootstrap import init_environment
+from routes.web import web
+from routes.api import api
 
 # Kjør init ved app-start
 init_environment()
@@ -23,6 +25,8 @@ app.register_blueprint(port_routes)
 app.register_blueprint(status_routes)
 app.register_blueprint(config_routes)
 app.register_blueprint(log_routes)
+app.register_blueprint(web)
+app.register_blueprint(api)
 
 
 @app.route("/")
