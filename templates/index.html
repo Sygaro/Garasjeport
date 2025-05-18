@@ -1,46 +1,25 @@
 {% extends "base.html" %}
+
 {% block content %}
-<h1 class="mb-4">Garasjeportkontrollsystem</h1>
-
-<div class="row g-3">
-  <div class="col-md-6">
-    <div class="card border-primary">
-      <div class="card-header bg-primary text-white">Portstatus</div>
-      <div class="card-body">
-        <p>Se status for garasjeportene.</p>
-        <a href="/stats" class="btn btn-sm btn-primary">Gå til status</a>
-      </div>
-    </div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+  <!-- Portstatus -->
+  <div class="bg-white p-4 shadow rounded">
+    <h2 class="text-lg font-semibold mb-2">Portstatus</h2>
+    <p id="portStatus" class="text-xl text-green-600">Laster...</p>
+    <button
+      id="toggleBtn"
+      class="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+    >
+      Åpne/Lukk port
+    </button>
   </div>
 
-  <div class="col-md-6">
-    <div class="card border-secondary">
-      <div class="card-header bg-secondary text-white">Logger</div>
-      <div class="card-body">
-        <p>Se system- og hendelseslogger.</p>
-        <a href="/log" class="btn btn-sm btn-secondary">Gå til logger</a>
-      </div>
-    </div>
-  </div>
-
-  <div class="col-md-6">
-    <div class="card border-success">
-      <div class="card-header bg-success text-white">Konfigurasjon</div>
-      <div class="card-body">
-        <p>Endre system- og GPIO-innstillinger.</p>
-        <a href="/admin/config" class="btn btn-sm btn-success">Gå til konfigurasjon</a>
-      </div>
-    </div>
-  </div>
-
-  <div class="col-md-6">
-    <div class="card border-warning">
-      <div class="card-header bg-warning text-dark">Backup & gjenoppretting</div>
-      <div class="card-body">
-        <p>Ta backup eller gjenopprett tidligere konfigurasjon.</p>
-        <a href="/backup" class="btn btn-sm btn-warning">Ta backup</a>
-      </div>
-    </div>
+  <!-- Logg -->
+  <div class="bg-white p-4 shadow rounded">
+    <h2 class="text-lg font-semibold mb-2">Hendelseslogg</h2>
+    <ul id="logList" class="text-sm space-y-1 overflow-y-auto max-h-64">
+      <li>Laster logg...</li>
+    </ul>
   </div>
 </div>
 {% endblock %}
