@@ -3,31 +3,27 @@
 # Polling-basert versjon med konfigbart intervall
 # ==========================================
 
-import lgpio
+import lgpio, os
 import time
 import threading
 import json
-from core.garage_logger import GarageLogger
-import os
+from utils.garage_logger import GarageLogger
+from core.config_manager import ConfigManager
 
 
 class GarageController:
-    def __init__(self, config_path='config.json'):
-        self.logger = GarageLogger()
-        self.config_path = config_path
-        self.config = self._load_config(config_path)
-        self.chip = lgpio.gpiochip_open(0)
+    def __init__(self):
+        self.config_manager = ConfigManager()
+        gpio_config = self.config_manager.get_module("gpio")
+        system_config = self.config_manager.get_module("system")
 
-        self.relay_pins = {}
-        self.sensor_pins = {}
-        self.sensor_states = {}
-        self.port_status = {'port1': 'unknown', 'port2': 'unknown'}
-        self.motion_start_time = {}
+        self.polling_interval_ms = system_config.get('polling_interval_ms', 1000)
+        self.gpio_config = self.config_manager.get_module("gpio")
+        self.system_config = self.config_manager.get_module("system")
+        self.system_config["polling_interval_ms"]
+        self.relay_pins = gpio_config['relay_pins']
+        self.sensor_pins = gpio_config['sensor_pins']
 
-        self.polling_interval_ms = self.config.get('polling_interval_ms', 100)
-
-        self._setup_gpio()
-        self._start_polling_thread()
 
     def _load_config(self, path):
         with open(path, 'r') as f:

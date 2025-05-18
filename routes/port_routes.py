@@ -1,29 +1,64 @@
-# ==========================================
-# Filnavn: port_routes.py
-# API-endepunkter for portstyring (puls/motor)
-# ==========================================
-
-from flask import Blueprint, jsonify, request
-from controllers.garage import handle_port_pulse
-from controllers.status import get_port_status
+from flask import Blueprint, render_template, request, redirect, flash, url_for
+from core.config_manager import ConfigManager
+from utils.gpio_utils import get_gpio_info  # egen fil, se neste punkt
+import datetime
 
 port_routes = Blueprint("port_routes", __name__)
+config_manager = ConfigManager()
 
-@port_routes.route("/api/pulse/<port>", methods=["POST"])
-def pulse_port(port):
-    """
-    Sender puls til valgt port via GPIO-relé.
-    Bruker source fra request body.
-    """
-    if port not in ['port1', 'port2']:
-        return jsonify({"error": "Ugyldig portnavn"}), 400
+@port_routes.route("/admin/ports", methods=["GET"])
+def show_ports():
+    gpio_config = config_manager.get_module("gpio")
+    calibration_config = config_manager.get_module("system").get("calibration", {})
 
-    data = request.get_json(force=True, silent=True) or {}
-    source = data.get("source", "api")
+    gpio_data = get_gpio_info(gpio_config)
+    merged_config = {
+        "relay_pins": gpio_config["relay_pins"],
+        "sensor_pins": gpio_config["sensor_pins"],
+        "calibration": calibration_config
+    }
 
-    result = handle_port_pulse(port, source)
+    return render_template(
+        "admin_ports.html",
+        config=merged_config,
+        available_gpio=gpio_data["available"],
+        used_pins=gpio_data["used"]
+    )
 
-    if not result["success"]:
-        return jsonify(result), 409
+@port_routes.route("/admin/ports", methods=["POST"])
+def update_port_gpio():
+    port = request.form.get("port")
+    relay = int(request.form.get("relay_bcm"))
+    sensor_open = int(request.form.get("sensor_open_bcm"))
+    sensor_closed = int(request.form.get("sensor_closed_bcm"))
 
-    return jsonify(result), 200
+    gpio = config_manager.get_module("gpio")
+    gpio["relay_pins"][port] = relay
+    gpio["sensor_pins"][port] = {
+        "open": sensor_open,
+        "closed": sensor_closed
+    }
+    config_manager.update_module("gpio", gpio, user="web", source="port config")
+    flash(f"GPIO-konfig for {port} er oppdatert.", "success")
+    return redirect(url_for("port_routes.show_ports"))
+
+@port_routes.route("/admin/calibrate", methods=["POST"])
+def save_manual_calibration():
+    port = request.form.get("port")
+    open_time = float(request.form.get("open_time"))
+    close_time = float(request.form.get("close_time"))
+
+    system = config_manager.get_module("system")
+    if "calibration" not in system:
+        system["calibration"] = {}
+
+    system["calibration"][port] = {
+        "open_time": open_time,
+        "close_time": close_time,
+        "timestamp": datetime.datetime.now().isoformat(timespec="seconds"),
+        "source": "web"
+    }
+
+    config_manager.update_module("system", system, user="web", source="calibration")
+    flash(f"Kalibreringsdata for {port} er lagret.", "success")
+    return redirect(url_for("port_routes.show_ports"))

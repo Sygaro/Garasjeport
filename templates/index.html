@@ -1,26 +1,46 @@
 {% extends "base.html" %}
 {% block content %}
-<h2 class="mb-4 text-body">📊 Oversikt over porter, status og kalibrering</h2>
+<h1 class="mb-4">Garasjeportkontrollsystem</h1>
 
-<div class="row g-4">
-  {% for port, info in statuses.items() %}
+<div class="row g-3">
   <div class="col-md-6">
-    <div class="card shadow-sm bg-body-tertiary">
+    <div class="card border-primary">
+      <div class="card-header bg-primary text-white">Portstatus</div>
       <div class="card-body">
-        <h5 class="card-title">{{ port|capitalize }}</h5>
-        <p>Status: 
-          {% if info.status == "open" %}
-            <span class="badge bg-success">Åpen</span>
-          {% elif info.status == "closed" %}
-            <span class="badge bg-danger">Lukket</span>
-          {% else %}
-            <span class="badge bg-secondary">{{ info.status }}</span>
-          {% endif %}
-        </p>
-        <a href="/open/{{ port }}" class="btn btn-primary btn-sm">🚪 Aktiver {{ port }}</a>
+        <p>Se status for garasjeportene.</p>
+        <a href="/stats" class="btn btn-sm btn-primary">Gå til status</a>
       </div>
     </div>
   </div>
-  {% endfor %}
+
+  <div class="col-md-6">
+    <div class="card border-secondary">
+      <div class="card-header bg-secondary text-white">Logger</div>
+      <div class="card-body">
+        <p>Se system- og hendelseslogger.</p>
+        <a href="/log" class="btn btn-sm btn-secondary">Gå til logger</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card border-success">
+      <div class="card-header bg-success text-white">Konfigurasjon</div>
+      <div class="card-body">
+        <p>Endre system- og GPIO-innstillinger.</p>
+        <a href="/admin/config" class="btn btn-sm btn-success">Gå til konfigurasjon</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card border-warning">
+      <div class="card-header bg-warning text-dark">Backup & gjenoppretting</div>
+      <div class="card-body">
+        <p>Ta backup eller gjenopprett tidligere konfigurasjon.</p>
+        <a href="/backup" class="btn btn-sm btn-warning">Ta backup</a>
+      </div>
+    </div>
+  </div>
 </div>
 {% endblock %}

@@ -1,0 +1,25 @@
+{
+  "polling_interval_ms": 100,
+  "relay_pins": {
+    "port1": 17,
+    "port2": 27
+  },
+  "sensor_pins": {
+    "port1": {
+      "open": 22,
+      "closed": 23
+    },
+    "port2": {
+      "open": 24,
+      "closed": 25
+    }
+  },
+  "calibration": {
+    "port1": {
+      "open_time": 10
+    },
+    "port2": {
+      "open_time": 10
+    }
+  }
+}
