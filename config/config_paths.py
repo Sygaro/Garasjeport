@@ -17,3 +17,5 @@ BACKUP_DIR = os.path.join(BASE_DIR, "backups")
 TEMPLATE_DIR = os.path.join(BASE_DIR, "templates")
 STATIC_DIR = os.path.join(BASE_DIR, "static")  # valgfritt
 DOCS_DIR = os.path.join(BASE_DIR, "docs")      # valgfritt
+CONFIG_GPIO_PATH = os.path.join(CONFIG_DIR, "config_gpio.json")
+CONFIG_SYSTEM_PATH = os.path.join(CONFIG_DIR, "config_system.json")

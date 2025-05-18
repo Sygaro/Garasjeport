@@ -1,18 +1,35 @@
 # controllers/port_controller.py
 
-from core.garage_controller import GarageController
+import json
+from config.config_paths import CONFIG_SYSTEM_PATH
+from core.system import controller
 
-class PortController:
-    def __init__(self):
-        self.controller = GarageController()
 
-    def get_status(self, port):
-        """Returnerer status: 'open', 'closed', 'moving', 'partial', 'error'"""
-        return self.controller.get_status(port)
+def get_status(port):
+    return controller.get_port_status(port)
 
-    def is_open(self, port):
-        return self.get_status(port) == "open"
+def open_port(port):
+    return controller.open_port(port)
 
-    def toggle_port(self, port):
-        """Sender puls til port hvis mulig"""
-        return self.controller.trigger_pulse(port)
+def close_port(port):
+    return controller.close_port(port)
+
+def get_timing(port):
+    # Returner siste måling for porten (dette er placeholder)
+    # Alternativ: les fra config_system.json hvis du ønsker persistens
+    return {
+        "open_time": None,
+        "close_time": None
+    }
+
+def get_all_status():
+    ports = controller.relay_pins.keys()
+    return {port: get_status(port) for port in ports}
+
+def get_timing(port):
+    try:
+        with open(CONFIG_SYSTEM_PATH) as f:
+            config = json.load(f)
+        return config.get("timing", {}).get(port, {})
+    except:
+        return {}

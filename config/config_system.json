@@ -1,11 +1,16 @@
 {
-  "polling_interval_ms": 1000,
-  "calibration": {
+  "polling_interval_ms": 500,
+  "language": "nb",
+  "port_timings": {
     "port1": {
-      "open_time": 10
+      "open_time": 0,
+      "close_time": 0,
+      "timestamp": null
     },
     "port2": {
-      "open_time": 10
+      "open_time": 0,
+      "close_time": 0,
+      "timestamp": null
     }
   }
 }

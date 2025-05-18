@@ -3,6 +3,8 @@
 import os
 from utils.log_utils import parse_log_file
 from config.config_paths import LOG_DIR  # bruker nå sentral sti
+from core.garage_logger import GarageLogger
+
 
 class LoggerController:
     def __init__(self, log_dir=LOG_DIR):
@@ -13,3 +15,6 @@ class LoggerController:
         # Leser siste X linjer fra loggfil
         path = os.path.join(self.log_dir, filename)
         return parse_log_file(path, limit)
+
+# ✅ Instans opprettes etter klassen er definert
+logger_controller = LoggerController()
