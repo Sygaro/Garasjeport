@@ -30,10 +30,34 @@ app.register_blueprint(web)
 app.register_blueprint(api)
 
 
-@app.route("/")
-def index():
-    return "<h3>Garage API er aktiv (modulær versjon)</h3>"
+@app.route('/')
+def admin():
+    return render_template('admin.html')
 
+@app.route('/api/status')
+def status():
+    # Eksempelstatus – bytt med faktisk portstatus
+    return jsonify({"status": "Lukket"})
+
+@app.route('/api/open', methods=['POST'])
+def open_port():
+    # Kjør åpen port-logikk her
+    return '', 204
+def log_event(message):
+    with open("logs/event.log", "a") as f:
+        f.write(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - {message}\n")
+
+
+@app.route('/api/close', methods=['POST'])
+def close_port():
+    # Kjør lukke port-logikk her
+    return '', 204
+def log_event(message):
+    with open("logs/event.log", "a") as f:
+        f.write(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - {message}\n")
+
+
+    
 @app.route("/admin/config") 
 def config_editor():
     return render_template("admin_config_editor.html")
@@ -79,4 +103,7 @@ def gpio_ui():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0", port=5000, debug=True, use_reloader=False)
+
+
+

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Garasjeport Admin</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+</head>
+<body>
+  <div class="container">
+    <h1>Garasjeport Admin-panel</h1>
+    <button id="openBtn">Åpne port</button>
+    <button id="closeBtn">Lukk port</button>
+    <p id="statusText">Status: Ukjent</p>
+  </div>
+<div class="box">
+  <h2>Hendelseslogg</h2>
+  <div id="logg">Laster logg...</div>
+</div>
+
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
