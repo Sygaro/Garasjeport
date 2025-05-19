@@ -1,343 +1,344 @@
-# ========================================
+# ==========================================
 # Filnavn: garage_controller.py
-# Garasjeport-kontroller – styrer porter via rele og sensorer
-# ========================================
+# Modul: Kontroller for garasjeporter (GPIO)
+# ==========================================
 
-import lgpio, os, json
 import time
-
+import lgpio
+import threading
+import json
+import os
 from datetime import datetime
+
 from config.config_paths import CONFIG_GPIO_PATH, CONFIG_SYSTEM_PATH
-from core.garage_logger import GarageLogger
 from utils.file_utils import load_json, save_json
+from utils.garage_logger import GarageLogger
 
-
-# print("[DEBUG] Laster GarageController fra:", __file__)
 
 class GarageController:
     def __init__(self):
+        print("[GarageController] Initialiserer...")
+
         self.chip = lgpio.gpiochip_open(0)
         self.logger = GarageLogger()
-        self.config = self._load_gpio_config()
 
-        self.relay_pins = self.config.get("relay_pins", {})
-        self.sensor_pins = self.config.get("sensor_pins", {})
-        self.fail_margin = 3  # sekunder, konfigurerbar senere
+        self.gpio_config = load_json(CONFIG_GPIO_PATH)
+        self.system_config = load_json(CONFIG_SYSTEM_PATH)
+
+        self.relay_pins = self.gpio_config.get("relay_pins", {})
+        self.sensor_pins = self.gpio_config.get("sensor_pins", {})
+        self.relay_config = self.gpio_config.get("relay_config", {})
+        self.sensor_config = self.gpio_config.get("sensor_config", {})
+        self.timing_cfg = self.gpio_config.get("timing_config", {})
+
+        self.pulse_duration = self.relay_config.get("pulse_duration", 0.4)
+        self.relay_active_state = self.relay_config.get("active_state", 0)
+
+        self.sensor_active = self.sensor_config.get("active_state", 0)
+        self.pull = self.sensor_config.get("pull", "up")
+        self.pull_val = lgpio.SET_PULL_UP if self.pull == "up" else lgpio.SET_PULL_DOWN
+        self._recent_pulse = False  # brukes til dynamisk polling
+
+
+        self.fast_poll = self.timing_cfg.get("fast_poll_interval", 0.01)
+        self.slow_poll = self.timing_cfg.get("slow_poll_interval", 2.0)
+        self.timeout = self.timing_cfg.get("port_status_change_timeout", 60)
+        self._last_known_status = {port: "unknown" for port in self.relay_pins}
+        self.fail_margin = self.timing_cfg.get("fail_margin_status_change", 5)
+        self.port_status_timeout = self.gpio_config.get("relay_config", {}).get("port_status_change_timeout", 10)
+
 
         self._setup_pins()
 
-        print("[GarageController] Initialisert med følgende pinner:")
-        for port, pin in self.relay_pins.items():
-            print(f"  🔁 Rele - {port}: GPIO {pin}")
-        for port, sensors in self.sensor_pins.items():
-            print(f"  🧲 Sensorer - {port}: Åpen={sensors.get('open')} | Lukket={sensors.get('closed')}")
+        import threading
+
+        # Etter self.last_known_status
+        self.polling_active = True
+        self.polling_thread = threading.Thread(target=self._sensor_poll_loop, daemon=True)
+        self.polling_thread.start()
 
 
-    def _load_gpio_config(self):
-        try:
-            with open(CONFIG_GPIO_PATH, "r") as f:
-                return json.load(f)
-        except Exception as e:
-            print(f"[GarageController] Feil ved lasting av GPIO-config: {e}")
-            return {}
 
     def _setup_pins(self):
         print("[GarageController] Setter opp rele-pinner...")
         for port, pin in self.relay_pins.items():
-            try:
-                lgpio.gpio_claim_output(self.chip, pin)
-                print(f"  ✅ Rele-pin for {port}: GPIO {pin}")
-            except Exception as e:
-                print(f"  ❌ Feil ved oppsett av rele-pin for {port} (GPIO {pin}): {e}")
+            lgpio.gpio_claim_output(self.chip, pin, 1 - self.relay_active_state)
+            print(f"  ✅ Rele-pin for {port}: GPIO {pin}")
 
         print("[GarageController] Setter opp sensor-pinner...")
-        for port in self.sensor_pins:
-            for sensor_type, pin in self.sensor_pins[port].items():
-                try:
-                    lgpio.gpio_claim_input(self.chip, pin, lgpio.SET_PULL_UP)
-                    print(f"  ✅ Sensor-pin ({sensor_type}) for {port}: GPIO {pin}")
-                except Exception as e:
-                    print(f"  ❌ Feil ved oppsett av sensor-pin ({sensor_type}) for {port} (GPIO {pin}): {e}")
+        for port, sensors in self.sensor_pins.items():
+            for label, pin in sensors.items():
+                lgpio.gpio_claim_input(self.chip, pin, self.pull_val)
+                print(f"  ✅ Sensor ({label}) for {port}: GPIO {pin}")
 
+    def pulse_relay(self, port, duration=None):
+        """Sender puls til rele for å aktivere motor."""
+        pin = self.relay_pins.get(port)
+        duration = duration if duration else self.pulse_duration
+        if pin is None:
+            raise ValueError(f"Ugyldig port: {port}")
 
-    def is_sensor_active(self, pin):
-        return lgpio.gpio_read(self.chip, pin) == 0  # Aktiv lav
+        lgpio.gpio_write(self.chip, pin, self.relay_active_state)
+        time.sleep(duration)
+        lgpio.gpio_write(self.chip, pin, 1 - self.relay_active_state)
+
+        self.logger.log_action(port, "relay_pulse", source="system")
 
     def get_current_status(self, port):
         """
-        Returnerer status for gitt port basert på sensorverdier.
-        Sensorene er normalt HIGH (1) og blir aktive ved LOW (0).
+        Leser sensorverdier og returnerer aktuell status for porten.
+        Logger statusendringer.
         """
         if port not in self.sensor_pins:
             return "unknown"
 
-        open_pin = self.sensor_pins[port]["open"]
-        closed_pin = self.sensor_pins[port]["closed"]
+        pins = self.sensor_pins[port]
+        open_pin = pins["open"]
+        closed_pin = pins["closed"]
+        active = self.sensor_config.get("active_state", 0)
 
-        open_active = not lgpio.gpio_read(self.chip, open_pin)
-        closed_active = not lgpio.gpio_read(self.chip, closed_pin)
+        open_active = (lgpio.gpio_read(self.chip, open_pin) == active)
+        closed_active = (lgpio.gpio_read(self.chip, closed_pin) == active)
 
         if open_active and not closed_active:
-            return "open"
+            new_status = "open"
         elif closed_active and not open_active:
-            return "closed"
+            new_status = "closed"
         elif not open_active and not closed_active:
-            return "moving"
+            new_status = "moving"
         elif open_active and closed_active:
-            return "sensor_error"
-        return "unknown"
+            new_status = "sensor_error"
+        else:
+            new_status = "unknown"
+
+        prev_status = self._last_known_status.get(port)
+        if new_status != prev_status:
+            self.logger.log_status_change(port, new_status)
+            self._last_known_status[port] = new_status
+
+        return new_status
 
 
-    def pulse_relay(self, port, duration=0.5):
-        pin = self.relay_pins.get(port)
-        if pin is None:
-            raise ValueError(f"Ugyldig port: {port}")
-        lgpio.gpio_write(self.chip, pin, 1)
-        time.sleep(duration)
-        lgpio.gpio_write(self.chip, pin, 0)
+    def activate_port(self, port, direction):
+        """
+        Aktiverer port og måler total bevegelsestid. Avbryter ved feil.
+        """
+        start_status = self.get_current_status(port)
+        target_status = "open" if direction == "open" else "closed"
+
+        if start_status == target_status:
+            return {"status": start_status, "note": "Allerede i ønsket posisjon"}
+
+        self.logger.log_action(port, f"{direction}_start")
+        self.pulse_relay(port)
+
+        t0 = time.time()
+        sensor_delay_threshold = self.relay_config.get("max_sensor_start_delay", 2)  # sekunder
+
+        # Trinn 1: vent på første sensorendring (port begynner å bevege seg)
+        while time.time() - t0 < sensor_delay_threshold:
+            current = self.get_current_status(port)
+            if current not in [start_status, "unknown"]:
+                break  # port begynte å bevege seg
+            time.sleep(self.fast_poll)
+        else:
+            # Timeout: port responderte ikke
+            self.logger.log_error(port, "Ingen sensorrespons etter puls – port starter ikke")
+            return {
+                "status": "stopped",
+                "error": f"Ingen sensorrespons innen {sensor_delay_threshold}s"
+            }
+
+        # Trinn 2: vent til port når sluttposisjon
+        while time.time() - t0 < self.port_status_timeout:
+            current = self.get_current_status(port)
+            if current == target_status:
+                duration = round(time.time() - t0, 2)
+                self._store_timing(port, direction, duration)
+                self.logger.log_timing(port, direction, duration)
+                return {"status": current, "duration": duration}
+            time.sleep(self.fast_poll)
+
+        # Timeout: port stoppet på vei
+        self.logger.log_error(port, "Tidsavbrudd – porten nådde ikke målet")
+        self._last_known_status[port] = "stopped"
+        return {"status": "stopped", "error": "Port endret ikke status"}
+
+
+    def _store_timing(self, port, direction, duration):
+        """
+        Lagrer målt åpne-/lukketid + tidsstempel i config_system.json
+        """
+        config = load_json(CONFIG_SYSTEM_PATH)
+        if "timing" not in config:
+            config["timing"] = {}
+
+        if port not in config["timing"]:
+            config["timing"][port] = {}
+
+          # ✅ Rund av duration til 2 desimaler før lagring
+        config["timing"][port][f"{direction}_time"] = round(duration, 2)
+        config["timing"][port][f"{direction}_timestamp"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        save_json(CONFIG_SYSTEM_PATH, config)
+
 
     def open_port(self, port):
-        status = self.get_current_status(port)
-        if status == "open":
-            return {"status": "already_open"}
+        """
+        Utfører sikker åpning av port.
+        Validerer status, logger og måler tid.
+        """
+        current_status = self.get_current_status(port)
 
-        if status == "sensor_error":
-            return {"status": "sensor_error", "confirm_required": True}
+        if current_status == "open":
+            return {"status": "open", "note": "Porten er allerede åpen."}
 
-        if status == "partial":
-            return {"status": "unknown_position", "confirm_required": True}
+        elif current_status == "sensor_error":
+            self.logger.log_error(port, "Sensorfeil oppdaget før åpning – fortsetter likevel")
+            return self.activate_port(port, direction="open")
 
-        self.logger.log_action(port, "open", source="api")
-        self.pulse_relay(port)
+        elif current_status == "moving":
+            return {"status": "moving", "note": "Porten er i bevegelse – åpning avbrutt"}
 
-        timing = self._measure_motion_time(port, direction="open")
-        return {"status": "opening", **timing}
+        elif current_status == "unknown":
+            self.logger.log_error(port, "Ukjent status før åpning – avbryter")
+            return {"status": "unknown", "error": "Kan ikke bestemme portstatus"}
+
+        # Ellers: forsøk å åpne
+        return self.activate_port(port, direction="open")
 
     def close_port(self, port):
-        status = self.get_current_status(port)
-        if status == "closed":
-            return {"status": "already_closed"}
+        """
+        Utfører sikker lukking av port.
+        Validerer status, logger og måler tid.
+        """
+        current_status = self.get_current_status(port)
 
-        if status == "sensor_error":
-            return {"status": "sensor_error", "confirm_required": True}
+        if current_status == "closed":
+            return {"status": "closed", "note": "Porten er allerede lukket."}
 
-        if status == "partial":
-            return {"status": "unknown_position", "confirm_required": True}
+        elif current_status == "sensor_error":
+            self.logger.log_error(port, "Sensorfeil oppdaget før lukking – fortsetter likevel")
+            return self.activate_port(port, direction="close")
 
-        self.logger.log_action(port, "close", source="api")
+        elif current_status == "moving":
+            return {"status": "moving", "note": "Porten er i bevegelse – lukking avbrutt"}
+
+        elif current_status == "unknown":
+            self.logger.log_error(port, "Ukjent status før lukking – avbryter")
+            return {"status": "unknown", "error": "Kan ikke bestemme portstatus"}
+
+        # Ellers: forsøk å lukke
+        return self.activate_port(port, direction="close")
+
+    def stop_port(self, port):
+        """
+        Stopper motoren hvis porten er i bevegelse (begge sensorer inaktive).
+        Returnerer suksessstatus og oppdatert portstatus.
+        """
+        current_status = self.get_current_status(port)
+
+        if current_status != "moving":
+            return {"success": False, "status": current_status, "note": "Porten er ikke i bevegelse"}
+
+        self.logger.log_action(port, "stop_motor", source="API")
+
+        # Send kort puls for å stoppe
         self.pulse_relay(port)
 
-        timing = self._measure_motion_time(port, direction="close")
-        return {"status": "closing", **timing}
+        # Merk portstatus som "stopped" manuelt
+        self._last_known_status[port] = "stopped"
 
-    def _measure_motion_time(self, port, direction):
-        pins = self.sensor_pins.get(port, {})
-        open_pin = pins.get("open")
-        closed_pin = pins.get("closed")
+        return {"success": True, "status": "stopped", "note": "Motor stoppet"}
 
-        if direction == "open":
-            sensor_1 = closed_pin
-            sensor_2 = open_pin
-        else:
-            sensor_1 = open_pin
-            sensor_2 = closed_pin
 
-        start = time.time()
+    def get_reported_status(self, port):
+        """
+        Returnerer siste status. Hvis status er 'stopped',
+        sjekker sensorene om port faktisk er i sluttposisjon og oppdaterer.
+        """
+        status = self._last_known_status.get(port, "unknown")
 
-        # Vent til første sensor slipper (motor har startet)
-        while self.is_sensor_active(sensor_1):
-            if time.time() - start > 10:  # fail-safe
-                return {"error": "timeout_step1"}
-            time.sleep(0.05)
-        rele_delay = time.time() - start
+        if status == "stopped":
+            corrected = self.get_current_status(port)  # denne logger automatisk endringer
+            if corrected in ["open", "closed"]:
+                return corrected
+            return "stopped"
 
-        # Vent til neste sensor aktiveres
-        while not self.is_sensor_active(sensor_2):
-            if time.time() - start > 30:
-                return {"error": "timeout_step2"}
-            time.sleep(0.05)
-        total = time.time() - start
-        sensor_to_sensor = total - rele_delay
+        return status
 
-        self.logger.log_timing(port, direction, total)
-        self._update_timing(port, direction, total)
-        return {
-            "rele_delay": round(rele_delay, 2),
-            "sensor_to_sensor": round(sensor_to_sensor, 2),
-            "total": round(total, 2),
-            "timestamp": datetime.now().isoformat()
-        }
+    def get_cached_status(self, port):
+        """
+        Returnerer sist kjente status fra sensorpolling,
+        faller tilbake til realtidsavlesning hvis ikke tilgjengelig.
+        """
+        return self._last_known_status.get(port, self.get_current_status(port))
+
+
+    def _sensor_poll_loop(self):
+        """
+        Bakgrunnstråd som kontinuerlig overvåker sensorstatus og logger endringer.
+        Justerer pollinghastighet basert på portstatus.
+        """
+        last_status = {}
+        moving_since = {}
+
+        while self.polling_active:
+            interval = self.fast_poll if self._recent_pulse else self.slow_poll
+
+            for port in self.sensor_pins:
+                current = self.get_current_status(port)
+                prev = last_status.get(port)
+
+                if current != prev:
+                    self.logger.log_status_change(port, current)
+                    last_status[port] = current
+                    if current == "moving":
+                        moving_since[port] = time.time()
+                    elif port in moving_since:
+                        del moving_since[port]
+
+                # Timeout: if in "moving" too long → mark as "stopped"
+                if current == "moving":
+                    start_time = moving_since.get(port)
+                    if start_time and (time.time() - start_time) > self.timeout:
+                        self.logger.log_status_change(port, "stopped")
+                        last_status[port] = "stopped"
+                        # Set as attribute if needed elsewhere
+                        self._last_known_status[port] = "stopped"
+                        # Important: remove from moving tracking
+                        del moving_since[port]
+
+            time.sleep(interval)
+
+
 
     def cleanup(self):
-        print("[GarageController] Frigjør GPIO-pinner...")
+        """Frigjør GPIO og rydder opp ved avslutning."""
+        print("[GarageController] Starter opprydding...")
+
+        # Stopp sensorpolling først
+        self.polling_active = False
+        time.sleep(self.slow_poll + 0.1)
+
+        # Frigi alle pins (før vi lukker chip)
         for pin in self.relay_pins.values():
             try:
                 lgpio.gpio_free(self.chip, pin)
             except Exception as e:
-                print(f"Feil ved frigjøring av rele-pin {pin}: {e}")
-        for port in self.sensor_pins:
-            for pin in self.sensor_pins[port].values():
+                print(f"[GPIO Free] Kunne ikke frigjøre rele-pin {pin}: {e}")
+
+        for sensors in self.sensor_pins.values():
+            for pin in sensors.values():
                 try:
                     lgpio.gpio_free(self.chip, pin)
                 except Exception as e:
-                    print(f"Feil ved frigjøring av sensor-pin {pin}: {e}")
+                    print(f"[GPIO Free] Kunne ikke frigjøre sensor-pin {pin}: {e}")
+
+        # Lukk chip til slutt
         try:
-            lgpio.gpiochip_close(self.chip)
+            if hasattr(self, "chip") and isinstance(self.chip, int):
+                lgpio.gpiochip_close(self.chip)
+                print("[GarageController] GPIO chip lukket.")
         except Exception as e:
-            print(f"Feil ved lukking av chip: {e}")
-
-    def get_current_status(self, port):
-        """
-        Returnerer status for gitt port basert på sensorverdier.
-        """
-        if port not in self.sensor_pins:
-            return "unknown"
-
-        open_pin = self.sensor_pins[port]["open"]
-        closed_pin = self.sensor_pins[port]["closed"]
-
-        open_active = not lgpio.gpio_read(self.chip, open_pin)
-        closed_active = not lgpio.gpio_read(self.chip, closed_pin)
-
-        if open_active and not closed_active:
-            return "open"
-        elif closed_active and not open_active:
-            return "closed"
-        elif not open_active and not closed_active:
-            return "moving"
-        elif open_active and closed_active:
-            return "sensor_error"
-        else:
-            return "unknown"
-
-
-    def save_port_timing(self, port, direction, duration):
-        """
-        Lagre sist målte åpne/lukketid til config_system.json
-        """
-        try:
-            with open(CONFIG_SYSTEM_PATH, "r") as f:
-                config = json.load(f)
-        except Exception as e:
-            print(f"[GarageController] Kunne ikke lese config_system.json: {e}")
-            return
-
-        if "port_timings" not in config:
-            config["port_timings"] = {}
-
-        if port not in config["port_timings"]:
-            config["port_timings"][port] = {}
-
-        config["port_timings"][port][f"{direction}_time"] = round(duration, 2)
-        config["port_timings"][port]["timestamp"] = datetime.now().isoformat()
-
-        try:
-            with open(CONFIG_SYSTEM_PATH, "w") as f:
-                json.dump(config, f, indent=2)
-        except Exception as e:
-            print(f"[GarageController] Kunne ikke skrive til config_system.json: {e}")
-
-    def get_port_timing(self, port):
-        try:
-            with open(CONFIG_SYSTEM_PATH, "r") as f:
-                config = json.load(f)
-            return config.get("port_timings", {}).get(port, {})
-        except:
-            return {}
-
-
-    def activate_port(self, port: str, direction: str):
-        """
-        Aktiverer rele for gitt port, måler tid og oppdaterer timing-data.
-        direction = 'open' eller 'close'
-        """
-        print(f"[GarageController] Starter bevegelse på {port} ({direction})")
-
-        if port not in self.relay_pins or port not in self.sensor_pins:
-            print(f"[GarageController] ❌ Ugyldig port: {port}")
-            return {"success": False, "error": "Ugyldig port"}
-
-        # 1. Sjekk status før aktivering
-        current_status = self.get_current_status(port)
-        if direction == "open" and current_status == "open":
-            return {"success": False, "message": f"{port} er allerede åpen"}
-        if direction == "close" and current_status == "closed":
-            return {"success": False, "message": f"{port} er allerede lukket"}
-
-        # 2. Send puls
-        pin = self.relay_pins[port]
-        lgpio.gpio_write(self.chip, pin, 1)
-        time.sleep(0.2)  # 200 ms puls
-        lgpio.gpio_write(self.chip, pin, 0)
-        self.logger.log_action(port, action=direction)
-
-        # 3. Start tidtaking
-        t0 = time.time()
-        timeout = self.get_expected_time(port, direction) + self.fail_margin
-        reached = False
-        expected_sensor = self.sensor_pins[port]["open"] if direction == "open" else self.sensor_pins[port]["closed"]
-
-        print(f"[GarageController] Venter på sensor-endring på GPIO{expected_sensor}...")
-
-        while time.time() - t0 < timeout:
-            level = lgpio.gpio_read(self.chip, expected_sensor)
-            if level == 1:
-                reached = True
-                break
-            time.sleep(0.1)
-
-        duration = round(time.time() - t0, 2)
-
-        # 4. Evaluer
-        if reached:
-            self.logger.log_timing(port, direction, duration)
-            self._update_port_timing(port, direction, duration)
-            return {"success": True, "duration": duration}
-        else:
-            self.logger.log_status_change(port, "delvis_åpen")
-            return {"success": False, "error": "Timeout – porten nådde ikke ønsket posisjon", "duration": duration}
-
-    def get_expected_time(self, port, direction):
-        timings = load_json(CONFIG_SYSTEM_PATH).get("port_timings", {})
-        return timings.get(port, {}).get(f"{direction}_time", 60)
-
-    def _update_port_timing(self, port, direction, duration):
-        config = load_json(CONFIG_SYSTEM_PATH)
-        config.setdefault("port_timings", {})
-        config["port_timings"].setdefault(port, {})
-        config["port_timings"][port][f"{direction}_time"] = duration
-        config["port_timings"][port]["timestamp"] = datetime.now().isoformat()
-        save_json(CONFIG_SYSTEM_PATH, config)
-
-
-
-def _load_system_config(self):
-    if not os.path.exists(CONFIG_SYSTEM_PATH):
-        return {}
-    try:
-        with open(CONFIG_SYSTEM_PATH) as f:
-            return json.load(f)
-    except:
-        return {}
-
-def _save_system_config(self, config):
-    with open(CONFIG_SYSTEM_PATH, "w") as f:
-        json.dump(config, f, indent=2)
-
-def _update_timing(self, port, direction, duration):
-    config = self._load_system_config()
-    if "timing" not in config:
-        config["timing"] = {}
-    if port not in config["timing"]:
-        config["timing"][port] = {}
-
-    config["timing"][port][direction] = {
-        "duration": round(duration, 2),
-        "timestamp": datetime.now().isoformat()
-    }
-
-    self._save_system_config(config)
-
-
-
-
+            print(f"[GarageController] Feil ved lukking av GPIO chip: {e}")

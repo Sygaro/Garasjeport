@@ -19,3 +19,6 @@ STATIC_DIR = os.path.join(BASE_DIR, "static")  # valgfritt
 DOCS_DIR = os.path.join(BASE_DIR, "docs")      # valgfritt
 CONFIG_GPIO_PATH = os.path.join(CONFIG_DIR, "config_gpio.json")
 CONFIG_SYSTEM_PATH = os.path.join(CONFIG_DIR, "config_system.json")
+CONFIG_AUTH_PATH = os.path.join(CONFIG_DIR, "config_auth.json")
+CONFIG_LOGGING_PATH = os.path.join(CONFIG_DIR, "config_logging.json")
+ARCHIVE_DIR = os.path.join(LOG_DIR, "archived")

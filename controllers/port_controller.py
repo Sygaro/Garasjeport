@@ -7,7 +7,7 @@ from core.system import controller
 
 
 def get_status(port):
-    return controller.get_current_status(port)
+    return controller.get_reported_status(port)
 
 def open_port(port):
     return controller.open_port(port)
@@ -17,7 +17,7 @@ def close_port(port):
 
 def get_all_status():
     ports = controller.relay_pins.keys()
-    return {port: controller.get_current_status(port) for port in ports}
+    return {port: controller.get_reported_status(port) for port in ports}
 
 def get_timing(port):
     try:

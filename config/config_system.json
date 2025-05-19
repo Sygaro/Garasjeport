@@ -1,16 +1,29 @@
 {
-  "polling_interval_ms": 500,
   "language": "nb",
-  "port_timings": {
+  "timing": {
     "port1": {
-      "open_time": 0.0,
-      "close_time": 0.0,
-      "timestamp": "2025-05-19T00:06:39.281571"
+      "open_time": 4.83,
+      "close_time": 5.34,
+      "open_timestamp": "2025-05-19 19:39:48",
+      "close_timestamp": "2025-05-19 19:39:35"
     },
     "port2": {
-      "open_time": 0.0,
-      "close_time": 0.0,
-      "timestamp": "2025-05-19T00:06:42.115999"
+      "close_time": 3.2,
+      "open_time": 2.21,
+      "close_timestamp": "2025-05-19 19:40:12",
+      "open_timestamp": "2025-05-19 19:40:20"
+    }
+  },
+  "port_timings": {
+    "port1": {
+      "open_time": 10.0,
+      "close_time": 10.0,
+      "timestamp": null
+    },
+    "port2": {
+      "open_time": 10.0,
+      "close_time": 10.0,
+      "timestamp": null
     }
   }
 }
