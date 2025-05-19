@@ -167,18 +167,44 @@ class GarageController:
 
     def _store_timing(self, port, direction, duration):
         """
-        Lagrer målt åpne-/lukketid + tidsstempel i config_system.json
+        Lagrer måling til .json og logger.
+        """
+        self._append_timing_entry(port, direction, duration)
+
+        # Kalkulér snitt
+        config = load_json(CONFIG_SYSTEM_PATH)
+        key = f"{direction}_measurements"
+        timings = config.get("timing", {}).get(port, {}).get(key, [])
+
+        if timings:
+            avg = round(sum([t["duration"] for t in timings]) / len(timings), 2)
+            print(f"[Timing] Snitt-tid for {port} ({direction}): {avg:.2f}s")
+
+
+    def _append_timing_entry(self, port, direction, duration):
+        """
+        Legger til ny måling i config_system.json under timing[port][direction_measurements].
+        Begrenser listen til siste N verdier.
         """
         config = load_json(CONFIG_SYSTEM_PATH)
+
         if "timing" not in config:
             config["timing"] = {}
-
         if port not in config["timing"]:
             config["timing"][port] = {}
 
-          # ✅ Rund av duration til 2 desimaler før lagring
-        config["timing"][port][f"{direction}_time"] = round(duration, 2)
-        config["timing"][port][f"{direction}_timestamp"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        key = f"{direction}_measurements"
+        if key not in config["timing"][port]:
+            config["timing"][port][key] = []
+
+        entry = {
+            "duration": round(duration, 2),
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+        config["timing"][port][key].append(entry)
+
+        # Hold kun de siste N målingene (konfigurerbar, evt hardkodet f.eks. 5)
+        config["timing"][port][key] = config["timing"][port][key][-5:]
 
         save_json(CONFIG_SYSTEM_PATH, config)
 
