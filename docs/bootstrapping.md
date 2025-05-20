@@ -1,9 +1,4 @@
-import markdown
-md = markdown.Markdown(extensions=['pymdownx.superfences'])
-
-markdown_extensions:
-  - pymdownx.superfences
-  - plantuml_markdown
+'''plantuml
 
 @startuml
 title initialize_system_environment()
