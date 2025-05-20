@@ -27,7 +27,7 @@ Dette prosjektet gir full kontroll over to garasjeporter via Raspberry Pi, med s
 ### 2. Klon repoet
 
 ```bash
-git clone https://github.com/Sygaro/Garasjeport
+git clone --branch feature/v1.05_frontend https://github.com/Sygaro/Garasjeport
 cd garasjeport
 
 ### 3. Opprett virtuelt miljø og installer avhengigheter
