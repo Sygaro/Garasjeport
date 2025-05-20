@@ -66,9 +66,7 @@ elif open_active and closed_active:
 Defineres i config_gpio.json:
 
 ```python
-json
-Kopier
-Rediger
+
 "sensor_pins": {
   "port1": { "open": 17, "closed": 27 },
   "port2": { "open": 22, "closed": 23 }
@@ -77,9 +75,6 @@ Rediger
   "pull": "up",
   "active_state": 0
 }
-Felt	Beskrivelse
-pull	"up" = intern pull-up-motstand aktivert
-active_state	0 = aktiv når GPIO trekkes lav
 ```
 
 
