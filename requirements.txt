@@ -8,7 +8,8 @@ lgpio
 
 # Eventuelt for fremtidig loggrotering eller avansert logging
 # (kan kommenteres ut hvis ikke brukt)
-python-json-logger==2.0.7
+#python-json-logger==2.0.7
+python-json-logger
 #logger
 
 # Flask-CLI (for utvikling og testing)
