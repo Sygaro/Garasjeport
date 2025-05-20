@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <title>Systembeskrivelse</title>
+</head>
+<body>
+  <h1>Systembeskrivelse</h1>
+  <p>Dette prosjektet er et styringssystem for garasjeporter basert på Raspberry Pi. Det gir mulighet for fjernstyring, statusovervåkning og logging av porter via webgrensesnitt og API. Systemet er designet for fleksibilitet og sikkerhet, og støtter manuell styring samt integrasjon med Homey Pro og andre smarthusløsninger.</p>
+
+  <h2>Hensikt</h2>
+  <ul>
+    <li>Automatisert styring av garasjeporter</li>
+    <li>Fjernstyring via API/Web UI</li>
+    <li>Tidsmåling og logging av portbevegelse</li>
+    <li>Avansert feildeteksjon og sensorstatus</li>
+    <li>Integrasjon med tredjeparts systemer</li>
+  </ul>
+
+  <h2>Hvordan garasjeportene fungerer uten systemet</h2>
+  <ul>
+    <li>Hver port har en impulsbryter koblet til portmotoren</li>
+    <li>En kortslutning mellom to pinner gir en <strong>impuls</strong> som starter eller stopper motoren</li>
+    <li>Motoren åpner eller lukker porten fullstendig basert på nåværende posisjon</li>
+    <li>Hvis impuls sendes mens motoren kjører, <strong>stanser motoren</strong></li>
+    <li>Ved ny impuls starter motoren i motsatt retning</li>
+    <li>Portene har ikke innebygget posisjonslogikk – det er styringssystemets ansvar</li>
+  </ul>
+
+  <h2>Hovedfunksjoner i systemet</h2>
+  <ul>
+    <li>GPIO-styring for to porter med relé</li>
+    <li>Sensorstatus: Åpen, lukket, bevegelse, sensorfeil</li>
+    <li>Rele-logikk: konfigurerbar høy/lav puls</li>
+    <li>Tidtaking av åpne/lukke-prosesser</li>
+    <li>Timeout- og feilmarginer</li>
+    <li>Logging i fire separate filer</li>
+    <li>Støtte for stopp-funksjon</li>
+    <li>Støtte for fremtidig frontend + adminpanel</li>
+  </ul>
+</body>
+</html>

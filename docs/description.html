@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <title>Systembeskrivelse: Garasjeporter uten styringssystem</title>
+</head>
+<body>
+  <h1>📄 Systembeskrivelse: Garasjeporter uten styringssystem</h1>
+
+  <h2>📌 Formål</h2>
+  <p>Denne siden forklarer hvordan garasjeportene fungerer uten noen tilkoblet styringsenhet (Raspberry Pi, releer, sensorer osv.). Det danner grunnlaget for hvorfor vi bygger et nytt system og hvilke svakheter det skal løse.</p>
+
+  <h2>⚙️ Fysisk oppsett</h2>
+  <p>Hver garasjeport styres av en <strong>motorisert portåpner</strong> som:</p>
+  <ul>
+    <li>Aktiveres via <strong>impulsbryter</strong></li>
+    <li>Har fast kjøretid for åpning/lukking (ca. X sekunder)</li>
+    <li>Stopper automatisk ved full åpning eller lukking (basert på motorens grensebrytere)</li>
+    <li><strong>Har ingen elektronisk statusovervåkning</strong></li>
+  </ul>
+
+  <p>Portåpneren responderer på en <strong>kortslutning</strong> mellom to innganger (fra bryter eller rele). Ingen ekstra intelligens er implementert.</p>
+
+  <h2>🔘 Impulsbryterens funksjon</h2>
+  <table border="1" cellpadding="4" cellspacing="0">
+    <thead><tr><th>Trykk</th><th>Handling</th></tr></thead>
+    <tbody>
+      <tr><td>1.</td><td>Starter bevegelse (åpne eller lukke)</td></tr>
+      <tr><td>2.</td><td>Stopper motor (uansett retning)</td></tr>
+      <tr><td>3.</td><td>Starter motsatt retning</td></tr>
+    </tbody>
+  </table>
+  <p><strong>Viktig:</strong> Porten har <strong>ingen statuslogikk</strong>. Den husker ikke sin tilstand og antar alltid at brukeren vet hva som skjer.</p>
+
+  <h2>🔄 Manuell sekvenslogikk</h2>
+  <table border="1" cellpadding="4" cellspacing="0">
+    <thead>
+      <tr><th>Nåværende status</th><th>Impuls handling</th><th>Resultat</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Lukket</td><td>Impuls</td><td>Port begynner å åpne</td></tr>
+      <tr><td>Åpen</td><td>Impuls</td><td>Port begynner å lukke</td></tr>
+      <tr><td>I bevegelse</td><td>Impuls</td><td>Motoren stopper</td></tr>
+      <tr><td>Halvåpen</td><td>Impuls</td><td>Motor starter motsatt vei</td></tr>
+    </tbody>
+  </table>
+
+  <h2>🧲 Reed-sensorer (eksternt)</h2>
+  <p>Du har manuelt installert to reed-sensorer per port:</p>
+  <ul>
+    <li>En for "port helt åpen"</li>
+    <li>En for "port helt lukket"</li>
+  </ul>
+  <p>Disse gir <strong>digitalt signal (på/av)</strong> til vårt styringssystem og er:</p>
+  <ul>
+    <li>Koblet til GPIO på Raspberry Pi</li>
+    <li>Ikke integrert med selve motoren</li>
+    <li>Brukes for <strong>statusavlesning</strong></li>
+  </ul>
+
+  <h2>🚫 Begrensninger i eksisterende løsning</h2>
+  <ul>
+    <li>❌ Ingen mulighet for å vite portens status</li>
+    <li>❌ Ingen historikk/logging</li>
+    <li>❌ Ingen feildeteksjon</li>
+    <li>❌ Ingen fjernstyring</li>
+    <li>❌ Ingen sikkerhetsmekanismer</li>
+  </ul>
+
+  <h2>🧠 Hvorfor dette er viktig for vårt system</h2>
+  <p>Denne oppførselen forklarer hvorfor vårt prosjekt må inneholde:</p>
+  <ul>
+    <li>Sensoravlesning med statuslogikk</li>
+    <li>Pulsbasert styring med logging</li>
+    <li>Sikker logikk for å detektere bevegelse, feil og stopp</li>
+    <li>API for eksterne systemer (f.eks. Homey)</li>
+    <li>Webgrensesnitt for administrasjon og manuell styring</li>
+    <li>Robust system for <strong>å unngå feilpuls, overstyring og statusfeil</strong></li>
+  </ul>
+
+  <h2>🧩 Sammendrag</h2>
+  <p>Det eksisterende systemet er funksjonelt, men "dumt":</p>
+  <ul>
+    <li>Det vet ingenting om hvor porten er</li>
+    <li>Det gir ikke tilbakemelding</li>
+    <li>Det tilbyr ingen fjernstyring eller integrasjon</li>
+  </ul>
+  <p>Vårt system bygger <strong>intelligens og kontroll</strong> rundt denne eksisterende mekaniske funksjonaliteten uten å erstatte den.</p>
+</body>
+</html>

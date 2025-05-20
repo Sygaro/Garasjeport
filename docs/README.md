@@ -1,24 +1,44 @@
-# 🚪 Garasjeportkontroller
+# Garasjeportstyring med Raspberry Pi
 
-Et webbasert system for styring og overvåkning av garasjeporter med støtte for Raspberry Pi, GPIO, logging, backup og administrasjonspanel.
+Dette prosjektet gir full kontroll over to garasjeporter via Raspberry Pi, med støtte for statusovervåkning, reléstyring, tidtaking, logging og API-integrasjon.
+
+## 🚀 Funksjoner
+
+- Fjernstyring av porter via webgrensesnitt og API
+- Deteksjon av portstatus (åpen, lukket, bevegelse, sensorfeil)
+- Automatisk tidsmåling ved åpning/lukking
+- Logging til fil (status, aktivitet, feil, timing)
+- Konfigurasjon via `.json`-filer
+- Autentisering (API-token og webhooks)
+- Støtte for Homey og andre smarthusintegrasjoner
+- Fremtidig UI via adminpanel
 
 ---
 
-## 🧩 Funksjoner
+## 📦 Installasjon
 
-- Webgrensesnitt for åpning/lukking av porter
-- Statusindikatorer for porter og sensorer
-- Backup/gjenoppretting av konfigurasjon
-- Adminpanel for konfigurering av porter og tilkoblede pinner
-- Logging og visning av hendelser
-- (Valgfri) innlogging for administrasjon
+### 1. Koble opp maskinvare
 
----
+- **Raspberry Pi 5** for utvikling / **Pi Zero 2 W** for produksjon
+- Koble til 2-kanals relémodul og 2 reed-sensorer per port
+- Sensorene kobles med GND og aktiv pull-up
+- Relé styres med kortvarige impulser
 
-## ⚙️ Installasjon
-
-### 1. Klon repoet
+### 2. Klon repoet
 
 ```bash
-git clone https://github.com/Sygaro/Garasjeport.git
-cd Garasjeport
+git clone https://github.com/Sygaro/Garasjeport
+cd garasjeport
+
+### 3. Opprett virtuelt miljø og installer avhengigheter
+
+```bash
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+
+####  Installer lgpio for GPIO-styring.
+
+```bash
+sudo apt install python3-lgpio
+
