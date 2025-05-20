@@ -1,3 +1,6 @@
+import markdown
+md = markdown.Markdown(extensions=['pymdownx.superfences'])
+
 markdown_extensions:
   - pymdownx.superfences
   - plantuml_markdown
