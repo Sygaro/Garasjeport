@@ -3,7 +3,9 @@
 # Felles systemressurser, som controller
 # ==========================================
 
-from core.garage_controller import GarageController
+#from core.garage_controller import GarageController
+from core.garage_controller_pigpio import GarageController
+
 import atexit,pigpio
 
 # Én global instans av GarageController
