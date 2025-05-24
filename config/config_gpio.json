@@ -27,7 +27,9 @@
     "fast_poll_interval": 0.01,
     "slow_poll_interval": 2.0,
     "port_status_change_timeout": 50,
-    "fail_margin_status_change": 3
+    "fail_margin_status_change": 3,
+    "timing_history_size": 3
+
   },
   "notes": {
     "relay_active_state": "0 betyr at rele aktiveres med lavt signal (NO rele)",

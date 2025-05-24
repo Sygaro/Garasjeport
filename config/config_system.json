@@ -2,12 +2,16 @@
   "language": "nb",
   "timing": {
     "port1": {
+      "default_open_time": 28.0,
+      "default_close_time": 28.0,
       "open_time": 4.83,
       "close_time": 5.34,
       "open_timestamp": "2025-05-19 19:39:48",
       "close_timestamp": "2025-05-19 19:39:35"
     },
     "port2": {
+      "default_open_time": 28.0,
+      "default_close_time": 28.0,
       "close_time": 3.2,
       "open_time": 2.21,
       "close_timestamp": "2025-05-19 19:40:12",

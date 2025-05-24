@@ -153,24 +153,50 @@ class GarageController:
         return status
 
     def _update_timing_data(self, port, direction, duration):
-        data = self.config_system.setdefault("timing", {}).setdefault(port, {}).setdefault(direction, {})
-        history = data.get("history", [])
+        """
+        Oppdaterer sist målte og gjennomsnittlig åpne-/lukketid for porten.
+        """
+        direction_key = f"{direction}_time"
+        last_key = f"last_{direction_key}"
+        avg_key = f"avg_{direction_key}"
+        list_key = f"history_{direction_key}"
+
+        # Fallbackverdi dersom historikk ikke finnes
+        default_time = self.config_system.get(f"default_{direction_key}", 10.0)
+        history_size = self.config_gpio.get("timing_config", {}).get("timing_history_size", 3)
+
+        if port not in self.config_system:
+            self.config_system[port] = {}
+
+        port_data = self.config_system[port]
+
+        # Lagre siste måling
+        port_data[last_key] = round(duration, 2)
+
+        # Bygg og oppdater historikk
+        history = port_data.get(list_key, [])
         history.append(round(duration, 2))
+        if len(history) > history_size:
+            history.pop(0)
 
-        max_len = self.config_portlogic["timing_history_length"]
-        if len(history) > max_len:
-            history = history[-max_len:]
+        port_data[list_key] = history
 
-        avg = round(sum(history) / len(history), 2)
-        last = round(duration, 2)
+        # Beregn snitt
+        if history:
+            avg = round(sum(history) / len(history), 2)
+        else:
+            avg = default_time
 
-        self.config_system["timing"][port][direction] = {
-            "last": last,
-            "avg": avg,
-            "history": history
-        }
+        port_data[avg_key] = avg
 
-        self._write_config_to_disk()
+        # Lagre til config_system.json
+        try:
+            with open(paths.CONFIG_SYSTEM_PATH, "w") as f:
+                json.dump(self.config_system, f, indent=2)
+            self.logger.log_status("timing", f"{port} {direction}: tid={duration:.2f}s, snitt={avg:.2f}s")
+        except Exception as e:
+            self.logger.log_error("timing", f"Feil ved lagring av timingdata: {e}")
+
 
     def _write_config_to_disk(self):
         with open(paths.CONFIG_SYSTEM_PATH, "w") as f:
@@ -195,15 +221,69 @@ class GarageController:
 
     def _sensor_callback(self, gpio, level, tick, port, sensor_type):
         """
-        Callback som trigges når en sensor endrer tilstand.
+        Callback-funksjon som trigges når en sensor endrer tilstand.
         """
-        self.logger.log_status(
-            "garage_controller",
-            f"Sensor-endring registrert: port={port}, type={sensor_type}, gpio={gpio}, level={level}, tick={tick}"
-        )
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.logger.log_status("sensor", f"{port} {sensor_type} sensor endret: level={level} @ {timestamp}")
 
-        # TODO: Her bør du implementere faktisk logikk for å håndtere sensor-endring
-        # For eksempel oppdatere portstatus, logge timing osv.
+        if port not in self.status:
+            self.logger.log_error("sensor", f"Ukjent port i callback: {port}")
+            return
+
+        direction = self._operation_flags[port].get("direction")
+        start_time = self._operation_flags[port].get("start_time")
+
+        # Ignorer hvis porten ikke er i bevegelse
+        if not self._operation_flags[port].get("moving"):
+            self.logger.log_debug("sensor", f"Ignorerer sensor-endring: {port} er ikke i bevegelse")
+            return
+
+        # Første sensor som skal aktiveres
+        expected_sensor = "open" if direction == "open" else "closed"
+        opposite_sensor = "closed" if direction == "open" else "open"
+
+        now = time.time()
+
+        if sensor_type == expected_sensor:
+            if not start_time:
+                self.logger.log_error("sensor", f"Mangler start_time for {port}")
+                return
+
+            elapsed = now - start_time
+            self.logger.log_timing(port, {
+                "direction": direction,
+                "duration": round(elapsed, 2),
+                "timestamp": timestamp
+            })
+
+            # Oppdater timingdata i config
+            self._update_timing_data(port, direction, elapsed)
+
+            # Oppdater status
+            self.status[port] = direction
+            self._operation_flags[port]["moving"] = False
+            self._operation_flags[port]["start_time"] = None
+            self._operation_flags[port]["direction"] = None
+
+            self.logger.log_status("status", f"{port} er nå {direction}")
+
+        elif sensor_type == opposite_sensor:
+            self.logger.log_warning("sensor", f"{port}: Motsatt sensor ({sensor_type}) aktivert under {direction}-bevegelse – mulig manuell stopp eller feil")
+
+            self.status[port] = "partial"
+            self._operation_flags[port]["moving"] = False
+            self._operation_flags[port]["start_time"] = None
+            self._operation_flags[port]["direction"] = None
+
+        else:
+            self.logger.log_warning("sensor", f"{port}: Uventet sensoraktivitet ({sensor_type})")
+
+        # Oppdater config_system.json
+        try:
+            with open(paths.CONFIG_SYSTEM_PATH, "w") as f:
+                json.dump(self.config_system, f, indent=2)
+        except Exception as e:
+            self.logger.log_error("config", f"Feil ved skriving av config_system.json: {e}")
 
 
     def cleanup(self):
