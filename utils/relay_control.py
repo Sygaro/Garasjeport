@@ -1,5 +1,6 @@
 import pigpio
 import time
+from utils.garage_logger import GarageLogger
 
 class RelayControl:
     """
@@ -7,13 +8,13 @@ class RelayControl:
     Brukes til å sende impulser for å åpne/lukke portene.
     """
 
-    def __init__(self, config_gpio):
+    def __init__(self, config_gpio, logger=None):
         self.config_gpio = config_gpio
         self.pi = pigpio.pi()
-        print(f"[DEBUG] pigpio connected: {self.pi.connected}")
+        #print(f"[DEBUG] pigpio connected: {self.pi.connected}")
+        self.logger = logger or GarageLogger()
         self.relay_pins = self.config_gpio.get("relay_pins", {})
-
-
+        
         if not self.pi.connected:
             raise RuntimeError("Kunne ikke koble til pigpiod")
 
@@ -36,13 +37,13 @@ class RelayControl:
 
     def cleanup(self):
         """
-        Setter alle pinner til inaktiv og lukker pigpio-forbindelsen.
+        Frigjør pigpio-ressurser for relekontroll.
         """
-        for pin in self.relay_pins.values():
-            self.pi.write(pin, 1 - self.active_state)
-        self.pi.stop()
-
-    
+        try:
+            self.logger.log_status("relay_control", "Rydder opp pigpio-tilkobling")
+            self.pi.stop()
+        except Exception as e:
+            self.logger.log_error("relay_control", f"Feil ved cleanup: {e}")
 
     @property
     def pigpio_connected(self):

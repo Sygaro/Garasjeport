@@ -77,5 +77,5 @@ def health_check():
 if __name__ == "__main__":
     print("[APP] Starter Flask-applikasjon...")
     # Kjør cleanup() automatisk ved avslutning
-    atexit.register(controller.cleanup)
+    atexit.register(controller.shutdown)
     app.run(host="0.0.0.0", port=5000, debug=True, use_reloader=False)

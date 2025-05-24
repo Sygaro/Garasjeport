@@ -1,4 +1,6 @@
+import datetime
 import time, json, threading 
+from datetime import datetime
 
 from config import config_paths as paths
 from utils.relay_control import RelayControl
@@ -20,14 +22,14 @@ class GarageController:
         self.testing_mode = testing_mode
 
         self.logger = GarageLogger(paths.STATUS_LOG, paths.ERROR_LOG)
-        self.relay_control = RelayControl(config_gpio)
+        self.relay_control = RelayControl(config_gpio, self.logger)
 
         self.timing_enabled = not self.testing_mode
 
         # SensorMonitor må initieres før portstatus kan leses
         self.sensor_monitor = SensorMonitor(config_gpio, self.logger)
         self.sensor_monitor.set_callback(self._sensor_callback)
-        self.sensor_monitor.start()
+        self.logger.log_status("init", "SensorMonitor aktivert og callback satt")
 
         # Kombinert initiering av status og GPIO-avlesning
         self._initialize_port_states()
@@ -89,12 +91,14 @@ class GarageController:
                 # Fullfør tidsmåling
                 elapsed = time.time() - self._operation_flags[port]["start_time"]
                 direction = "open" if sensor_type == "open" else "close"
+                self.status[port] = direction  # "open" eller "closed"
                 self.logger.log_timing(port, direction, elapsed)
 
                 self._operation_flags[port]["moving"] = False
                 self._operation_flags[port]["start_time"] = None
         else:
             self.status[port] = "moving"
+            
 
     def open_port(self, port):
         if self.status.get(port) == "open":
@@ -223,6 +227,7 @@ class GarageController:
         """
         Callback-funksjon som trigges når en sensor endrer tilstand.
         """
+        from datetime import datetime
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.logger.log_status("sensor", f"{port} {sensor_type} sensor endret: level={level} @ {timestamp}")
 
@@ -232,61 +237,73 @@ class GarageController:
 
         direction = self._operation_flags[port].get("direction")
         start_time = self._operation_flags[port].get("start_time")
-
-        # Ignorer hvis porten ikke er i bevegelse
-        if not self._operation_flags[port].get("moving"):
-            self.logger.log_debug("sensor", f"Ignorerer sensor-endring: {port} er ikke i bevegelse")
-            return
-
-        # Første sensor som skal aktiveres
-        expected_sensor = "open" if direction == "open" else "closed"
-        opposite_sensor = "closed" if direction == "open" else "open"
+        moving = self._operation_flags[port].get("moving", False)
 
         now = time.time()
 
-        if sensor_type == expected_sensor:
-            if not start_time:
-                self.logger.log_error("sensor", f"Mangler start_time for {port}")
-                return
+        expected_sensor = "open" if direction == "open" else "closed"
+        opposite_sensor = "closed" if direction == "open" else "open"
 
+        # Hvis riktig sensor trigges under bevegelse
+        if moving and sensor_type == expected_sensor and start_time:
             elapsed = now - start_time
             self.logger.log_timing(port, {
                 "direction": direction,
                 "duration": round(elapsed, 2),
                 "timestamp": timestamp
             })
-
-            # Oppdater timingdata i config
             self._update_timing_data(port, direction, elapsed)
-
-            # Oppdater status
             self.status[port] = direction
-            self._operation_flags[port]["moving"] = False
-            self._operation_flags[port]["start_time"] = None
-            self._operation_flags[port]["direction"] = None
-
             self.logger.log_status("status", f"{port} er nå {direction}")
+            self._operation_flags[port].update({
+                "moving": False,
+                "start_time": None,
+                "direction": None
+            })
 
-        elif sensor_type == opposite_sensor:
+        # Hvis motsatt sensor trigges under bevegelse
+        elif moving and sensor_type == opposite_sensor:
             self.logger.log_warning("sensor", f"{port}: Motsatt sensor ({sensor_type}) aktivert under {direction}-bevegelse – mulig manuell stopp eller feil")
-
             self.status[port] = "partial"
-            self._operation_flags[port]["moving"] = False
-            self._operation_flags[port]["start_time"] = None
-            self._operation_flags[port]["direction"] = None
+            self._operation_flags[port].update({
+                "moving": False,
+                "start_time": None,
+                "direction": None
+            })
 
+        # Uansett – oppdater status basert på sensorene
+        open_active = self.sensor_monitor.is_sensor_active(port, "open")
+        closed_active = self.sensor_monitor.is_sensor_active(port, "closed")
+
+        if open_active and not closed_active:
+            new_status = "open"
+        elif closed_active and not open_active:
+            new_status = "closed"
+        elif not open_active and not closed_active:
+            new_status = "partial"
+        elif open_active and closed_active:
+            new_status = "sensor_error"
         else:
-            self.logger.log_warning("sensor", f"{port}: Uventet sensoraktivitet ({sensor_type})")
+            new_status = self.status.get(port, "unknown")
 
-        # Oppdater config_system.json
+        if self.status.get(port) != new_status:
+            self.status[port] = new_status
+            self.logger.log_status("status", f"{port} sensorbasert status = {new_status}")
+
+        # Skriv status til config_system.json
         try:
             with open(paths.CONFIG_SYSTEM_PATH, "w") as f:
                 json.dump(self.config_system, f, indent=2)
         except Exception as e:
-            self.logger.log_error("config", f"Feil ved skriving av config_system.json: {e}")
+            self.logger.log_error("config", f"Feil ved lagring av config_system.json: {e}")
 
 
-    def cleanup(self):
-        if self.sensor_monitor:
+    def shutdown(self):
+        """
+        Rydderessurser ved avslutning av systemet.
+        """
+        if hasattr(self, "sensor_monitor"):
             self.sensor_monitor.stop()
-        self.relay_control.cleanup()
+        if hasattr(self, "relay_control"):
+            self.relay_control.cleanup()
+        self.logger.log_status("system", "GarageController avsluttet og ryddet opp.")

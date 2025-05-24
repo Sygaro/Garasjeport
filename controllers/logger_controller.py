@@ -3,7 +3,7 @@
 import os
 from utils.log_utils import parse_log_file
 from config.config_paths import LOG_DIR  # bruker nå sentral sti
-from core.garage_logger import GarageLogger
+from utils.garage_logger import GarageLogger
 
 
 class LoggerController:

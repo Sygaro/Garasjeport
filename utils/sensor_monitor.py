@@ -8,6 +8,8 @@ class SensorMonitor:
         self.config_gpio = config_gpio
         self.sensor_pins = config_gpio.get("sensor_pins", {})
         self.sensor_config = config_gpio.get("sensor_config", {})
+        self.active_state = config_gpio["sensor_config"]["active_state"]
+
         self.logger = logger or GarageLogger()
 
         self.pi = pigpio.pi()
@@ -29,6 +31,17 @@ class SensorMonitor:
                 raise ValueError(f"Ugyldig format for sensors i port '{port}'")
             if "open" not in sensors or "closed" not in sensors:
                 raise ValueError(f"Port '{port}' mangler 'open' eller 'closed' sensor")
+
+    def is_sensor_active(self, port, sensor_type):
+        """
+        Returnerer True hvis gitt sensor for port er aktiv (basert på aktiv tilstand).
+        """
+        gpio_pin = self.sensor_pins.get(port, {}).get(sensor_type)
+        if gpio_pin is None:
+            return False
+        level = self.pi.read(gpio_pin)
+        return level == self.active_state
+
 
     def set_callback(self, callback_function):
         """
@@ -57,6 +70,7 @@ class SensorMonitor:
 
                 self.logger.log_status("sensor_monitor", f"Callback aktivert for {port} - {sensor_type} (GPIO {gpio_pin})")
 
+    
     def _create_callback(self, gpio_pin, port, sensor_type):
         def callback_func(gpio, level, tick):
             if self.callback_function:

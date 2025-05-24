@@ -29,5 +29,12 @@
       "close_time": 10.0,
       "timestamp": null
     }
+  },
+  "port1": {
+    "last_None_time": 3.38,
+    "history_None_time": [
+      3.38
+    ],
+    "avg_None_time": 3.38
   }
 }

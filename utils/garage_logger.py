@@ -23,16 +23,6 @@ class GarageLogger:
     def _get_timestamp(self):
         return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    def _write_log(self, path, message_dict):
-        if self.log_type == "json":
-            with open(path, "a") as f:
-                json.dump(message_dict, f)
-                f.write("\n")
-        else:
-            msg = f"{message_dict['timestamp']} [{message_dict['level']}] {message_dict['context']}: {message_dict['message']}"
-            with open(path, "a") as f:
-                f.write(msg + "\n")
-
     def log_status(self, context, message):
         self._write_log(self.status_log, {
             "timestamp": self._get_timestamp(),
@@ -49,13 +39,28 @@ class GarageLogger:
             "message": message
         })
 
-    def log_action(self, context, message):
-        self._write_log(self.activity_log, {
-            "timestamp": self._get_timestamp(),
-            "level": "ACTION",
-            "context": context,
-            "message": message
-        })
+    def log_action(self, port, action, source="api", result="success"):
+        entry = {
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "level": "INFO",
+            "context": f"port:{port}",
+            "message": f"Aksjon: {action}, kilde: {source}, resultat: {result}"
+        }
+        self._write_log(paths.ACTIVITY_LOG, entry)
+
+    def _write_log(self, path, message_dict):
+        try:
+            msg = (
+                f"{message_dict['timestamp']} "
+                f"[{message_dict['level']}] "
+                f"{message_dict['context']}: "
+                f"{message_dict['message']}"
+            )
+            with open(path, "a") as f:
+                f.write(msg + "\n")
+        except Exception as e:
+            print(f"[Logger Error] Klarte ikke å skrive til logg: {e}")
+
 
     def log_timing(self, context, timing_data):
         entry = {
