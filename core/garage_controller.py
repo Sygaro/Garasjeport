@@ -1,6 +1,6 @@
-import time
-import threading
+import time, json, threading 
 
+from config import config_paths as paths
 from utils.relay_control import RelayControl
 from utils.garage_logger import GarageLogger
 from utils.config_loader import load_config, load_portlogic_config
@@ -15,33 +15,65 @@ except ImportError:
 
 class GarageController:
     def __init__(self, config_gpio, config_system, testing_mode=False):
-        self.config_portlogic = load_portlogic_config()
         self.config_gpio = config_gpio
         self.config_system = config_system
         self.testing_mode = testing_mode
 
-        self.logger = GarageLogger()
+        self.logger = GarageLogger(paths.STATUS_LOG, paths.ERROR_LOG)
         self.relay_control = RelayControl(config_gpio)
-        self.status = {}  # f.eks. {'port1': 'closed'}
-        self._operation_flags = {}  # f.eks. {'port1': {'moving': True, 'start_time': 123456}}
 
+        self.timing_enabled = not self.testing_mode
 
-        # Last tidligere målte åpne-/lukketider
-        self.timing_data = config_system.get("timing", {})
+        # SensorMonitor må initieres før portstatus kan leses
+        self.sensor_monitor = SensorMonitor(config_gpio, self.logger)
+        self.sensor_monitor.set_callback(self._sensor_callback)
+        self.sensor_monitor.start()
 
-        self.sensor_monitor = None
-        if not testing_mode and SensorMonitor:
-            self.sensor_monitor = SensorMonitor(
-                self.config_gpio["sensor_pins"],
-                self.sensor_event_callback
-            )
+        # Kombinert initiering av status og GPIO-avlesning
+        self._initialize_port_states()
 
-        self._init_port_statuses()
+    def _initialize_port_states(self):
+        """
+        Oppretter portstatus og flags + leser sanntidsstatus fra GPIO
+        """
+        self.status = {}
+        self._operation_flags = {}
 
-    def _init_port_statuses(self):
-        for port in self.config_gpio["sensor_pins"]:
+        for port, pins in self.config_gpio["sensor_pins"].items():
             self.status[port] = "unknown"
             self._operation_flags[port] = {"moving": False, "start_time": None}
+
+            try:
+                open_pin = pins.get("open")
+                closed_pin = pins.get("closed")
+
+                open_active = self.sensor_monitor.pi.read(open_pin) == 1
+                closed_active = self.sensor_monitor.pi.read(closed_pin) == 1
+
+                if open_active and not closed_active:
+                    self.status[port] = "open"
+                elif closed_active and not open_active:
+                    self.status[port] = "closed"
+                elif open_active and closed_active:
+                    self.status[port] = "error"  # Fysisk feil
+                else:
+                    self.status[port] = "partial"  # Ingen aktiv sensor
+
+                self.logger.log_status("controller", f"Init status port {port}: {self.status[port]}")
+            except Exception as e:
+                self.logger.log_warning("controller", f"Kunne ikke lese initial status for port {port}: {e}")
+                self.status[port] = "unknown"
+
+    # (Resten av GarageController beholdes uendret)
+    # Du har open_port, close_port, stop_port, _sensor_callback, _store_timing, osv.
+
+    def save_config(self):
+        """Skriver oppdatert systemkonfig til fil"""
+        try:
+            with open(paths.CONFIG_SYSTEM_PATH, "w") as f:
+                json.dump(self.config_system, f, indent=4)
+        except Exception as e:
+            self.logger.log_error("controller", f"Kunne ikke lagre systemkonfig: {e}")
 
     def sensor_event_callback(self, port, sensor_type, level):
         active_state = self.config_gpio["sensor_config"]["active_state"]

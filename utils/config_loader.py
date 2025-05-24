@@ -1,6 +1,8 @@
 import json
 import os
 from config import config_paths as paths
+from config import config_paths
+
 
 def _load_json_file(path):
     if not os.path.exists(path):
@@ -8,10 +10,16 @@ def _load_json_file(path):
     with open(path, "r") as f:
         return json.load(f)
 
-def load_config():
+def load_config(path=None):
     """
-    Laster inn hovedkonfigurasjonene (GPIO + system)
+    Laster og returnerer konfigurasjonsdata fra gitt sti.
+    Hvis ingen sti oppgis, brukes config_logging.json som standard.
     """
+    if path is None:
+        path = config_paths.CONFIG_LOGGING_PATH
+
+    with open(path, "r") as f:
+        return json.load(f)
     config_gpio = _load_json_file(paths.CONFIG_GPIO_PATH)
     config_system = _load_json_file(paths.CONFIG_SYSTEM_PATH)
     return config_gpio, config_system

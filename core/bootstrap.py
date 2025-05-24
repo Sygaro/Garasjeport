@@ -1,132 +1,123 @@
-import subprocess, datetime, json, os
- 
+import os
+import json
+import shutil
+import subprocess
+import time
+from datetime import datetime
 
-from utils.bootstrap_logger import log_to_bootstrap
-from utils.file_utils import load_json, save_json
-from utils.system_utils import check_or_start_pigpiod
-from config.config_paths import (
-    CONFIG_DIR,
-    CONFIG_GPIO_PATH,
-    CONFIG_SYSTEM_PATH,
-    CONFIG_AUTH_PATH,
-    CONFIG_LOGGING_PATH,
-    LOG_DIR,
-    BACKUP_DIR,
-    DOCS_DIR
-)
+from utils.version_utils import get_git_version
 from utils.bootstrap_logger import bootstrap_logger as logger
+from config import config_paths as paths
+from utils.file_utils import ensure_directory_exists
 
 
-def ensure_directories():
-    for path in [LOG_DIR, CONFIG_DIR, BACKUP_DIR, DOCS_DIR]:
-        os.makedirs(path, exist_ok=True)
-        logger.info(f"Kontrollerte mappe: {path}")
+status_path = paths.BOOTSTRAP_STATUS_PATH
 
 
-def ensure_config_files():
-    if not os.path.exists(CONFIG_GPIO_PATH):
-        logger.warning("Mangler config_gpio.json - oppretter standard")
-        save_json(CONFIG_GPIO_PATH, {
-            "relay_pins": {
-                "port1": 14,
-                "port2": 15
-            },
-            "sensor_pins": {
-                "port1": {"open": 23, "closed": 24},
-                "port2": {"open": 20, "closed": 21}
-            },
-            "relay_config": {
-                "pulse_duration": 0.5,
-                "active_state": 0,
-                "fail_margin_status_change": 5,
-                "port_status_change_timeout": 60
-            },
-            "sensor_config": {
-                "pull": "up",
-                "active_state": 0
-            }
-        })
-
-    if not os.path.exists(CONFIG_SYSTEM_PATH):
-        logger.warning("Mangler config_system.json - oppretter standard")
-        save_json(CONFIG_SYSTEM_PATH, {"timing": {}})
-
-    if not os.path.exists(CONFIG_AUTH_PATH):
-        logger.warning("Mangler config_auth.json - oppretter standard")
-        save_json(CONFIG_AUTH_PATH, {"api_token": "changeme"})
-
-    if not os.path.exists(CONFIG_LOGGING_PATH):
-        logger.warning("Mangler config_logging.json - oppretter standard")
-        save_json(CONFIG_LOGGING_PATH, {})
-
-
-def validate_config_gpio():
-    path = os.path.join(CONFIG_DIR, "config_gpio.json")
+def validate_json_file(path, description=""):
+    if not os.path.exists(path):
+        logger.log_error("bootstrap", f"{description} mangler: {path}")
+        raise FileNotFoundError(f"{description} mangler: {path}")
     try:
-        with open(path) as f:
+        with open(path, "r") as f:
+            json.load(f)
+    except json.JSONDecodeError:
+        logger.log_error("bootstrap", f"{description} er ikke gyldig JSON: {path}")
+        raise
+
+
+def ensure_required_directories():
+    for directory in [
+        paths.LOG_DIR,
+        paths.ARCHIVE_DIR,
+        paths.CONFIG_DIR,
+        paths.BACKUP_DIR,
+        paths.STATIC_DIR,
+        paths.TEMPLATE_DIR,
+        paths.DOCS_DIR
+    ]:
+        ensure_directory_exists(directory)
+        logger.log_status("bootstrap", f"Verifisert mappe: {directory}")
+
+
+def ensure_required_config_files():
+    config_files = {
+        paths.CONFIG_GPIO_PATH: "GPIO-konfig",
+        paths.CONFIG_SYSTEM_PATH: "System-konfig",
+        paths.CONFIG_AUTH_PATH: "Autentisering",
+        paths.CONFIG_LOGGING_PATH: "Logging-konfig",
+        paths.CONFIG_PORTLOGIC_PATH: "Portlogikk-konfig"
+    }
+
+    for file_path, description in config_files.items():
+        validate_json_file(file_path, description)
+
+        # Backup hvis første gang (ingen kopi finnes)
+        backup_path = os.path.join(paths.BACKUP_DIR, os.path.basename(file_path))
+        if not os.path.exists(backup_path):
+            shutil.copy(file_path, backup_path)
+            logger.log_status("bootstrap", f"Tok sikkerhetskopi av {description} til {backup_path}")
+
+
+def ensure_pigpiod_running():
+    try:
+        subprocess.check_output(["pgrep", "pigpiod"])
+        logger.log_status("bootstrap", "pigpiod er allerede kjørende")
+        return
+    except subprocess.CalledProcessError:
+        logger.log_warning("pigpiod er ikke startet – prøver å starte...")
+
+    subprocess.run(["pigpiod"])
+    time.sleep(1)
+
+    try:
+        subprocess.check_output(["pgrep", "pigpiod"])
+        logger.log_status("bootstrap", "pigpiod startet OK")
+    except subprocess.CalledProcessError:
+        logger.log_error("bootstrap", "FEIL: pigpiod kunne ikke startes – systemet vil sannsynligvis feile")
+
+
+def log_version_info():
+    try:
+        with open(paths.CONFIG_SYSTEM_PATH, "r") as f:
+            system_config = json.load(f)
+        version = system_config.get("version", "ukjent")
+        logger.log_status("bootstrap", f"Starter system – versjon: {version}")
+    except Exception:
+        logger.log_warning("Kunne ikke lese versjon fra systemkonfig")
+
+
+def write_bootstrap_status_file():
+    os.makedirs(paths.STATUS_DIR, exist_ok=True)
+    status_data = {
+        "bootstrap_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "pigpiod_expected": True,
+        "config_validated": True,
+        "version": None
+    }
+    try:
+        with open(paths.CONFIG_SYSTEM_PATH, "r") as f:
             config = json.load(f)
-    except Exception as e:
-        logger.error(f"[BOOTSTRAP] Feil ved lesing av config_gpio.json: {e}")
-        raise SystemExit("[BOOTSTRAP] Avslutter pga. konfigurasjonsfeil.")
+            from utils.version_utils import get_git_version
+            status_data["version"] = get_git_version()
+    except:
+        status_data["version"] = "ukjent"
+        status_data["config_validated"] = False
 
-    errors = []
+    with open(paths.BOOTSTRAP_STATUS_PATH, "w") as f:
+        json.dump(status_data, f, indent=2)
+    logger.log_status("bootstrap", f"Skrev status til {status_path}")
 
-    # Valider rele-pinner og sensor-pinner
-    relay_pins = config.get("relay_pins", {})
-    sensor_pins = config.get("sensor_pins", {})
-
-    for port in ["port1", "port2"]:
-        if port not in relay_pins:
-            errors.append(f"Mangler relay_pins['{port}']")
-        if port not in sensor_pins:
-            errors.append(f"Mangler sensor_pins['{port}']")
-        else:
-            for s in ["open", "closed"]:
-                if s not in sensor_pins[port]:
-                    errors.append(f"Mangler sensor_pins['{port}']['{s}']")
-
-    # ✅ Valider relay_config
-    relay_conf = config.get("relay_config", {})
-    for key in ["active_state", "pulse_duration", "max_sensor_start_delay"]:
-        if key not in relay_conf:
-            errors.append(f"Mangler relay_config.{key}")
-
-    # ✅ Valider timing_config
-    timing_conf = config.get("timing_config", {})
-    for key in ["fast_poll_interval", "slow_poll_interval", "port_status_change_timeout", "fail_margin_status_change"]:
-        if key not in timing_conf:
-            errors.append(f"Mangler timing_config.{key}")
-
-    if errors:
-        print("[BOOTSTRAP] FEIL i GPIO-konfig:")
-        for err in errors:
-            print("  ⚠️", err)
-        raise SystemExit("[BOOTSTRAP] Avslutter pga. GPIO-konfigfeil.")
-    else:
-        logger.info("[BOOTSTRAP] config_gpio.json validering OK")
-
-
-def validate_config_system():
-    try:
-        config = load_json(CONFIG_SYSTEM_PATH)
-        timing = config.get("timing", {})
-
-        for port, data in timing.items():
-            for key in ["open_time", "close_time", "open_timestamp", "close_timestamp"]:
-                if key not in data:
-                    logger.warning(f"Mangler '{key}' for {port} i config_system.json")
-
-    except Exception as e:
-        logger.error(f"Klarte ikke å validere config_system.json: {e}")
-        raise SystemExit("[BOOTSTRAP] Avslutter pga. config-systemfeil.")
+def log_version_info():
+    version = get_git_version()
+    logger.log_status("bootstrap", f"Starter system – versjon: {version}")
 
 
 def initialize_system_environment():
-    print("[BOOTSTRAP] Initialiserer systemmiljø...")
-    check_or_start_pigpiod()
-    logger.info("Starter miljøinitialisering...")
-    ensure_directories()
-    ensure_config_files()
-    validate_config_gpio()
-    validate_config_system()
-    logger.info("Systemmiljø er klart.")
+    logger.log_status("bootstrap", "Starter systeminitialisering")
+    ensure_required_directories()
+    ensure_required_config_files()
+    ensure_pigpiod_running()
+    log_version_info()
+    write_bootstrap_status_file()
+    logger.log_status("bootstrap", "Systeminitialisering fullført")

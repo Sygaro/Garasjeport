@@ -44,6 +44,6 @@ class RelayControl:
 
     
 
-@property
-def pigpio_connected(self):
-    return self.pi is not None and self.pi.connected
+    @property
+    def pigpio_connected(self):
+        return self.pi is not None and self.pi.connected

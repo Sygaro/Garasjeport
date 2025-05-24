@@ -93,6 +93,8 @@ def get_system_health():
     from core.system import controller
     from config import config_paths as paths
     import json
+    print("[DEBUG] relay_control.pigpio_connected =",
+      controller.relay_control.pigpio_connected)
 
     result = {
         "system_ok": True,
@@ -124,3 +126,75 @@ def get_system_health():
     # System status
     result["system_ok"] = all(result["checks"].values())
     return jsonify(result)
+
+@api.route("/system/bootstrap_status", methods=["GET"])
+@token_required
+def get_bootstrap_status():
+    import json
+    import datetime
+    from config import config_paths as paths
+
+    now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    fallback_response = {
+        "bootstrap_time": None,
+        "pigpiod_expected": None,
+        "config_validated": None,
+        "version_backend": None,
+        "version_frontend": None,
+        "version_mismatch": True,
+        "fallback": True,
+        "message": "Ingen runtime-status tilgjengelig – dette er cached versjon fra oppstart",
+        "timestamp": now
+    }
+
+    try:
+        with open(paths.BOOTSTRAP_STATUS_PATH, "r") as f:
+            data = json.load(f)
+            version_backend = data.get("version")
+            if not version_backend:
+                version_backend = "ukjent"
+
+
+        version_frontend = None
+        try:
+            with open(paths.FRONTEND_VERSION_PATH) as vf:
+                version_frontend = json.load(vf).get("frontend_version", "ukjent")
+        except:
+            version_frontend = "ukjent"
+
+        mismatch = (
+            version_backend == "ukjent" or
+            version_frontend == "ukjent" or
+            version_backend != version_frontend
+        )
+
+        return jsonify({
+            **data,
+            "version_backend": version_backend,
+            "version_frontend": version_frontend,
+            "version_mismatch": mismatch,
+            "fallback": False,
+            "timestamp": now
+        })
+
+    except Exception:
+        return jsonify(fallback_response), 200
+    
+@api.route("/system/version_report", methods=["POST"])
+@token_required
+def report_frontend_version():
+    import json
+    from flask import request
+    from config import config_paths as paths
+
+    data = request.get_json()
+    version = data.get("frontend_version")
+
+    if not version:
+        return jsonify({"error": "frontend_version mangler"}), 400
+
+    os.makedirs(paths.STATUS_DIR, exist_ok=True)
+    with open(os.path.join(paths.STATUS_DIR, "frontend_version.json"), "w") as f:
+        json.dump({"frontend_version": version}, f)
+
+    return jsonify({"message": "Frontend-versjon lagret", "version": version}), 200
