@@ -73,3 +73,12 @@ class GarageLogger:
             return
         filename = os.path.join(logging_config["log_directory"], f"{log_type}.log")
         self._write(filename, log_type, msg)
+
+    def log_timing_detailed(self, port, direction, total, relay_time, motion_time):
+        msg = f"{port} | {direction} | total: {total:.2f}s | relay→sensor1: {relay_time:.2f}s | sensor1→sensor2: {motion_time:.2f}s"
+        self._write(paths.TIMING_LOG, "timing", msg)
+
+    def log_port_stuck(self, port, cause, source):
+        msg = f"{port} | bevegelse avbrutt | årsak: {cause} | kilde: {source}"
+        self._write(paths.STATUS_LOG, "status", msg)
+        self._write(paths.ERROR_LOG, "error", msg)

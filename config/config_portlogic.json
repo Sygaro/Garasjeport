@@ -1,0 +1,7 @@
+{
+  "relay_activation_timeout": 2.0,
+  "default_open_time": 40.5,
+  "default_close_time": 40.0,
+  "max_time_factor": 1.5,
+  "timing_history_length": 3
+}

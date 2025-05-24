@@ -8,7 +8,12 @@ class RelayControl:
     """
 
     def __init__(self, config_gpio):
+        self.config_gpio = config_gpio
         self.pi = pigpio.pi()
+        print(f"[DEBUG] pigpio connected: {self.pi.connected}")
+        self.relay_pins = self.config_gpio.get("relay_pins", {})
+
+
         if not self.pi.connected:
             raise RuntimeError("Kunne ikke koble til pigpiod")
 
@@ -36,3 +41,9 @@ class RelayControl:
         for pin in self.relay_pins.values():
             self.pi.write(pin, 1 - self.active_state)
         self.pi.stop()
+
+    
+
+@property
+def pigpio_connected(self):
+    return self.pi is not None and self.pi.connected

@@ -19,6 +19,27 @@ def load_config():
 def load_auth_config():
     return _load_json_file(paths.CONFIG_AUTH_PATH)
 
+def load_portlogic_config():
+    path = paths.CONFIG_PORTLOGIC_PATH
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"Portlogikk-konfig ikke funnet: {path}")
+    with open(path, "r") as f:
+        config = json.load(f)
+
+    required_keys = [
+        "relay_activation_timeout",
+        "default_open_time",
+        "default_close_time",
+        "max_time_factor",
+        "timing_history_length"
+    ]
+    for key in required_keys:
+        if key not in config:
+            raise KeyError(f"Mangler '{key}' i portlogikk-konfig")
+
+    return config
+
+
 def load_logging_config():
     config = _load_json_file(paths.CONFIG_LOGGING_PATH)
 

@@ -17,11 +17,17 @@ BACKUP_DIR = os.path.join(BASE_DIR, "backups")
 TEMPLATE_DIR = os.path.join(BASE_DIR, "templates")
 STATIC_DIR = os.path.join(BASE_DIR, "static")
 DOCS_DIR = os.path.join(BASE_DIR, "docs")
+STATUS_DIR = os.path.join(BASE_DIR, "status")
+
 
 CONFIG_GPIO_PATH = os.path.join(CONFIG_DIR, "config_gpio.json")
 CONFIG_SYSTEM_PATH = os.path.join(CONFIG_DIR, "config_system.json")
 CONFIG_AUTH_PATH = os.path.join(CONFIG_DIR, "config_auth.json")
 CONFIG_LOGGING_PATH = os.path.join(CONFIG_DIR, "config_logging.json")
+CONFIG_PORTLOGIC_PATH = os.path.join(CONFIG_DIR, "config_portlogic.json")
+PIGPIO_STATUS_PATH = os.path.join(STATUS_DIR, "pigpio_status.json")
+
+
 
 STATUS_LOG = os.path.join(LOG_DIR, "status.log")
 ERROR_LOG = os.path.join(LOG_DIR, "errors.log")

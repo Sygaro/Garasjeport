@@ -16,7 +16,7 @@ def close_port(port):
     return controller.close_port(port)
 
 def get_all_status():
-    ports = controller.relay_pins.keys()
+    ports = controller.relay_control.relay_pins.keys()
     return {port: controller.get_reported_status(port) for port in ports}
 
 def get_timing(port):
