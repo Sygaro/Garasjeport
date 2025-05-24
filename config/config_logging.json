@@ -1,4 +1,20 @@
 {
-  "log_rotation_days": 7,
-  "log_archive_retention_days": 30
+  "log_directory": "logs",
+  "max_file_size_kb": 10024,
+  "rotation_days": 14,
+  "retention_days": 90,
+  "log_levels": {
+    "status": "INFO",
+    "activity": "INFO",
+    "timing": "DEBUG",
+    "errors": "WARNING",
+    "bootstrap": "INFO"
+  },
+  "enabled_logs": {
+    "status": true,
+    "activity": true,
+    "timing": true,
+    "errors": true,
+    "bootstrap": true
+  }
 }

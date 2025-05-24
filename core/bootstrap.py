@@ -1,6 +1,9 @@
-import os
-import json
+import subprocess, datetime, json, os
+ 
+
+from utils.bootstrap_logger import log_to_bootstrap
 from utils.file_utils import load_json, save_json
+from utils.system_utils import check_or_start_pigpiod
 from config.config_paths import (
     CONFIG_DIR,
     CONFIG_GPIO_PATH,
@@ -119,6 +122,8 @@ def validate_config_system():
 
 
 def initialize_system_environment():
+    print("[BOOTSTRAP] Initialiserer systemmiljø...")
+    check_or_start_pigpiod()
     logger.info("Starter miljøinitialisering...")
     ensure_directories()
     ensure_config_files()

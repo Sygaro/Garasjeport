@@ -1,6 +1,9 @@
 # utils/bootstrap_logger.py
-import logging
-import os
+import logging, os, datetime
+
+from utils.log_utils import log_event
+from config import config_paths as paths
+
 
 
 LOG_DIR = "logs"
@@ -22,3 +25,6 @@ ch.setFormatter(logging.Formatter('[%(levelname)s] %(message)s'))
 bootstrap_logger.addHandler(ch)
 
 bootstrap_logger.propagate = False
+
+def log_to_bootstrap(msg):
+    log_event(paths.BOOTSTRAP_LOG, msg)
