@@ -4,7 +4,7 @@ import shutil
 import subprocess
 import time
 from datetime import datetime
-
+from utils.config_loader import load_config
 from utils.version_utils import get_git_version
 from utils.bootstrap_logger import bootstrap_logger as logger
 from config import config_paths as paths
@@ -112,12 +112,37 @@ def log_version_info():
     version = get_git_version()
     logger.log_status("bootstrap", f"Starter system – versjon: {version}")
 
+def validate_gpio_config(config_gpio):
+    from utils.bootstrap_logger import log_to_bootstrap
+
+    if not config_gpio:
+        raise ValueError("Ingen GPIO-konfigurasjon funnet eller filen er tom.")
+
+    sensor_pins = config_gpio.get("sensor_pins")
+    if not isinstance(sensor_pins, dict):
+        raise ValueError("sensor_pins mangler eller er feil format i config_gpio.json")
+
+    errors = []
+    for port, sensors in sensor_pins.items():
+        if "open" not in sensors:
+            errors.append(f"Port '{port}' mangler 'open'-sensor")
+        if "closed" not in sensors:
+            errors.append(f"Port '{port}' mangler 'closed'-sensor")
+
+    if errors:
+        for err in errors:
+            log_to_bootstrap(f"[ERROR] Konfigurasjonsfeil: {err}")
+        raise ValueError("Ugyldig sensorspesifikasjon i config_gpio.json")
 
 def initialize_system_environment():
     logger.log_status("bootstrap", "Starter systeminitialisering")
     ensure_required_directories()
     ensure_required_config_files()
     ensure_pigpiod_running()
+    config_gpio = load_config(paths.CONFIG_GPIO_PATH)
+    validate_gpio_config(config_gpio)
+    print("[DEBUG] GPIO-config ved validering:")
+    print(json.dumps(config_gpio, indent=2))
     log_version_info()
     write_bootstrap_status_file()
     logger.log_status("bootstrap", "Systeminitialisering fullført")

@@ -193,6 +193,18 @@ class GarageController:
             self.logger.log_error(port, f"{port} | bevegelse ikke fullført innen forventet tid | kilde: {source}")
             flags["moving"] = False
 
+    def _sensor_callback(self, gpio, level, tick, port, sensor_type):
+        """
+        Callback som trigges når en sensor endrer tilstand.
+        """
+        self.logger.log_status(
+            "garage_controller",
+            f"Sensor-endring registrert: port={port}, type={sensor_type}, gpio={gpio}, level={level}, tick={tick}"
+        )
+
+        # TODO: Her bør du implementere faktisk logikk for å håndtere sensor-endring
+        # For eksempel oppdatere portstatus, logge timing osv.
+
 
     def cleanup(self):
         if self.sensor_monitor:

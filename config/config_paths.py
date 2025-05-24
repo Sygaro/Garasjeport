@@ -1,4 +1,4 @@
-# config/config_paths.py
+# config/paths.py
 
 """
 Definerer globale stier til viktige mapper i prosjektet.

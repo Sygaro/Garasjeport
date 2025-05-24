@@ -1,7 +1,7 @@
 import json
 import os
 from config import config_paths as paths
-from config import config_paths
+from config import config_paths as paths
 
 
 def _load_json_file(path):
@@ -16,7 +16,7 @@ def load_config(path=None):
     Hvis ingen sti oppgis, brukes config_logging.json som standard.
     """
     if path is None:
-        path = config_paths.CONFIG_LOGGING_PATH
+        path = paths.CONFIG_LOGGING_PATH
 
     with open(path, "r") as f:
         return json.load(f)

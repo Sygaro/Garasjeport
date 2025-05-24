@@ -9,6 +9,7 @@ dist/
 build/
 env/
 venv/
+.venv/
 
 # Raspberry Pi / systemfiler
 .DS_Store
@@ -50,6 +51,7 @@ __pycache__/
 venv/
 ENV/
 env/
+.venv/
 
 # Backupfiler
 backups/
