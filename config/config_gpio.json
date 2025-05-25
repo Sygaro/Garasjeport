@@ -24,8 +24,6 @@
     "active_state": 0
   },
   "timing_config": {
-    "fast_poll_interval": 0.01,
-    "slow_poll_interval": 2.0,
     "port_status_change_timeout": 50,
     "fail_margin_status_change": 3,
     "timing_history_size": 3
@@ -34,6 +32,6 @@
   "notes": {
     "relay_active_state": "0 betyr at rele aktiveres med lavt signal (NO rele)",
     "sensor_wiring": "Sensorer koblet mellom GPIO og GND uten ekstra motstand, pull-up brukes",
-    "pulse_duration_info": "Releet f\u00e5r et kort signal i definert antall sekunder for \u00e5 aktivere porten"
+    "pulse_duration_info": "Releet får et kort signal i definert antall sekunder for å aktivere porten"
   }
 }

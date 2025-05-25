@@ -3,16 +3,25 @@ from config import config_paths as paths
 from utils.garage_logger import GarageLogger
 
 
+
+
 class SensorMonitor:
-    def __init__(self, config_gpio, logger=None):
+    def __init__(self, config_gpio, logger=None, pi=None):
+        self.logger = logger or print
+        self.pi = pi
+        self.pull = config_gpio.get("sensor_config", {}).get("pull", "up")
+        self.active_state = config_gpio.get("sensor_config", {}).get("active_state", 0)
+
         self.config_gpio = config_gpio
         self.sensor_pins = config_gpio.get("sensor_pins", {})
         self.sensor_config = config_gpio.get("sensor_config", {})
         self.active_state = config_gpio["sensor_config"]["active_state"]
 
+        self.relay_control = RelayControl(config_gpio, self.pi, logger=self.logger)
+        self.sensor_monitor = SensorMonitor(config_gpio, self.logger, self.pi)
+
         self.logger = logger or GarageLogger()
 
-        self.pi = pigpio.pi()
         if not self.pi.connected:
             raise RuntimeError("Kunne ikke koble til pigpiod")
 

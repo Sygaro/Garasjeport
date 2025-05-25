@@ -1,11 +1,17 @@
 import datetime
 import time, json, threading 
+import pigpio
 from datetime import datetime
 
 from config import config_paths as paths
 from utils.relay_control import RelayControl
 from utils.garage_logger import GarageLogger
 from utils.config_loader import load_config, load_portlogic_config
+from utils.gpio_initializer import configure_gpio_pins
+from utils.pigpio_manager import get_pi
+
+
+
 
 
 # Forsøk å importere pigpio-monitor, fallback til None hvis ikke tilgjengelig
@@ -17,9 +23,13 @@ except ImportError:
 
 class GarageController:
     def __init__(self, config_gpio, config_system, testing_mode=False):
+        self.pi = get_pi()
         self.config_gpio = config_gpio
         self.config_system = config_system
         self.testing_mode = testing_mode
+        self.relay_control = RelayControl(config_gpio, logger=self.logger, pi=self.pi)
+        self.sensor_monitor = SensorMonitor(config_gpio, logger=self.logger, pi=self.pi)
+
 
         self.logger = GarageLogger(paths.STATUS_LOG, paths.ERROR_LOG)
         self.relay_control = RelayControl(config_gpio, self.logger)
@@ -33,6 +43,13 @@ class GarageController:
 
         # Kombinert initiering av status og GPIO-avlesning
         self._initialize_port_states()
+        # Konfigurer GPIO med riktig pull-oppsett
+        self.pi = pigpio.pi()
+        if not self.pi.connected:
+            raise RuntimeError("Kunne ikke koble til pigpiod")
+        sensor_pins = config_gpio.get("sensor_pins", {})
+        pull = config_gpio.get("sensor_config", {}).get("pull", "off")
+        configure_gpio_pins(sensor_pins, pull, self.pi)
 
     def _initialize_port_states(self):
         """
@@ -302,6 +319,9 @@ class GarageController:
         """
         Rydderessurser ved avslutning av systemet.
         """
+        from utils.pigpio_manager import stop_pi
+        stop_pi()
+
         if hasattr(self, "sensor_monitor"):
             self.sensor_monitor.stop()
         if hasattr(self, "relay_control"):

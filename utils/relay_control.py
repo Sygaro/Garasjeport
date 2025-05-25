@@ -8,12 +8,16 @@ class RelayControl:
     Brukes til å sende impulser for å åpne/lukke portene.
     """
 
-    def __init__(self, config_gpio, logger=None):
+    def __init__(self, config_gpio, logger=None, pi=None):
+        self.logger = logger or print
+        self.pi = pi
         self.config_gpio = config_gpio
-        self.pi = pigpio.pi()
         #print(f"[DEBUG] pigpio connected: {self.pi.connected}")
         self.logger = logger or GarageLogger()
         self.relay_pins = self.config_gpio.get("relay_pins", {})
+        self.relay_control = RelayControl(config_gpio, self.pi, logger=self.logger)
+        self.sensor_monitor = SensorMonitor(config_gpio, self.logger, self.pi)
+
         
         if not self.pi.connected:
             raise RuntimeError("Kunne ikke koble til pigpiod")
