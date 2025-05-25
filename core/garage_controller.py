@@ -9,6 +9,8 @@ from utils.garage_logger import GarageLogger
 from utils.config_loader import load_config, load_portlogic_config
 from utils.gpio_initializer import configure_gpio_pins
 from utils.pigpio_manager import get_pi
+from utils.pigpio_manager import stop_pi
+
 
 
 
@@ -23,7 +25,11 @@ except ImportError:
 
 class GarageController:
     def __init__(self, config_gpio, config_system, testing_mode=False):
+        
         self.pi = get_pi()
+        if not self.pi.connected:
+            raise RuntimeError("Kunne ikke koble til pigpiod")
+        
         self.config_gpio = config_gpio
         self.config_system = config_system
         self.testing_mode = testing_mode
@@ -316,14 +322,9 @@ class GarageController:
 
 
     def shutdown(self):
-        """
-        Rydderessurser ved avslutning av systemet.
-        """
-        from utils.pigpio_manager import stop_pi
-        stop_pi()
-
         if hasattr(self, "sensor_monitor"):
             self.sensor_monitor.stop()
         if hasattr(self, "relay_control"):
             self.relay_control.cleanup()
-        self.logger.log_status("system", "GarageController avsluttet og ryddet opp.")
+        stop_pi()  # Dette er nå korrekt
+        self.logger.log_status("system", "GarageController avsluttet og pigpio stoppet.")

@@ -15,6 +15,7 @@ class RelayControl:
         #print(f"[DEBUG] pigpio connected: {self.pi.connected}")
         self.logger = logger or GarageLogger()
         self.relay_pins = self.config_gpio.get("relay_pins", {})
+
         self.relay_control = RelayControl(config_gpio, self.pi, logger=self.logger)
         self.sensor_monitor = SensorMonitor(config_gpio, self.logger, self.pi)
 
@@ -22,7 +23,6 @@ class RelayControl:
         if not self.pi.connected:
             raise RuntimeError("Kunne ikke koble til pigpiod")
 
-        self.relay_pins = config_gpio["relay_pins"]
         self.active_state = config_gpio["relay_config"]["active_state"]
         self.pulse_duration = config_gpio["relay_config"]["pulse_duration"]
 
