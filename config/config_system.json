@@ -1,40 +1,62 @@
 {
-  "language": "nb",
-  "timing": {
-    "port1": {
-      "default_open_time": 28.0,
-      "default_close_time": 28.0,
-      "open_time": 4.83,
-      "close_time": 5.34,
-      "open_timestamp": "2025-05-19 19:39:48",
-      "close_timestamp": "2025-05-19 19:39:35"
-    },
-    "port2": {
-      "default_open_time": 28.0,
-      "default_close_time": 28.0,
-      "close_time": 3.2,
-      "open_time": 2.21,
-      "close_timestamp": "2025-05-19 19:40:12",
-      "open_timestamp": "2025-05-19 19:40:20"
-    }
-  },
-  "port_timings": {
-    "port1": {
-      "open_time": 10.0,
-      "close_time": 10.0,
-      "timestamp": null
-    },
-    "port2": {
-      "open_time": 10.0,
-      "close_time": 10.0,
-      "timestamp": null
-    }
-  },
   "port1": {
-    "last_None_time": 3.38,
-    "history_None_time": [
-      3.38
-    ],
-    "avg_None_time": 3.38
+    "status": "closed",
+    "status_timestamp": "2025-05-28 16:35:00",
+    "timing": {
+      "open": {
+        "last": 12.4,
+        "avg": 12.3,
+        "history": [12.2, 12.3, 12.4],
+        "t0": 1.0,
+        "t1": 11.4,
+        "t2": 12.4
+      },
+      "close": {
+        "last": 13.0,
+        "avg": 13.1,
+        "history": [13.0, 13.2, 13.1],
+        "t0": 1.2,
+        "t1": 11.8,
+        "t2": 13.0
+      }
+    },
+    "alarm_state": {
+      "active": false,
+      "last_triggered": null,
+      "retries_left": 3
+    }
+  },
+  "port2": {
+    "status": "open",
+    "status_timestamp": "2025-05-28 16:30:45",
+    "timing": {
+      "open": {
+        "last": 11.8,
+        "avg": 11.6,
+        "history": [11.4, 11.6, 11.8],
+        "t0": 0.9,
+        "t1": 10.9,
+        "t2": 11.8
+      },
+      "close": {
+        "last": 12.6,
+        "avg": 12.5,
+        "history": [12.3, 12.5, 12.6],
+        "t0": 1.0,
+        "t1": 11.6,
+        "t2": 12.6
+      }
+    },
+    "alarm_state": {
+      "active": true,
+      "last_triggered": "2025-05-28 16:45:00",
+      "retries_left": 2
+    }
+  },
+  "alarm_config": {
+    "enabled": true,
+    "trigger_after_minutes": 5,
+    "repeat_interval_minutes": 10,
+    "max_retries": 3
   }
 }

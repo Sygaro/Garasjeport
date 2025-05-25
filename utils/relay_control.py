@@ -47,13 +47,17 @@ class RelayControl:
         # self.pi.write(pin, 1 - self.active_state)
     
     def cleanup(self):
-        """
-        Frigjør pigpio-ressurser for relekontroll.
-        """
-        for pin in self.relay_pins.values():
-            self.pi.write(pin, 1 - self.active_state)
-        self.logger.log_status("relay", "RelayControl cleaned up.")
-        
+        if self.pi and self.pi.connected:
+            for pin in self.relay_pins.values():
+                try:
+                    self.pi.write(pin, 1 - self.active_state)
+                except Exception as e:
+                    self.logger.log_warning("relay", f"Feil ved deaktivering av pin {pin}: {e}")
+            self.logger.log_status("relay", "RelayControl cleaned up.")
+        else:
+            self.logger.log_debug("relay", "RelayControl cleanup hoppet over – pi ikke tilgjengelig.")
+
+
     @property
     def pigpio_connected(self):
         return self.pi is not None and self.pi.connected

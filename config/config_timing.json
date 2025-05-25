@@ -1,0 +1,5 @@
+"timing_config": {
+  "default_open_time": 28.0,
+  "default_close_time": 28.0,
+  "fail_margin_status_change": 3
+}
