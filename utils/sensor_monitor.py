@@ -1,93 +1,74 @@
+# utils/sensor_monitor.py
+
 import pigpio
-from config import config_paths as paths
 from utils.garage_logger import GarageLogger
-
-
-
 
 class SensorMonitor:
     def __init__(self, config_gpio, logger=None, pi=None):
-        self.logger = logger or print
-        self.pi = pi
-        self.pull = config_gpio.get("sensor_config", {}).get("pull", "up")
-        self.active_state = config_gpio.get("sensor_config", {}).get("active_state", 0)
-
-        self.config_gpio = config_gpio
-        self.sensor_pins = config_gpio.get("sensor_pins", {})
-        self.sensor_config = config_gpio.get("sensor_config", {})
-        self.active_state = config_gpio["sensor_config"]["active_state"]
-
-        self.relay_control = RelayControl(config_gpio, self.pi, logger=self.logger)
-        self.sensor_monitor = SensorMonitor(config_gpio, self.logger, self.pi)
-
         self.logger = logger or GarageLogger()
+        self.config_gpio = config_gpio
+        self.pi = pi
 
-        if not self.pi.connected:
+        if not self.pi or not self.pi.connected:
             raise RuntimeError("Kunne ikke koble til pigpiod")
 
-        self.callback_function = None
+        self.sensor_pins = config_gpio.get("sensor_pins", {})
+        sensor_config = config_gpio.get("sensor_config", {})
+
+        self.active_state = sensor_config.get("active_state", 0)
+        pull_mode = {
+            "up": pigpio.PUD_UP,
+            "down": pigpio.PUD_DOWN,
+            "off": pigpio.PUD_OFF
+        }.get(sensor_config.get("pull", "up").lower(), pigpio.PUD_UP)
+
         self.callbacks = {}
+        self.callback_function = None
 
-        self._validate_sensor_config()
-        self._setup_callbacks()
-
-    def _validate_sensor_config(self):
-        if not self.sensor_pins:
-            raise ValueError("Ingen 'sensor_pins' definert i config_gpio")
-
+        # Konfigurer alle sensorer
         for port, sensors in self.sensor_pins.items():
-            if not isinstance(sensors, dict):
-                raise ValueError(f"Ugyldig format for sensors i port '{port}'")
-            if "open" not in sensors or "closed" not in sensors:
-                raise ValueError(f"Port '{port}' mangler 'open' eller 'closed' sensor")
-
-    def is_sensor_active(self, port, sensor_type):
-        """
-        Returnerer True hvis gitt sensor for port er aktiv (basert på aktiv tilstand).
-        """
-        gpio_pin = self.sensor_pins.get(port, {}).get(sensor_type)
-        if gpio_pin is None:
-            return False
-        level = self.pi.read(gpio_pin)
-        return level == self.active_state
-
+            for sensor_type, gpio_pin in sensors.items():
+                self.pi.set_mode(gpio_pin, pigpio.INPUT)
+                self.pi.set_pull_up_down(gpio_pin, pull_mode)
+                self.logger.log_debug("sensor", f"{port} {sensor_type} sensor konfigurert på GPIO {gpio_pin}")
 
     def set_callback(self, callback_function):
         """
-        Setter ekstern callback som skal kalles når en sensor endrer tilstand.
+        Setter funksjonen som skal kalles ved sensorendring.
         """
         self.callback_function = callback_function
+        self._setup_callbacks()
 
     def _setup_callbacks(self):
         for port, sensors in self.sensor_pins.items():
-            for sensor_type in ["open", "closed"]:
-                gpio_pin = sensors.get(sensor_type)
-                if gpio_pin is None:
-                    self.logger.log_error("sensor_monitor", f"GPIO-pin ikke definert for {port} - {sensor_type}")
-                    continue
+            for sensor_type, gpio_pin in sensors.items():
+                def callback_func(gpio, level, tick, port=port, sensor_type=sensor_type):
+                    if self.callback_function:
+                        self.callback_function(
+                            gpio=gpio, level=level, tick=tick,
+                            port=port, sensor_type=sensor_type
+                        )
 
-                self.pi.set_mode(gpio_pin, pigpio.INPUT)
+                cb = self.pi.callback(gpio_pin, pigpio.EITHER_EDGE, callback_func)
+                self.callbacks[gpio_pin] = cb
+                self.logger.log_debug("sensor", f"Callback registrert for GPIO {gpio_pin}")
 
-                pull = self.sensor_config.get("pull", "up").lower()
-                if pull == "up":
-                    self.pi.set_pull_up_down(gpio_pin, pigpio.PUD_UP)
-                elif pull == "down":
-                    self.pi.set_pull_up_down(gpio_pin, pigpio.PUD_DOWN)
-
-                callback = self._create_callback(gpio_pin, port, sensor_type)
-                self.callbacks[gpio_pin] = self.pi.callback(gpio_pin, pigpio.EITHER_EDGE, callback)
-
-                self.logger.log_status("sensor_monitor", f"Callback aktivert for {port} - {sensor_type} (GPIO {gpio_pin})")
-
-    
-    def _create_callback(self, gpio_pin, port, sensor_type):
-        def callback_func(gpio, level, tick):
-            if self.callback_function:
-                self.callback_function(gpio=gpio, level=level, tick=tick, port=port, sensor_type=sensor_type)
-        return callback_func
+    def is_sensor_active(self, port, sensor_type):
+        """
+        Returnerer True hvis gitt sensor for port er aktiv.
+        """
+        gpio = self.sensor_pins.get(port, {}).get(sensor_type)
+        if gpio is None:
+            self.logger.log_warning("sensor", f"Ugyldig sensorforespørsel: {port}/{sensor_type}")
+            return False
+        level = self.pi.read(gpio)
+        return level == self.active_state
 
     def stop(self):
-        for cb in self.callbacks.values():
+        """
+        Stopper alle registrerte callbacks.
+        """
+        for gpio, cb in self.callbacks.items():
             cb.cancel()
-        self.pi.stop()
-        self.logger.log_status("sensor_monitor", "SensorMonitor stoppet og GPIO-ressurser frigjort.")
+        self.callbacks.clear()
+        self.logger.log_status("sensor", "Alle sensor callbacks fjernet")

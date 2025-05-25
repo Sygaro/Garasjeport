@@ -10,10 +10,7 @@ from utils.config_loader import load_config, load_portlogic_config
 from utils.gpio_initializer import configure_gpio_pins
 from utils.pigpio_manager import get_pi
 from utils.pigpio_manager import stop_pi
-
-
-
-
+from utils.sensor_monitor import SensorMonitor
 
 
 # Forsøk å importere pigpio-monitor, fallback til None hvis ikke tilgjengelig
@@ -22,40 +19,30 @@ try:
 except ImportError:
     SensorMonitor = None
 
-
 class GarageController:
     def __init__(self, config_gpio, config_system, testing_mode=False):
-        
-        self.pi = get_pi()
-        if not self.pi.connected:
-            raise RuntimeError("Kunne ikke koble til pigpiod")
-        
         self.config_gpio = config_gpio
         self.config_system = config_system
         self.testing_mode = testing_mode
+
+        self.logger = GarageLogger(paths.STATUS_LOG, paths.ERROR_LOG)
+
+        # Hent delt pigpio-instans
+        self.pi = get_pi()
+
+        # Opprett delkomponenter
         self.relay_control = RelayControl(config_gpio, logger=self.logger, pi=self.pi)
         self.sensor_monitor = SensorMonitor(config_gpio, logger=self.logger, pi=self.pi)
 
+        # Intern tilstand
+        self.status = {}
+        self._operation_flags = {}
 
-        self.logger = GarageLogger(paths.STATUS_LOG, paths.ERROR_LOG)
-        self.relay_control = RelayControl(config_gpio, self.logger)
-
-        self.timing_enabled = not self.testing_mode
-
-        # SensorMonitor må initieres før portstatus kan leses
-        self.sensor_monitor = SensorMonitor(config_gpio, self.logger)
         self.sensor_monitor.set_callback(self._sensor_callback)
-        self.logger.log_status("init", "SensorMonitor aktivert og callback satt")
 
-        # Kombinert initiering av status og GPIO-avlesning
         self._initialize_port_states()
-        # Konfigurer GPIO med riktig pull-oppsett
-        self.pi = pigpio.pi()
-        if not self.pi.connected:
-            raise RuntimeError("Kunne ikke koble til pigpiod")
-        sensor_pins = config_gpio.get("sensor_pins", {})
-        pull = config_gpio.get("sensor_config", {}).get("pull", "off")
-        configure_gpio_pins(sensor_pins, pull, self.pi)
+        self.logger.log_status("system", "GarageController initialisert.")
+
 
     def _initialize_port_states(self):
         """
@@ -322,9 +309,13 @@ class GarageController:
 
 
     def shutdown(self):
+        """
+        Rydderessurser ved avslutning av systemet.
+        """
         if hasattr(self, "sensor_monitor"):
             self.sensor_monitor.stop()
         if hasattr(self, "relay_control"):
             self.relay_control.cleanup()
-        stop_pi()  # Dette er nå korrekt
+        
+        stop_pi()
         self.logger.log_status("system", "GarageController avsluttet og pigpio stoppet.")

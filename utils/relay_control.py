@@ -1,3 +1,5 @@
+# utils/relay_control.py
+
 import pigpio
 import time
 from utils.garage_logger import GarageLogger
@@ -8,47 +10,50 @@ class RelayControl:
     Brukes til å sende impulser for å åpne/lukke portene.
     """
 
-    def __init__(self, config_gpio, logger=None, pi=None):
-        self.logger = logger or print
-        self.pi = pi
+    def __init__(self, config_gpio, pi, logger=None):
         self.config_gpio = config_gpio
-        #print(f"[DEBUG] pigpio connected: {self.pi.connected}")
+        self.pi = pi
         self.logger = logger or GarageLogger()
-        self.relay_pins = self.config_gpio.get("relay_pins", {})
 
-        self.relay_control = RelayControl(config_gpio, self.pi, logger=self.logger)
-        self.sensor_monitor = SensorMonitor(config_gpio, self.logger, self.pi)
-
-        
-        if not self.pi.connected:
+        if not self.pi or not self.pi.connected:
             raise RuntimeError("Kunne ikke koble til pigpiod")
 
-        self.active_state = config_gpio["relay_config"]["active_state"]
-        self.pulse_duration = config_gpio["relay_config"]["pulse_duration"]
+        # Hent relay-konfig
+        self.relay_pins = config_gpio.get("relay_pins", {})
+        relay_config = config_gpio.get("relay_config", {})
+        self.active_state = relay_config.get("active_state", 0)
+        self.pulse_duration = relay_config.get("pulse_duration", 0.4)
 
+        # Konfigurer relé-pins
         for pin in self.relay_pins.values():
             self.pi.set_mode(pin, pigpio.OUTPUT)
-            self.pi.write(pin, 1 - self.active_state)  # Sett inaktiv
+            self.pi.write(pin, 1 - self.active_state)  # Sett til inaktiv
+            self.logger.log_debug("relay", f"GPIO {pin} satt som OUTPUT med inaktiv verdi.")
+
+        self.logger.log_status("relay", f"Reléoppsett fullført: {len(self.relay_pins)} porter")
 
     def trigger(self, port):
-        """
-        Sender puls til portens relé.
-        """
-        pin = self.relay_pins[port]
-        self.pi.write(pin, self.active_state)
-        time.sleep(self.pulse_duration)
-        self.pi.write(pin, 1 - self.active_state)
+        if port not in self.relay_pins:
+            self.logger.log_error("relay", f"Ukjent port: {port}")
+            return
 
+        pin = self.relay_pins[port]
+        self.logger.log_action(port, "trigger", source="relay_control")
+
+        self.pi.write(pin, self.active_state)
+        self.pi.write(pin, 1 - self.active_state)  # umiddelbar reset for enkeltesting
+        # For ekte pulsbruk:
+        # time.sleep(self.pulse_duration)
+        # self.pi.write(pin, 1 - self.active_state)
+    
     def cleanup(self):
         """
         Frigjør pigpio-ressurser for relekontroll.
         """
-        try:
-            self.logger.log_status("relay_control", "Rydder opp pigpio-tilkobling")
-            self.pi.stop()
-        except Exception as e:
-            self.logger.log_error("relay_control", f"Feil ved cleanup: {e}")
-
+        for pin in self.relay_pins.values():
+            self.pi.write(pin, 1 - self.active_state)
+        self.logger.log_status("relay", "RelayControl cleaned up.")
+        
     @property
     def pigpio_connected(self):
         return self.pi is not None and self.pi.connected
