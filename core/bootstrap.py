@@ -4,6 +4,7 @@ import shutil
 import subprocess
 import time
 from datetime import datetime
+from monitor.system_monitor_task import get_system_status, check_thresholds_and_log
 from utils.config_loader import load_config
 from utils.version_utils import get_git_version
 from utils.bootstrap_logger import bootstrap_logger as logger
@@ -133,6 +134,123 @@ def validate_gpio_config(config_gpio):
         for err in errors:
             log_to_bootstrap(f"[ERROR] Konfigurasjonsfeil: {err}")
         raise ValueError("Ugyldig sensorspesifikasjon i config_gpio.json")
+    
+def validate_config_timing(config):
+    """
+    Validerer innholdet i config_timing.json for nødvendige felter og typer.
+    Kaster ValueError eller TypeError ved feil.
+    """
+    required_fields = {
+        "default_open_time": (int, float),
+        "default_close_time": (int, float),
+        "fail_margin_status_change": int,
+        "t0_max_delay": (int, float),
+        "timing_history_size": int
+    }
+
+    timing = config.get("timing_config")
+    if not timing:
+        raise ValueError("timing_config mangler i config_timing.json")
+
+    for key, expected_type in required_fields.items():
+        value = timing.get(key)
+        if value is None:
+            raise ValueError(f"{key} mangler i timing_config")
+        if not isinstance(value, expected_type):
+            raise TypeError(f"{key} må være av type {expected_type}, men fikk {type(value)}")
+
+    return True
+
+def validate_config_system(config):
+    """
+    Validerer innholdet i config_system.json for hver port og alarm_config.
+    """
+    if not isinstance(config, dict):
+        raise ValueError("config_system må være et dictionary")
+
+    # Valider per port (eks: "port1", "port2")
+    for port, data in config.items():
+        if port == "alarm_config":
+            continue  # valideres senere
+
+        if not isinstance(data, dict):
+            raise ValueError(f"{port} må være en dictionary")
+
+        if "status" not in data or not isinstance(data["status"], str):
+            raise ValueError(f"{port}: status mangler eller er ikke en streng")
+
+        if "status_timestamp" in data and not isinstance(data["status_timestamp"], str):
+            raise TypeError(f"{port}: status_timestamp må være en streng hvis den finnes")
+
+        # Valider timing-delen
+        timing = data.get("timing", {})
+        for direction in ["open", "close"]:
+            dir_data = timing.get(direction, {})
+            if not isinstance(dir_data, dict):
+                continue  # tillat at det mangler før første måling
+
+            for key in ["last", "avg", "t0", "t1", "t2"]:
+                val = dir_data.get(key)
+                if val is not None and not isinstance(val, (int, float)):
+                    raise TypeError(f"{port}: timing.{direction}.{key} må være tall")
+
+            history = dir_data.get("history", [])
+            if not isinstance(history, list):
+                raise TypeError(f"{port}: timing.{direction}.history må være en liste")
+            if not all(isinstance(h, (int, float)) for h in history):
+                raise TypeError(f"{port}: timing.{direction}.history inneholder ikke bare tall")
+
+        # Valider alarm_state
+        alarm = data.get("alarm_state", {})
+        if alarm:
+            if "active" in alarm and not isinstance(alarm["active"], bool):
+                raise TypeError(f"{port}: alarm_state.active må være bool")
+            if "last_triggered" in alarm and alarm["last_triggered"] is not None and not isinstance(alarm["last_triggered"], str):
+                raise TypeError(f"{port}: alarm_state.last_triggered må være en streng eller null")
+            if "retries_left" in alarm and not isinstance(alarm["retries_left"], int):
+                raise TypeError(f"{port}: alarm_state.retries_left må være int")
+
+    # Valider global alarm_config
+    alarm_config = config.get("alarm_config")
+    if not alarm_config:
+        raise ValueError("alarm_config mangler i config_system.json")
+
+    expected_alarm_fields = {
+        "enabled": bool,
+        "trigger_after_minutes": int,
+        "repeat_interval_minutes": int,
+        "max_retries": int
+    }
+
+    for key, expected_type in expected_alarm_fields.items():
+        value = alarm_config.get(key)
+        if value is None:
+            raise ValueError(f"alarm_config.{key} mangler")
+        if not isinstance(value, expected_type):
+            raise TypeError(f"alarm_config.{key} må være av type {expected_type.__name__}")
+
+    return True
+
+def validate_config_health(config):
+    required_thresholds = {
+        "cpu_temp_max": (int, float),
+        "disk_usage_max_percent": int,
+        "memory_usage_max_percent": int,
+        "min_free_disk_gb": (int, float),
+        "min_free_memory_mb": int
+    }
+    thresholds = config.get("thresholds", {})
+    for key, expected_type in required_thresholds.items():
+        val = thresholds.get(key)
+        if val is None or not isinstance(val, expected_type):
+            raise ValueError(f"Feil eller mangler i thresholds: {key}")
+
+    alerts = config.get("alerts", {})
+    if "enabled" not in alerts:
+        raise ValueError("alerts.enabled mangler")
+
+    return True
+
 
 def initialize_system_environment():
     logger.log_status("bootstrap", "Starter systeminitialisering")
@@ -141,8 +259,33 @@ def initialize_system_environment():
     ensure_pigpiod_running()
     config_gpio = load_config(paths.CONFIG_GPIO_PATH)
     validate_gpio_config(config_gpio)
-    #print("[DEBUG] GPIO-config ved validering:")
-    #print(json.dumps(config_gpio, indent=2))
+    try:
+        config_timing = load_config(paths.CONFIG_TIMING_PATH)
+        validate_config_timing(config_timing)
+        logger.log_status("bootstrap", "config_timing.json validert OK")
+    except Exception as e:
+        logger.log_error("bootstrap", f"Feil ved validering av config_timing.json: {e}")
+        raise
+    
+    try:
+        config_system = load_config(paths.CONFIG_SYSTEM_PATH)
+        validate_config_system(config_system)
+        logger.log_status("bootstrap", "config_system.json validert OK")
+    except Exception as e:
+        logger.log_error("bootstrap", f"Feil ved validering av config_system.json: {e}")
+        raise
+    try:
+        config_health = load_config(paths.CONFIG_HEALTH_PATH)
+        validate_config_health(config_health)
+        logger.log_status("bootstrap", "config_health.json validert OK")
+    except Exception as e:
+        logger.log_error("bootstrap", f"Validering av config_health.json feilet: {e}")
+        raise
     log_version_info()
     write_bootstrap_status_file()
     logger.log_status("bootstrap", "Systeminitialisering fullført")
+
+    status = get_system_status()
+    check_thresholds_and_log(status)
+    logger.log_status("system_monitor", f"Systemstatus ved oppstart: {status}")
+

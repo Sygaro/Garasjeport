@@ -26,6 +26,8 @@ CONFIG_SYSTEM_PATH = os.path.join(CONFIG_DIR, "config_system.json")
 CONFIG_AUTH_PATH = os.path.join(CONFIG_DIR, "config_auth.json")
 CONFIG_LOGGING_PATH = os.path.join(CONFIG_DIR, "config_logging.json")
 CONFIG_PORTLOGIC_PATH = os.path.join(CONFIG_DIR, "config_portlogic.json")
+CONFIG_TIMING_PATH = os.path.join(CONFIG_DIR, "config_timing.json")
+CONFIG_HEALTH_PATH = os.path.join(CONFIG_DIR, "config_health.json")
 
 # === Loggfiler ===
 STATUS_LOG = os.path.join(LOG_DIR, "status.log")

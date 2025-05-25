@@ -1,5 +1,9 @@
-"timing_config": {
-  "default_open_time": 28.0,
-  "default_close_time": 28.0,
-  "fail_margin_status_change": 3
+{
+  "timing_config": {
+    "default_open_time": 28.0,
+    "default_close_time": 28.0,
+    "fail_margin_status_change": 3,
+    "t0_max_delay": 3.0,
+    "timing_history_size": 3
+  }
 }

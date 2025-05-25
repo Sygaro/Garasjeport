@@ -1,0 +1,15 @@
+{
+  "thresholds": {
+    "cpu_temp_max": 75.0,
+    "disk_usage_max_percent": 90,
+    "memory_usage_max_percent": 85,
+    "min_free_disk_gb": 1.0,
+    "min_free_memory_mb": 128
+  },
+  "alerts": {
+    "enabled": true,
+    "log_warning": true,
+    "notify_api": false,
+    "interval_minutes": 15
+  }
+}

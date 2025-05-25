@@ -27,3 +27,6 @@ black==24.4.2
 # Dokumentasjon
 mkdocs==1.5.3
 mkdocs-material==9.5.14
+
+psutil==7.0.0
+
