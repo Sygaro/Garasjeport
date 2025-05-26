@@ -2,12 +2,21 @@
 
 import pigpio
 from utils.garage_logger import GarageLogger
+from utils.pigpio_manager import get_pi
+
+
 
 class SensorMonitor:
     def __init__(self, config_gpio, logger=None, pi=None):
-        self.logger = logger or GarageLogger()
-        self.config_gpio = config_gpio
-        self.pi = pi
+        self.logger = logger or GarageLogger() or print
+        #self.config_gpio = config_gpio
+        self.pi = pi or get_pi()
+
+        print("[DEBUG] pigpio-manager: Initialiserer delt pigpio-instans")
+         # Bekreft at pigpio er tilkoblet
+        assert self.pi is not None and self.pi.connected, "pigpio ikke tilkoblet"
+
+
 
         if not self.pi or not self.pi.connected:
             raise RuntimeError("Kunne ikke koble til pigpiod")

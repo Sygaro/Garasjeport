@@ -3,6 +3,8 @@
 import pigpio
 import time
 from utils.garage_logger import GarageLogger
+from utils.pigpio_manager import get_pi
+
 
 class RelayControl:
     """
@@ -10,13 +12,19 @@ class RelayControl:
     Brukes til å sende impulser for å åpne/lukke portene.
     """
 
-    def __init__(self, config_gpio, pi, logger=None):
+    def __init__(self, config_gpio, logger=None, pi=None):
         self.config_gpio = config_gpio
-        self.pi = pi
-        self.logger = logger or GarageLogger()
+        self.logger = logger or GarageLogger() or print
+        self.logger.log_debug("relay", "cleanup() kalt")
+        self.pi = pi or get_pi()
+        print("[DEBUG] pigpio-manager: Initialiserer delt pigpio-instans")
+
 
         if not self.pi or not self.pi.connected:
             raise RuntimeError("Kunne ikke koble til pigpiod")
+
+        # Bekreft at pigpio er tilkoblet
+        assert self.pi is not None and self.pi.connected, "pigpio ikke tilkoblet"
 
         # Hent relay-konfig
         self.relay_pins = config_gpio.get("relay_pins", {})
@@ -47,15 +55,18 @@ class RelayControl:
         # self.pi.write(pin, 1 - self.active_state)
     
     def cleanup(self):
+        if hasattr(self, "_cleanup_done") and self._cleanup_done:
+            self.logger.log_debug("relay", "cleanup() allerede kjørt – hopper over.")
+            return
+
         if self.pi and self.pi.connected:
             for pin in self.relay_pins.values():
-                try:
-                    self.pi.write(pin, 1 - self.active_state)
-                except Exception as e:
-                    self.logger.log_warning("relay", f"Feil ved deaktivering av pin {pin}: {e}")
-            self.logger.log_status("relay", "RelayControl cleaned up.")
+                self.pi.write(pin, 1 - self.active_state)
+            self.logger.log_debug("relay", "RelayControl clean shutdown fullført.")
         else:
             self.logger.log_debug("relay", "RelayControl cleanup hoppet over – pi ikke tilgjengelig.")
+
+        self._cleanup_done = True
 
 
     @property

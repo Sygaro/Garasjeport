@@ -2,24 +2,24 @@
 
 import pigpio
 
-_pi_instance = None
+_shared_pi = None
 
 def get_pi():
     """
     Returnerer en delt pigpio-instans. Oppretter den hvis den ikke finnes.
     """
-    global _pi_instance
-    if _pi_instance is None:
-        _pi_instance = pigpio.pi()
-        if not _pi_instance.connected:
+    global _shared_pi
+    if _shared_pi is None:
+        _shared_pi = pigpio.pi()
+        if not _shared_pi.connected:
             raise RuntimeError("Kunne ikke koble til pigpiod")
-    return _pi_instance
+    return _shared_pi
 
 def stop_pi():
     """
     Stopper og nullstiller pigpio-instansen ved avslutning.
     """
-    global _pi_instance
-    if _pi_instance:
-        _pi_instance.stop()
-        _pi_instance = None
+    global _shared_pi
+    if _shared_pi:
+        _shared_pi.stop()
+        _shared_pi = None

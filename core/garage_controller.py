@@ -6,10 +6,9 @@ from datetime import datetime
 from config import config_paths as paths
 from utils.relay_control import RelayControl
 from utils.garage_logger import GarageLogger
-from utils.config_loader import load_config, load_portlogic_config
-from utils.gpio_initializer import configure_gpio_pins
-from utils.pigpio_manager import get_pi
-from utils.pigpio_manager import stop_pi
+# from utils.config_loader import load_config, load_portlogic_config
+# from utils.gpio_initializer import configure_gpio_pins
+from utils.pigpio_manager import get_pi, stop_pi
 from utils.sensor_monitor import SensorMonitor
 
 
@@ -29,6 +28,8 @@ class GarageController:
 
         # Hent delt pigpio-instans
         self.pi = get_pi()
+        print("[DEBUG] pigpio-manager: Initialiserer delt pigpio-instans")
+
 
         # Opprett delkomponenter
         self.relay_control = RelayControl(config_gpio, logger=self.logger, pi=self.pi)
