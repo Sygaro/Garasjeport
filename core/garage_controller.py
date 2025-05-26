@@ -24,25 +24,30 @@ class GarageController:
         self.config_system = config_system
         self.testing_mode = testing_mode
 
-        self.logger = GarageLogger(paths.STATUS_LOG, paths.ERROR_LOG)
-
-        # Hent delt pigpio-instans
-        self.pi = get_pi()
-        print("[DEBUG] pigpio-manager: Initialiserer delt pigpio-instans")
-
-
-        # Opprett delkomponenter
-        self.relay_control = RelayControl(config_gpio, logger=self.logger, pi=self.pi)
-        self.sensor_monitor = SensorMonitor(config_gpio, logger=self.logger, pi=self.pi)
-
-        # Intern tilstand
+        self.logger = GarageLogger()
         self.status = {}
         self._operation_flags = {}
 
-        self.sensor_monitor.set_callback(self._sensor_callback)
+        # Hent pigpio-instans via delt manager
+        self.pi = get_pi()
+        assert self.pi is not None and self.pi.connected, "Feil: pigpio er ikke tilgjengelig"
+
+        self.relay_control = RelayControl(
+            config_gpio=config_gpio,
+            logger=self.logger,
+            pi=self.pi
+        )
+
+        self.sensor_monitor = SensorMonitor(
+            config_gpio=config_gpio,
+            logger=self.logger,
+            pi=self.pi
+        )
+        
+        assert self.pi is not None and self.pi.connected, "pigpio ikke tilkoblet"
 
         self._initialize_port_states()
-        self.logger.log_status("system", "GarageController initialisert.")
+
 
 
     def _initialize_port_states(self):
@@ -54,7 +59,7 @@ class GarageController:
 
         for port, pins in self.config_gpio["sensor_pins"].items():
             self.status[port] = "unknown"
-            self._operation_flags[port] = {"moving": False, "start_time": None}
+            self._operation_flags[port] = {"moving": False, "start_time": None, "direction": None}
 
             try:
                 open_pin = pins.get("open")
@@ -68,17 +73,22 @@ class GarageController:
                 elif closed_active and not open_active:
                     self.status[port] = "closed"
                 elif open_active and closed_active:
-                    self.status[port] = "error"  # Fysisk feil
-                else:
+                    self.status[port] = "sensor_error"  # Sensorfeil
+                elif not open_active and not closed_active:
                     self.status[port] = "partial"  # Ingen aktiv sensor
+                else:
+                    self.status[port] = "unknown"
 
                 self.logger.log_status("controller", f"Init status port {port}: {self.status[port]}")
+                self.logger.log_status("sensor", f"{port} sensorstatus ved oppstart: {self.status[port]}")
+
             except Exception as e:
                 self.logger.log_warning("controller", f"Kunne ikke lese initial status for port {port}: {e}")
                 self.status[port] = "unknown"
 
-    # (Resten av GarageController beholdes uendret)
-    # Du har open_port, close_port, stop_port, _sensor_callback, _store_timing, osv.
+
+
+
 
     def save_config(self):
         """Skriver oppdatert systemkonfig til fil"""
@@ -304,13 +314,16 @@ class GarageController:
 
 
     def shutdown(self):
-        """
-        Rydderessurser ved avslutning av systemet.
-        """
-        if hasattr(self, "sensor_monitor"):
-            self.sensor_monitor.stop()
-        if hasattr(self, "relay_control"):
-            self.relay_control.cleanup()
-        
-        stop_pi()
-        self.logger.log_status("system", "GarageController avsluttet og pigpio stoppet.")
+        if getattr(self, "_already_shutdown", False):
+            return
+        self._already_shutdown = True
+        self.logger.log_debug("controller", "Shutdown pågår – rydder opp rele og sensorer")
+        try:
+            if hasattr(self.relay_control, "cleanup"):
+                self.relay_control.cleanup()
+            if hasattr(self.sensor_monitor, "cleanup"):
+                self.sensor_monitor.cleanup()
+        except Exception as e:
+            self.logger.log_error("shutdown", f"Feil ved opprydding: {e}")
+        else:
+            self.logger.log_debug("controller", "GarageController shutdown fullført.")

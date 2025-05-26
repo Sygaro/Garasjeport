@@ -77,14 +77,26 @@ def get_pending_updates():
 
 def get_system_status():
     return {
-        **get_system_time(),
-        **get_uptime(),
-        **get_app_uptime(),
-        **get_cpu_temperature(),
-        **get_disk_usage(),
-        **get_memory_usage(),
-        **get_cpu_load(),
-        **get_pending_updates()
+        "system": {
+            **get_system_time(),
+            **get_uptime(),
+        },
+        "app": {
+            **get_app_uptime(),
+        },
+        "cpu": {
+            **get_cpu_temperature(),
+            **get_cpu_load(),
+        },
+        "memory": {
+            **get_memory_usage(),
+        },
+        "disk": {
+            **get_disk_usage(),
+        },
+        "updates": {
+            **get_pending_updates(),
+        }
     }
 
 def check_thresholds_and_log(status_data):

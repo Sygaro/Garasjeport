@@ -33,7 +33,7 @@ def ensure_required_directories():
         paths.ARCHIVE_DIR,
         paths.CONFIG_DIR,
         paths.BACKUP_DIR,
-        paths.STATIC_DIR,
+        #paths.STATIC_DIR,
         paths.TEMPLATE_DIR,
         paths.DOCS_DIR
     ]:

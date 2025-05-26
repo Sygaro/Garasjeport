@@ -81,3 +81,10 @@ class SensorMonitor:
             cb.cancel()
         self.callbacks.clear()
         self.logger.log_status("sensor", "Alle sensor callbacks fjernet")
+
+        
+    def callback_func(self, gpio, level, tick, port, sensor_type):
+        if self.callback_function:
+            self.callback_function(
+                gpio=gpio, level=level, tick=tick, port=port, sensor_type=sensor_type
+            )

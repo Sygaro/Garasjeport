@@ -16,7 +16,7 @@ ARCHIVE_DIR = os.path.join(LOG_DIR, "archived")
 BACKUP_DIR = os.path.join(BASE_DIR, "backups")
 CONFIG_DIR = os.path.join(BASE_DIR, "config")
 STATUS_DIR = os.path.join(BASE_DIR, "status")
-STATIC_DIR = os.path.join(BASE_DIR, "static")
+#STATIC_DIR = os.path.join(BASE_DIR, "static")
 TEMPLATE_DIR = os.path.join(BASE_DIR, "templates")
 DOCS_DIR = os.path.join(BASE_DIR, "docs")
 

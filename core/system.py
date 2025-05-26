@@ -4,6 +4,7 @@
 # ==========================================
 from config import config_paths as paths
 from utils.config_loader import load_config
+from utils.pigpio_manager import get_pi
 from core.garage_controller import GarageController
 import atexit
 
@@ -13,6 +14,8 @@ import atexit
 #config_gpio, config_system = load_config()
 gpio_config = load_config(paths.CONFIG_GPIO_PATH)
 system_config = load_config(paths.CONFIG_SYSTEM_PATH)
+
+get_pi()  # Tving caching tidlig
 
 # Én global instans av controller
 controller = GarageController(gpio_config, system_config, testing_mode=False)
