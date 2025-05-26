@@ -10,7 +10,7 @@ Et robust og modulært system for styring og overvåkning av garasjeporter via R
 
 ### Kloning og oppstart
 ```bash
-git clone https://github.com/<din-repo>/garasjeport_v1.06.git
+git clone --branch feature/v1.06_pigpio https://github.com/Sygaro/Garasjeport.git
 cd garasjeport_v1.06
 python3 -m venv venv
 source venv/bin/activate
@@ -19,7 +19,7 @@ python app.py
 ```
 
 #### 🛠️ Strukturoversikt
-md
+
 ## Prosjektstruktur
 
 app.py – starter Flask-applikasjonen
@@ -31,6 +31,16 @@ config/ – konfigurasjonsfiler (.json)
 logs/ – runtime logger
 
 #### 🔌 API-dokumentasjon
+```
+## API-eksempler
+
+- `GET /api/status` – status for alle porter
+- `POST /api/port/port1/open` – åpne port 1
+- `GET /api/system/rpi_status` – systemstatus
+- `GET /api/system/rpi_diagnostic` – diagnostikk og terskelvurdering
+
+perl```
+#### 🔌 API-dokumentasjon
 ```md
 ## API-eksempler
 
@@ -38,3 +48,4 @@ logs/ – runtime logger
 - `POST /api/port/port1/open` – åpne port 1
 - `GET /api/system/rpi_status` – systemstatus
 - `GET /api/system/rpi_diagnostic` – diagnostikk og terskelvurdering
+
