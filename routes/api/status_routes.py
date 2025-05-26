@@ -4,20 +4,33 @@
 # ==========================================
 
 from flask import Blueprint, jsonify
-from controllers.status import get_port_status
+from core.system import controller
+from utils.auth import token_required
+
 
 status_routes = Blueprint("status_routes", __name__)
 
-@status_routes.route("/api/status/<port>", methods=["GET"])
+@status_routes.route("/status/<port>", methods=["GET"])
+@token_required
 def port_status(port):
     """
     Returnerer status for spesifisert port.
     """
-    if port not in ['port1', 'port2']:
-        return jsonify({"error": "Ugyldig portnavn"}), 400
+    valid_ports = controller.get_ports()
+    if port not in valid_ports:
+        return jsonify({"error": f"Ugyldig portnavn: {port}"}), 400
 
-    status = get_port_status(port)
+    status = controller.get_current_status(port)
     return jsonify({
         "port": port,
         "status": status
     }), 200
+
+
+@status_routes.route("/status", methods=["GET"])
+@token_required
+def all_status():
+    """
+    Returnerer status for alle porter.
+    """
+    return jsonify(controller.get_all_status()), 200

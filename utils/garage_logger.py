@@ -73,3 +73,9 @@ class GarageLogger:
 
     def log_debug(self, context, message):
         print(f"[DEBUG] {context}: {message}")  # Konsoll-debug
+
+    def get_recent_logs(self, limit=50):
+        with open(paths.ACTIVITY_LOG, "r") as f:
+            lines = f.readlines()[-limit:]
+        return [line.strip() for line in lines]
+

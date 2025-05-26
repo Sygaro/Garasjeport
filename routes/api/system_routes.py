@@ -9,7 +9,7 @@ from utils.system_monitor import get_system_status, check_thresholds_and_log, ru
 
 
 
-system_routes = Blueprint("system_routes", __name__, url_prefix="/api/system")
+system_routes = Blueprint("system_routes", __name__, url_prefix="/system")
 
 
 @system_routes.route("/pigpio", methods=["GET"])
@@ -70,22 +70,9 @@ def get_bootstrap_status():
         return jsonify(fallback_response), 200
 
 
-@system_routes.route("/version_report", methods=["POST"])
-@token_required
-def report_frontend_version():
-    data = request.get_json()
-    version = data.get("frontend_version")
-    if version:
-        with open(os.path.join(paths.STATUS_DIR, "frontend_version.json"), "w") as f:
-            json.dump({"frontend_version": version}, f)
-        return jsonify({"message": "Frontend-versjon lagret", "version": version})
-    else:
-        return jsonify({"error": "frontend_version ikke angitt"}), 400
-
-
 # routes/api/system_routes.py
 
-@system_routes.route("/system/rpi_status", methods=["GET"])
+@system_routes.route("/rpi_status", methods=["GET"])
 @token_required
 def get_rpi_status():
     try:
@@ -99,9 +86,10 @@ def get_rpi_status():
         return jsonify({"error": str(e)}), 500
 
 
-@system_routes.route("/system/health", methods=["GET"])
+@system_routes.route("/health", methods=["GET"])
 @token_required
 def get_system_health():
     result = run_system_health_check()
     result["timestamp"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     return jsonify(result)
+

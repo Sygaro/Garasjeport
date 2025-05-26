@@ -3,6 +3,7 @@
 from flask import Blueprint, jsonify, request
 from utils.auth import token_required
 from config import config_paths as paths
+from controllers.logger_controller import logger_controller
 import os
 import time
 
@@ -16,6 +17,28 @@ VALID_LOGS = {
     "timing": paths.TIMING_LOG,
     "bootstrap": paths.BOOTSTRAP_LOG
 }
+
+@log_routes.route("/log", methods=["GET"])
+@token_required
+def api_get_log():
+    """
+    Returnerer de siste linjene fra aktivitetsloggen.
+    Valgfri query-param: ?lines=50 (default: 50)
+    """
+    try:
+        lines_requested = int(request.args.get("lines", 50))
+        if lines_requested <= 0:
+            lines_requested = 50
+    except (ValueError, TypeError):
+        lines_requested = 50
+
+    logs = logger_controller.get_recent_logs(limit=lines_requested)
+    return jsonify({
+        "logs": logs,
+        "returned_lines": len(logs),
+        "requested_lines": lines_requested
+    })
+
 
 @log_routes.route("/api/logs", methods=["GET"])
 @token_required

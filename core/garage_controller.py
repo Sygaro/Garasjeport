@@ -149,11 +149,18 @@ class GarageController:
     def get_current_status(self, port):
         return self.status.get(port, "unknown")
 
-    def get_all_statuses(self):
-        return self.status
-    
+    def get_all_status(self):
+        """
+        Returnerer status for alle porter som et dictionary.
+        """
+        return {port: self.get_current_status(port) for port in self.get_ports()}
+
     def get_port_names(self):
         return list(self.relay_control.relay_pins.keys())
+    
+    def get_ports(self):
+        return list(self.config_gpio.get("relay_pins", {}).keys())
+
 
     def get_reported_status(self, port):
         """
