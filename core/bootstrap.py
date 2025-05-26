@@ -232,22 +232,48 @@ def validate_config_system(config):
     return True
 
 def validate_config_health(config):
+    """
+    Validerer strukturen og verdiene i config_health.json
+    Krever at nødvendige thresholds og alerts finnes og har korrekt type.
+    """
+
+    # Valider thresholds
     required_thresholds = {
         "cpu_temp_max": (int, float),
         "disk_usage_max_percent": int,
         "memory_usage_max_percent": int,
         "min_free_disk_gb": (int, float),
-        "min_free_memory_mb": int
+        "min_free_memory_mb": int,
+        "update_warning_threshold": int
     }
-    thresholds = config.get("thresholds", {})
-    for key, expected_type in required_thresholds.items():
-        val = thresholds.get(key)
-        if val is None or not isinstance(val, expected_type):
-            raise ValueError(f"Feil eller mangler i thresholds: {key}")
 
-    alerts = config.get("alerts", {})
+    thresholds = config.get("thresholds")
+    if not thresholds or not isinstance(thresholds, dict):
+        raise ValueError("Mangler eller ugyldig 'thresholds' blokk i config_health.json")
+
+    for key, expected_type in required_thresholds.items():
+        value = thresholds.get(key)
+        if value is None:
+            raise ValueError(f"Mangler terskel: thresholds.{key}")
+        if not isinstance(value, expected_type):
+            raise ValueError(f"Ugyldig type for thresholds.{key}: forventet {expected_type}, fikk {type(value)}")
+
+    # Valider alerts
+    alerts = config.get("alerts")
+    if not alerts or not isinstance(alerts, dict):
+        raise ValueError("Mangler eller ugyldig 'alerts' blokk i config_health.json")
+
     if "enabled" not in alerts:
-        raise ValueError("alerts.enabled mangler")
+        raise ValueError("Mangler 'alerts.enabled'")
+
+    if not isinstance(alerts["enabled"], bool):
+        raise ValueError("'alerts.enabled' må være en bool")
+
+    if "repeat_interval_min" in alerts and not isinstance(alerts["repeat_interval_min"], int):
+        raise ValueError("'alerts.repeat_interval_min' må være int hvis definert")
+
+    if "max_repeats" in alerts and not isinstance(alerts["max_repeats"], int):
+        raise ValueError("'alerts.max_repeats' må være int hvis definert")
 
     return True
 

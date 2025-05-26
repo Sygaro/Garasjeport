@@ -5,11 +5,10 @@ import datetime
 import psutil
 
 from utils.config_loader import load_config
-from config import config_paths as paths
+from config import config_paths
 from utils.garage_logger import GarageLogger
 
 logger = GarageLogger()
-
 
 APP_START_TIME = time.time()
 
@@ -99,43 +98,52 @@ def get_system_status():
         }
     }
 
+
 def check_thresholds_and_log(status_data):
-    """
-    Sammenligner systemstatus mot grenseverdier i config_health.json.
-    Logger advarsler hvis noen grenser overskrides.
-    """
-    try:
-        config = load_config(paths.CONFIG_HEALTH_PATH)
-        thresholds = config.get("thresholds", {})
-        alerts = config.get("alerts", {})
-        log_warn = alerts.get("log_warning", True)
+    config = load_config(config_paths.CONFIG_HEALTH_PATH)
+    warnings = []
 
-        warnings = []
+    # CPU temp
+    max_cpu_temp = config.get("cpu_temp_max", 70)
+    cpu_temp = status_data.get("cpu_temp_c")
+    if cpu_temp is not None and cpu_temp > max_cpu_temp:
+        msg = f"CPU-temperatur {cpu_temp}°C overstiger terskel {max_cpu_temp}°C"
+        warnings.append(msg)
+        logger.log_warning("health", msg)
 
-        if status_data["cpu_temp_c"] and status_data["cpu_temp_c"] > thresholds.get("cpu_temp_max", 80):
-            warnings.append(f"CPU temp høy: {status_data['cpu_temp_c']}°C")
+    # Disk
+    disk_usage = status_data.get("percent_used")
+    max_disk = config.get("disk_percent_used_max", 85)
+    if disk_usage is not None and disk_usage > max_disk:
+        msg = f"Diskbruk {disk_usage}% overstiger grense på {max_disk}%"
+        warnings.append(msg)
+        logger.log_warning("health", msg)
 
-        if status_data["percent_used"] > thresholds.get("disk_usage_max_percent", 90):
-            warnings.append(f"Diskbruk høy: {status_data['percent_used']}%")
+    # Memory
+    mem_usage = status_data.get("percent_used_mem")
+    max_mem = config.get("memory_percent_used_max", 85)
+    if mem_usage is not None and mem_usage > max_mem:
+        msg = f"Minnebruk {mem_usage}% overstiger grense på {max_mem}%"
+        warnings.append(msg)
+        logger.log_warning("health", msg)
 
-        if status_data["free_gb"] < thresholds.get("min_free_disk_gb", 1.0):
-            warnings.append(f"Lite ledig diskplass: {status_data['free_gb']} GB")
+    # CPU load
+    load_1min = status_data.get("load_1min", 0)
+    max_load = config.get("max_load_avg", 1.0)
+    if load_1min > max_load:
+        msg = f"CPU load 1min er {load_1min} som overstiger terskel {max_load}"
+        warnings.append(msg)
+        logger.log_warning("health", msg)
 
-        if status_data["percent_used_mem"] > thresholds.get("memory_usage_max_percent", 85):
-            warnings.append(f"Minnebruk høy: {status_data['percent_used_mem']}%")
+    # Updates
+    pending = status_data.get("pending_updates", 0)
+    if config.get("warn_if_pending_updates", True) and pending > 0:
+        msg = f"{pending} systemoppdateringer tilgjengelig"
+        warnings.append(msg)
+        logger.log_warning("health", msg)
 
-        if status_data["free_mb"] < thresholds.get("min_free_memory_mb", 128):
-            warnings.append(f"Lite ledig minne: {status_data['free_mb']} MB")
+    return warnings
 
-        if log_warn and warnings:
-            for w in warnings:
-                logger.log_warning("system_monitor", w)
-
-        return warnings
-
-    except Exception as e:
-        logger.log_error("system_monitor", f"Feil ved terskelsjekk: {e}")
-        return []
 
 
 def run_system_health_check():
@@ -171,3 +179,71 @@ def run_system_health_check():
         "checks": checks,
         "system_ok": system_ok
     }
+
+
+
+def get_diagnostics(status_data):
+    """
+    Går gjennom systemstatus og vurderer den opp mot terskelverdier fra config_health.json.
+    Returnerer en liste med menneskelesbare vurderinger, både varsler og bekreftelser.
+    """
+
+    config = load_config(config_paths.CONFIG_HEALTH_PATH)
+    thresholds = config.get("thresholds", {})
+
+    diagnostics = []
+
+    # --- CPU temperatur ---
+    cpu_temp = status_data.get("cpu_temp_c")
+    if cpu_temp is not None:
+        max_temp = thresholds.get("cpu_temp_max", 70)
+        if cpu_temp > max_temp:
+            diagnostics.append(f"CPU-temperatur {cpu_temp}°C overstiger terskel {max_temp}°C")
+        else:
+            diagnostics.append(f"CPU-temperatur {cpu_temp}°C under terskel {max_temp}°C")
+
+    # --- Minnebruk ---
+    mem_percent = status_data.get("percent_used_mem")
+    if mem_percent is not None:
+        max_mem = thresholds.get("memory_usage_max_percent", 85)
+        if mem_percent > max_mem:
+            diagnostics.append(f"Minnebruk {mem_percent}% overstiger grense på {max_mem}%")
+        else:
+            diagnostics.append(f"Minnebruk {mem_percent}% under terskel {max_mem}%")
+
+    # --- Diskbruk ---
+    disk_used = status_data.get("percent_used")
+    if disk_used is not None:
+        max_disk = thresholds.get("disk_usage_max_percent", 90)
+        if disk_used > max_disk:
+            diagnostics.append(f"Diskbruk {disk_used}% overstiger grense på {max_disk}%")
+        else:
+            diagnostics.append(f"Diskbruk {disk_used}% under terskel {max_disk}%")
+
+    # --- Ledig diskplass (GB) ---
+    free_disk = status_data.get("free_gb")
+    if free_disk is not None:
+        min_free_disk = thresholds.get("min_free_disk_gb", 2.0)
+        if free_disk < min_free_disk:
+            diagnostics.append(f"Ledig diskplass {free_disk} GB er under minimum {min_free_disk} GB")
+        else:
+            diagnostics.append(f"{free_disk} GB ledig diskplass – over minimum {min_free_disk} GB")
+
+    # --- Ledig minne (MB) ---
+    free_mem = status_data.get("free_mb")
+    if free_mem is not None:
+        min_free_mem = thresholds.get("min_free_memory_mb", 100)
+        if free_mem < min_free_mem:
+            diagnostics.append(f"Ledig minne {free_mem} MB er under minimum {min_free_mem} MB")
+        else:
+            diagnostics.append(f"{free_mem} MB ledig minne – over minimum {min_free_mem} MB")
+
+    # --- Systemoppdateringer ---
+    updates = status_data.get("pending_updates")
+    if updates is not None:
+        if updates > 0:
+            diagnostics.append(f"{updates} systemoppdateringer tilgjengelig")
+        else:
+            diagnostics.append("Ingen kritiske systemoppdateringer tilgjengelig")
+
+    return diagnostics

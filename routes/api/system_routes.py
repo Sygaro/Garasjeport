@@ -3,11 +3,9 @@ import datetime, os, json
 
 from flask import Blueprint, jsonify, request
 from utils.auth import token_required
-from utils.config_loader import load_config
+#from utils.config_loader import load_config
 from config import config_paths as paths
-from utils.system_monitor import get_system_status, check_thresholds_and_log, run_system_health_check
-
-
+from utils.system_monitor import get_system_status, check_thresholds_and_log, run_system_health_check, get_diagnostics
 
 system_routes = Blueprint("system_routes", __name__, url_prefix="/system")
 
@@ -93,3 +91,16 @@ def get_system_health():
     result["timestamp"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     return jsonify(result)
 
+
+@system_routes.route("/rpi_diagnostics", methods=["GET"])
+@token_required
+def rpi_diagnostics():
+    try:
+        status = get_system_status()
+        report = get_diagnostics(status)
+        return jsonify({
+            "diagnostics": report,
+            "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500

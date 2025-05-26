@@ -1,15 +1,23 @@
 {
   "thresholds": {
-    "cpu_temp_max": 75.0,
-    "disk_usage_max_percent": 90,
-    "memory_usage_max_percent": 85,
+    "cpu_temp_max": 15.0,
+    "disk_usage_max_percent": 1,
+    "memory_usage_max_percent": 5,
     "min_free_disk_gb": 1.0,
-    "min_free_memory_mb": 128
+    "min_free_memory_mb": 128,
+    "update_warning_threshold": 1
   },
   "alerts": {
     "enabled": true,
     "log_warning": true,
     "notify_api": false,
     "interval_minutes": 15
+  },
+  "_comments": {
+    "cpu_temp_threshold": "Grenseverdi for CPU-temperatur i grader Celsius. Advarsel hvis over.",
+    "memory_usage_threshold": "Grenseverdi for brukt minne i prosent.",
+    "disk_usage_threshold": "Grenseverdi for brukt disk i prosent.",
+    "update_warning_threshold": "Minimum antall tilgjengelige oppdateringer før advarsel vises."
   }
+
 }
