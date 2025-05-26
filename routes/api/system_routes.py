@@ -1,12 +1,13 @@
 # routes/system_routes.py
+import datetime, os, json
 
 from flask import Blueprint, jsonify, request
 from utils.auth import token_required
 from utils.config_loader import load_config
 from config import config_paths as paths
-import datetime
-import os
-import json
+from utils.system_monitor import get_system_status, check_thresholds_and_log, run_system_health_check
+
+
 
 system_routes = Blueprint("system_routes", __name__, url_prefix="/api/system")
 
@@ -20,15 +21,6 @@ def get_pigpio_status():
         return jsonify(json.loads(data))
     except Exception as e:
         return jsonify({"error": "Statusfil ikke funnet", "details": str(e)}), 404
-
-
-@system_routes.route("/health", methods=["GET"])
-@token_required
-def get_system_health():
-    from monitor.health_check import run_system_health_check
-    result = run_system_health_check()
-    result["timestamp"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    return jsonify(result)
 
 
 @system_routes.route("/bootstrap_status", methods=["GET"])
@@ -91,8 +83,25 @@ def report_frontend_version():
         return jsonify({"error": "frontend_version ikke angitt"}), 400
 
 
-@system_routes.route("/rpi_status", methods=["GET"])
+# routes/api/system_routes.py
+
+@system_routes.route("/system/rpi_status", methods=["GET"])
 @token_required
 def get_rpi_status():
-    from monitor.rpi_status import get_rpi_status_report
-    return jsonify(get_rpi_status_report())
+    try:
+        status = get_system_status()
+        warnings = check_thresholds_and_log(status)
+        return jsonify({
+            "status": status,
+            "warnings": warnings
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@system_routes.route("/system/health", methods=["GET"])
+@token_required
+def get_system_health():
+    result = run_system_health_check()
+    result["timestamp"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    return jsonify(result)

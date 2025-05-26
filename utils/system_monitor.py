@@ -124,3 +124,38 @@ def check_thresholds_and_log(status_data):
     except Exception as e:
         logger.log_error("system_monitor", f"Feil ved terskelsjekk: {e}")
         return []
+
+
+def run_system_health_check():
+    """
+    Sjekker status for pigpiod, GPIO og sensor-monitor.
+    Returnerer et resultat med boolske helsesjekker.
+    """
+    checks = {
+        "pigpiod": False,
+        "gpio_ready": False,
+        "sensor_monitor": True  # Foreløpig statisk, evt. utvides
+    }
+
+    # Sjekk pigpiod kjører
+    try:
+        result = subprocess.run(["pgrep", "pigpiod"], stdout=subprocess.PIPE)
+        checks["pigpiod"] = result.returncode == 0
+    except Exception:
+        checks["pigpiod"] = False
+
+    # Sjekk GPIO (pigpio tilgjengelig)
+    try:
+        import pigpio
+        pi = pigpio.pi()
+        checks["gpio_ready"] = pi.connected
+        pi.stop()
+    except Exception:
+        checks["gpio_ready"] = False
+
+    # Beregn samlet systemstatus
+    system_ok = all(checks.values())
+    return {
+        "checks": checks,
+        "system_ok": system_ok
+    }

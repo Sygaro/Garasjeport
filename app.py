@@ -8,10 +8,14 @@ from config.config_paths import LOG_DIR
 from core.system import controller
 from core.bootstrap import initialize_system_environment
 from monitor.system_monitor_task import start_system_monitor_task
+from routes.api.system_routes import system_routes
+
 
 # Flask-app
 app = Flask(__name__)
 app.config["JSONIFY_PRETTYPRINT_REGULAR"] = True
+#app.register_blueprint(system_routes)
+
 
 # Init system
 initialize_system_environment()
