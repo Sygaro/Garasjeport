@@ -1,10 +1,10 @@
 import datetime
-import time, json, threading 
-import pigpio
+import time, json #, threading 
+#import pigpio
 from datetime import datetime
 
 from config import config_paths as paths
-from utils.relay_control import RelayControl
+from utils.relay_control import trigger
 from utils.garage_logger import GarageLogger
 # from utils.config_loader import load_config, load_portlogic_config
 # from utils.gpio_initializer import configure_gpio_pins
@@ -18,10 +18,13 @@ try:
 except ImportError:
     SensorMonitor = None
 
+
 class GarageController:
-    def __init__(self, config_gpio, config_system, testing_mode=False):
+    def __init__(self, config_gpio, config_system, relay_pins, relay_config, testing_mode=False):
         self.config_gpio = config_gpio
         self.config_system = config_system
+        self.relay_pins = relay_pins
+        self.relay_config = relay_config
         self.testing_mode = testing_mode
 
         self.logger = GarageLogger()
@@ -32,11 +35,6 @@ class GarageController:
         self.pi = get_pi()
         assert self.pi is not None and self.pi.connected, "Feil: pigpio er ikke tilgjengelig"
 
-        self.relay_control = RelayControl(
-            config_gpio=config_gpio,
-            logger=self.logger,
-            pi=self.pi
-        )
 
         self.sensor_monitor = SensorMonitor(
             config_gpio=config_gpio,
@@ -120,13 +118,12 @@ class GarageController:
         else:
             self.status[port] = "moving"
             
-
     def open_port(self, port):
         if self.status.get(port) == "open":
             return {"port": port, "status": "already open"}
 
         self.logger.log_action(port, "open", source="api")
-        self.relay_control.trigger(port)
+        self.activate_relay(port)
         self._operation_flags[port]["moving"] = True
         self._operation_flags[port]["start_time"] = time.time()
 
@@ -140,7 +137,7 @@ class GarageController:
             return {"port": port, "status": "already closed"}
 
         self.logger.log_action(port, "close", source="api")
-        self.relay_control.trigger(port)
+        self.activate_relay(port)
         self._operation_flags[port]["moving"] = True
         self._operation_flags[port]["start_time"] = time.time()
 
@@ -156,6 +153,18 @@ class GarageController:
         self._operation_flags[port]["moving"] = False
         self.logger.log_action(port, "stop", source="api")
         return {"port": port, "status": "stopped"}
+    
+    def activate_relay(self, port):
+        """
+        Wrapper for trigger() med allerede tilgjengelig konfig og pi.
+        """
+        trigger(
+            port=port,
+            pi=self.pi,
+            relay_pins=self.relay_pins,
+            relay_config=self.relay_config,
+            logger=self.logger
+        )
 
     def get_current_status(self, port):
         return self.status.get(port, "unknown")
@@ -167,7 +176,8 @@ class GarageController:
         return {port: self.get_current_status(port) for port in self.get_ports()}
 
     def get_port_names(self):
-        return list(self.relay_control.relay_pins.keys())
+        return list(set(self.relay_pins.keys()) | set(self.config_gpio.get("sensor_pins", {}).keys()))
+
     
     def get_ports(self):
         return list(self.config_gpio.get("relay_pins", {}).keys())
@@ -311,16 +321,12 @@ class GarageController:
             self.logger.log_warning("sensor", f"{port}: Motsatt sensor aktivert – manuell stopp eller avbrudd")
 
 
-
-
     def shutdown(self):
         if getattr(self, "_already_shutdown", False):
             return
         self._already_shutdown = True
         self.logger.log_debug("controller", "Shutdown pågår – rydder opp rele og sensorer")
         try:
-            if hasattr(self.relay_control, "cleanup"):
-                self.relay_control.cleanup()
             if hasattr(self.sensor_monitor, "cleanup"):
                 self.sensor_monitor.cleanup()
         except Exception as e:

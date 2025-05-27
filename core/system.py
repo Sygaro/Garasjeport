@@ -1,26 +1,37 @@
-# ==========================================
-# Filnavn: system.py
-# Felles systemressurser, som controller
-# ==========================================
+# core/system.py
+
+import atexit
 from config import config_paths as paths
 from utils.config_loader import load_config
-from utils.pigpio_manager import get_pi
+from utils.pigpio_manager import get_pi, stop_pi
+from utils.gpio_initializer import initialize_gpio
+from utils.relay_initializer import initialize_relays
 from core.garage_controller import GarageController
-import atexit
 
-# Én global instans av GarageController
-
-# Last inn konfigurasjoner fra config/*.json
-#config_gpio, config_system = load_config()
+# Last inn config for sensorer og system
 gpio_config = load_config(paths.CONFIG_GPIO_PATH)
 system_config = load_config(paths.CONFIG_SYSTEM_PATH)
 
-get_pi()  # Tving caching tidlig
+# Sett opp GPIO-modus og pull for sensorer
+initialize_gpio()
 
-# Én global instans av controller
-controller = GarageController(gpio_config, system_config, testing_mode=False)
+# Sett opp reléutganger
+relay_pins, relay_config = initialize_relays()
 
-# Sørg for ryddig nedstenging
+# Start delt pigpio-instans
+pi = get_pi()
+atexit.register(stop_pi)
+
+# Start GarageController
+controller = GarageController(
+    config_gpio=gpio_config,
+    config_system=system_config,
+    relay_pins=relay_pins,
+    relay_config=relay_config,
+    testing_mode=False
+)
+
+# Ryddig nedstenging
 def shutdown():
     controller.shutdown()
 

@@ -3,8 +3,11 @@
 import json, os
 
 def load_json(path):
-    with open(path, 'r') as f:
-        return json.load(f)
+    try:
+        with open(path, 'r') as f:
+            return json.load(f)
+    except Exception as e:
+        raise RuntimeError(f"Kunne ikke laste JSON-fil: {path} – {e}")
 
 def save_json(path, data):
     with open(path, 'w') as f:

@@ -5,9 +5,9 @@
       "type": "BME280",
       "i2c_bus": 1,
       "address": "0x76",
-      "interval_sec": 60,
+      "interval_sec": 8,
       "enabled": true,
-      "temperature_offset": -0.8,
+      "temperature_offset": -0.0,
       "humidity_offset": 2.5,
       "altitude": 32
     },
@@ -16,8 +16,11 @@
       "type": "BME280",
       "i2c_bus": 1,
       "address": "0x77",
-      "interval_sec": 5,
-      "enabled": false
+      "interval_sec": 8,
+      "enabled": true,
+      "temperature_offset": -0.0,
+      "humidity_offset": 2.5,
+      "altitude": 32
     }
   ]
 }

@@ -15,7 +15,7 @@
   },
   "relay_config": {
     "active_state": 0,
-    "pulse_duration": 0.4,
+    "pulse_duration": 0.5,
     "max_sensor_start_delay": 3
 
   },
