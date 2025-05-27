@@ -1,8 +1,8 @@
 {
   "bme1": {
-    "temperature": 22.6,
-    "humidity": 53.28,
-    "pressure": 1000.57,
-    "timestamp": "2025-05-27 02:01:02"
+    "temperature": 19.09,
+    "humidity": 56.05,
+    "pressure": 998.66,
+    "timestamp": "2025-05-27 10:13:53"
   }
 }

@@ -1,6 +1,6 @@
 {
-  "bootstrap_time": "2025-05-27 02:00:01",
+  "bootstrap_time": "2025-05-27 10:00:52",
   "pigpiod_expected": true,
   "config_validated": true,
-  "version": "v1.06.0-19-g05c17e7"
+  "version": "v1.06.0-20-ga301764"
 }

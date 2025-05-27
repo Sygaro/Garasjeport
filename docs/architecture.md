@@ -12,7 +12,7 @@ Systemet er bygd opp rundt en **modulær og skalerbar arkitektur**, hvor konfigu
 
 ## 📂 Katalogstruktur
 
-.
+```
 ├── app.py # Startpunkt for Flask-applikasjonen
 ├── core/ # Kontrollere og bootstrap-oppstart
 │ ├── garage_controller.py # Hovedlogikk for portstyring
@@ -52,7 +52,7 @@ Systemet er bygd opp rundt en **modulær og skalerbar arkitektur**, hvor konfigu
 ├── static/ # (valgfritt) Statisk frontend
 └── templates/ # HTML (hvis frontend legges til)
 
-
+```
 ---
 
 ## 🔌 Hovedkomponenter
