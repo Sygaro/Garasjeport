@@ -49,5 +49,7 @@ FRONTEND_VERSION_PATH = os.path.join(STATUS_DIR, "frontend_version.json")
 CONFIG_SENSORS_PATH = os.path.join(CONFIG_DIR, "config_sensors.json")
 SENSOR_STATUS_PATH = os.path.join(STATUS_DIR, "sensor_data.json")
 SENSOR_LOG_PATH = os.path.join(LOG_DIR, "sensor_data.log")
+SENSOR_AVERAGES_PATH = os.path.join(LOG_DIR, "sensor_averages.log")
+
 
 

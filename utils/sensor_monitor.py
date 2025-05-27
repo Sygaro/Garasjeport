@@ -1,90 +1,98 @@
 # utils/sensor_monitor.py
 
 import pigpio
-from utils.garage_logger import GarageLogger
-from utils.pigpio_manager import get_pi
-
-
+from utils.garage_logger import get_logger
+from config.config_paths import CONFIG_GPIO_PATH
+from utils.file_utils import load_json
 
 class SensorMonitor:
     def __init__(self, config_gpio, logger=None, pi=None):
-        self.logger = logger or GarageLogger() or print
-        #self.config_gpio = config_gpio
-        self.pi = pi or get_pi()
+        """
+        Overvåker porter og registrerer sensor-endringer via pigpio edge detection.
+        """
+        self.pi = pi  # Delt pigpio-instans (fra pigpio_manager.get_pi())
+        self.logger = logger or get_logger()
+        self.config = config_gpio or load_json(CONFIG_GPIO_PATH)
 
-        print("[DEBUG] pigpio-manager: Initialiserer delt pigpio-instans")
-         # Bekreft at pigpio er tilkoblet
-        assert self.pi is not None and self.pi.connected, "pigpio ikke tilkoblet"
+        self.sensor_config = self.config.get("sensor_config", {})
+        self.sensor_pins = self.config.get("sensor_pins", {})
 
-
-
-        if not self.pi or not self.pi.connected:
-            raise RuntimeError("Kunne ikke koble til pigpiod")
-
-        self.sensor_pins = config_gpio.get("sensor_pins", {})
-        sensor_config = config_gpio.get("sensor_config", {})
-
-        self.active_state = sensor_config.get("active_state", 0)
-        pull_mode = {
-            "up": pigpio.PUD_UP,
-            "down": pigpio.PUD_DOWN,
-            "off": pigpio.PUD_OFF
-        }.get(sensor_config.get("pull", "up").lower(), pigpio.PUD_UP)
-
-        self.callbacks = {}
+        self.active_state = self.sensor_config.get("active_state", 1)
+        self._gpio_to_port = {}     # GPIO: (portnavn, sensor_type)
         self.callback_function = None
+        self.callbacks = []
 
-        # Konfigurer alle sensorer
+        self._build_gpio_mapping()
+
+    def _build_gpio_mapping(self):
+        """
+        Lager oppslagstabell for GPIO → (port, sensor_type)
+        """
         for port, sensors in self.sensor_pins.items():
-            for sensor_type, gpio_pin in sensors.items():
-                self.pi.set_mode(gpio_pin, pigpio.INPUT)
-                self.pi.set_pull_up_down(gpio_pin, pull_mode)
-                self.logger.log_debug("sensor", f"{port} {sensor_type} sensor konfigurert på GPIO {gpio_pin}")
+            for sensor_type, gpio in sensors.items():
+                self._gpio_to_port[gpio] = (port, sensor_type)
 
     def set_callback(self, callback_function):
         """
-        Setter funksjonen som skal kalles ved sensorendring.
+        Registrerer ekstern callback som trigges ved sensorendring.
         """
         self.callback_function = callback_function
+        self.logger.log_debug("sensor_monitor", "Callback-funksjon registrert")
         self._setup_callbacks()
 
     def _setup_callbacks(self):
-        for port, sensors in self.sensor_pins.items():
-            for sensor_type, gpio_pin in sensors.items():
-                def callback_func(gpio, level, tick, port=port, sensor_type=sensor_type):
-                    if self.callback_function:
-                        self.callback_function(
-                            gpio=gpio, level=level, tick=tick,
-                            port=port, sensor_type=sensor_type
-                        )
+        """
+        Registrerer pigpio edge detection callbacks for alle sensorer.
+        Forutsetter at pinnene er initialisert via gpio_initializer.
+        """
+        for gpio, (port, sensor_type) in self._gpio_to_port.items():
+            try:
+                cb = self.pi.callback(
+                    gpio,
+                    pigpio.EITHER_EDGE,
+                    self._generate_handler(gpio)
+                )
+                self.callbacks.append(cb)
+                self.logger.log_debug(
+                    "sensor_monitor",
+                    f"Callback satt på port: {port}, sensor: {sensor_type}, GPIO: {gpio}"
+                )
+            except Exception as e:
+                self.logger.log_error("sensor_monitor", f"Feil ved registrering av callback på GPIO {gpio}: {e}")
 
-                cb = self.pi.callback(gpio_pin, pigpio.EITHER_EDGE, callback_func)
-                self.callbacks[gpio_pin] = cb
-                self.logger.log_debug("sensor", f"Callback registrert for GPIO {gpio_pin}")
+    def _generate_handler(self, gpio):
+        """
+        Lager handler som kaller _handle_sensor med korrekt GPIO.
+        """
+        return lambda gpio, level, tick: self._handle_sensor(gpio, level)
 
-    def is_sensor_active(self, port, sensor_type):
+    def _handle_sensor(self, gpio, level):
         """
-        Returnerer True hvis gitt sensor for port er aktiv.
+        Behandler sensorendring og videresender til registrert callback.
         """
-        gpio = self.sensor_pins.get(port, {}).get(sensor_type)
-        if gpio is None:
-            self.logger.log_warning("sensor", f"Ugyldig sensorforespørsel: {port}/{sensor_type}")
-            return False
-        level = self.pi.read(gpio)
-        return level == self.active_state
+        if gpio not in self._gpio_to_port:
+            self.logger.log_warning("sensor_monitor", f"Ukjent GPIO: {gpio} – finnes ikke i konfig")
+            return
 
-    def stop(self):
+        port, sensor_type = self._gpio_to_port[gpio]
+        active_text = "aktiv" if level == self.active_state else "inaktiv"
+
+        self.logger.log_debug(
+            "sensor_monitor",
+            f"Sensor-endring: {port} ({sensor_type}) GPIO {gpio} = {level} → {active_text}"
+        )
+
+        if self.callback_function:
+            self.callback_function(port, sensor_type, level)
+        else:
+            self.logger.log_warning("sensor_monitor", "Ingen callback-funksjon satt – ignorerer signal")
+
+    def cleanup(self):
         """
-        Stopper alle registrerte callbacks.
+        Stopper alle pigpio callbacks og rydder opp.
         """
-        for gpio, cb in self.callbacks.items():
+        for cb in self.callbacks:
             cb.cancel()
         self.callbacks.clear()
-        self.logger.log_status("sensor", "Alle sensor callbacks fjernet")
 
-        
-    def callback_func(self, gpio, level, tick, port, sensor_type):
-        if self.callback_function:
-            self.callback_function(
-                gpio=gpio, level=level, tick=tick, port=port, sensor_type=sensor_type
-            )
+        self.logger.log_debug("sensor_monitor", "Alle sensor-callbacks er deaktivert og fjernet")

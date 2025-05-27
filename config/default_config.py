@@ -25,5 +25,7 @@ REQUIRED_LOG_FILES = [
     "activity.log",
     "status.log",
     "errors.log",
-    "timing.log"
+    "timing.log",
+    "bootstrap.log",
+    "sensor_data.log"
 ]

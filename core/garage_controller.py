@@ -41,6 +41,9 @@ class GarageController:
             logger=self.logger,
             pi=self.pi
         )
+        if hasattr(self.sensor_monitor, "set_callback"):
+            self.sensor_monitor.set_callback(self.sensor_event_callback)
+
         
         assert self.pi is not None and self.pi.connected, "pigpio ikke tilkoblet"
 
@@ -319,7 +322,6 @@ class GarageController:
                 "movement_detected_time": None
             }
             self.logger.log_warning("sensor", f"{port}: Motsatt sensor aktivert – manuell stopp eller avbrudd")
-
 
     def shutdown(self):
         if getattr(self, "_already_shutdown", False):

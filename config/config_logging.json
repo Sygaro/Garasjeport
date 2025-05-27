@@ -4,12 +4,12 @@
   "rotation_days": 14,
   "retention_days": 90,
   "log_levels": {
-    "status": "DEBUG",
+    "status": "IMFO",
     "activity": "DEBUG",
     "timing": "DEBUG",
     "errors": "DEBUG",
     "bootstrap": "DEBUG",
-    "sensor": "DEBUG"
+    "sensor": "INFO"
 
   },
   "enabled_logs": {

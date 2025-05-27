@@ -50,6 +50,37 @@ class GarageLogger:
             lines = f.readlines()
             return [line.strip() for line in lines[-limit:]]
 
+    def log_status_change(self, port, message):
+        """
+        Logger statusendringer fra sensorer med 'info'-nivå.
+        """
+        context = f"{port}"
+        self._log("info", context, f"[STATUS] {message}")
+
+
+    def _log(self, level, context, message):
+        """
+        Intern metode for å logge med ønsket nivå og format.
+        Logger kun hvis nivået er tillatt basert på config_logger.json.
+        """
+        if not hasattr(self, "allowed_levels"):
+            self.allowed_levels = {"info", "debug", "error", "warning"}  # fallback
+        if level not in self.allowed_levels:
+            return
+
+        formatted = f"[{level.upper()}] [{context}] {message}"
+
+        if level == "debug":
+            print(formatted)
+        elif level == "info":
+            print(formatted)
+        elif level == "warning":
+            print(formatted)
+        elif level == "error":
+            print(formatted)
+        # Kan utvides til logging til fil osv.
+
+
 # Felles inngangspunkt brukt overalt i systemet
 _logger_instances = {}
 
