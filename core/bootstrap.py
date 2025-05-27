@@ -34,7 +34,7 @@ def ensure_required_directories():
         paths.CONFIG_DIR,
         paths.BACKUP_DIR,
         #paths.STATIC_DIR,
-        paths.TEMPLATE_DIR,
+        #paths.TEMPLATE_DIR,
         paths.DOCS_DIR
     ]:
         ensure_directory_exists(directory)
