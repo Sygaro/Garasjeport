@@ -4,17 +4,20 @@
   "rotation_days": 14,
   "retention_days": 90,
   "log_levels": {
-    "status": "INFO",
-    "activity": "INFO",
+    "status": "DEBUG",
+    "activity": "DEBUG",
     "timing": "DEBUG",
-    "errors": "WARNING",
-    "bootstrap": "INFO"
+    "errors": "DEBUG",
+    "bootstrap": "DEBUG",
+    "sensor": "DEBUG"
+
   },
   "enabled_logs": {
     "status": true,
     "activity": true,
     "timing": true,
     "errors": true,
-    "bootstrap": true
+    "bootstrap": true,
+    "sensor": true
   }
 }

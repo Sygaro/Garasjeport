@@ -1,81 +1,59 @@
-import os
-import json
-from datetime import datetime
-from config import config_paths as paths
-from utils.config_loader import load_config
+import logging
+from utils.logger_factory import get_logger as _get_internal_logger
 
 class GarageLogger:
-    def __init__(self, status_log_path=None, error_log_path=None, log_type="text"):
-        self.log_type = log_type  # 'text' eller 'json'
-        self.config = load_config(paths.CONFIG_LOGGING_PATH)
-
-        self.status_log = status_log_path or paths.STATUS_LOG
-        self.error_log = error_log_path or paths.ERROR_LOG
-        self.activity_log = paths.ACTIVITY_LOG
-        self.timing_log = paths.TIMING_LOG
-
-        self.ensure_log_dirs()
-
-    def ensure_log_dirs(self):
-        for path in [self.status_log, self.error_log, self.activity_log, self.timing_log]:
-            os.makedirs(os.path.dirname(path), exist_ok=True)
-
-    def _get_timestamp(self):
-        return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    def __init__(self, context="default"):
+        self.status_logger = _get_internal_logger(f"{context}_status", category="status")
+        self.error_logger = _get_internal_logger(f"{context}_error", category="error")
+        self.activity_logger = _get_internal_logger(f"{context}_activity", category="activity")
+        self.timing_logger = _get_internal_logger(f"{context}_timing", category="timing")
+        self.sensor_logger = _get_internal_logger(f"{context}_sensor", category="sensor")
 
     def log_status(self, context, message):
-        self._write_log(self.status_log, {
-            "timestamp": self._get_timestamp(),
-            "level": "STATUS",
-            "context": context,
-            "message": message
-        })
+        self.status_logger.info(f"{context}: {message}")
 
     def log_error(self, context, message):
-        self._write_log(self.error_log, {
-            "timestamp": self._get_timestamp(),
-            "level": "ERROR",
-            "context": context,
-            "message": message
-        })
+        self.error_logger.error(f"{context}: {message}")
 
     def log_action(self, port, action, source="api", result="success"):
-        entry = {
-            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "level": "INFO",
-            "context": f"port:{port}",
-            "message": f"Aksjon: {action}, kilde: {source}, resultat: {result}"
-        }
-        self._write_log(paths.ACTIVITY_LOG, entry)
-
-    def _write_log(self, path, message_dict):
-        try:
-            msg = (
-                f"{message_dict['timestamp']} "
-                f"[{message_dict['level']}] "
-                f"{message_dict['context']}: "
-                f"{message_dict['message']}"
-            )
-            with open(path, "a") as f:
-                f.write(msg + "\n")
-        except Exception as e:
-            print(f"[Logger Error] Klarte ikke å skrive til logg: {e}")
-
+        msg = f"Aksjon: {action}, kilde: {source}, resultat: {result}"
+        self.activity_logger.info(f"port:{port}: {msg}")
 
     def log_timing(self, context, timing_data):
-        entry = {
-            "timestamp": self._get_timestamp(),
-            "level": "TIMING",
-            "context": context,
-            "message": timing_data
-        }
-        self._write_log(self.timing_log, entry)
+        self.timing_logger.info(f"{context}: {timing_data}")
+
+    def log_sensor_data(self, context, message):
+        self.sensor_logger.info(f"{context}: {message}")
 
     def log_debug(self, context, message):
-        print(f"[DEBUG] {context}: {message}")  # Konsoll-debug
+        self.status_logger.debug(f"{context}: {message}")
+        if self.sensor_logger.getEffectiveLevel() <= logging.DEBUG:
+            print(f"[DEBUG] {context}: {message}")
 
-    def get_recent_logs(self, limit=50):
-        with open(paths.ACTIVITY_LOG, "r") as f:
-            lines = f.readlines()[-limit:]
-        return [line.strip() for line in lines]
+    def get_recent_logs(self, log_type="activity", limit=50):
+        import os
+        from config import config_paths
 
+        log_map = {
+            "status": config_paths.STATUS_LOG,
+            "error": config_paths.ERROR_LOG,
+            "activity": config_paths.ACTIVITY_LOG,
+            "timing": config_paths.TIMING_LOG,
+            "sensor": config_paths.SENSOR_LOG_PATH
+        }
+
+        path = log_map.get(log_type, config_paths.ACTIVITY_LOG)
+        if not os.path.exists(path):
+            return []
+
+        with open(path, "r") as f:
+            lines = f.readlines()
+            return [line.strip() for line in lines[-limit:]]
+
+# Felles inngangspunkt brukt overalt i systemet
+_logger_instances = {}
+
+def get_logger(context="default"):
+    if context not in _logger_instances:
+        _logger_instances[context] = GarageLogger(context)
+    return _logger_instances[context]

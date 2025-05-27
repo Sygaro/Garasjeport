@@ -9,6 +9,11 @@ from core.system import controller
 from core.bootstrap import initialize_system_environment
 from monitor.system_monitor_task import start_system_monitor_task
 from routes.api.system_routes import system_routes
+from routes.api.sensor_routes import sensor_routes
+from monitor.sensor_monitor_task import run_sensor_monitor_loop
+import threading
+
+
 from routes.api import api
 
 
@@ -17,6 +22,8 @@ from routes.api import api
 app = Flask(__name__)
 app.config["JSONIFY_PRETTYPRINT_REGULAR"] = True
 app.register_blueprint(api)
+app.register_blueprint(sensor_routes)
+
 
 #app.register_blueprint(system_routes)
 
@@ -31,7 +38,8 @@ from routes.api import (
     status_routes,
     config_routes,
     log_routes,
-    system_routes
+    system_routes,
+    sensor_routes
 )
 from routes.web import web
 
@@ -53,6 +61,8 @@ def health_check():
 
 # Kjør applikasjonen
 if __name__ == "__main__":
+    # Start sensor-monitor i bakgrunnen
+    threading.Thread(target=run_sensor_monitor_loop, daemon=True).start()
     print("[APP] Starter Flask-applikasjon...")
     atexit.register(controller.shutdown)
     app.run(host="0.0.0.0", port=5000, debug=True, use_reloader=False)

@@ -1,0 +1,23 @@
+{
+  "sensors": [
+    {
+      "id": "bme1",
+      "type": "BME280",
+      "i2c_bus": 1,
+      "address": "0x76",
+      "interval_sec": 60,
+      "enabled": true,
+      "temperature_offset": -0.8,
+      "humidity_offset": 2.5,
+      "altitude": 32
+    },
+    {
+      "id": "bme2",
+      "type": "BME280",
+      "i2c_bus": 1,
+      "address": "0x77",
+      "interval_sec": 5,
+      "enabled": false
+    }
+  ]
+}

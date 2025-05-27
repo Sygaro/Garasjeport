@@ -186,6 +186,7 @@ def get_diagnostics(status_data):
     """
     Går gjennom systemstatus og vurderer den opp mot terskelverdier fra config_health.json.
     Returnerer en liste med menneskelesbare vurderinger, både varsler og bekreftelser.
+    Forventer at status_data er strukturert med grupperte nøkler (f.eks. status_data['cpu']['cpu_temp_c']).
     """
 
     config = load_config(config_paths.CONFIG_HEALTH_PATH)
@@ -193,8 +194,8 @@ def get_diagnostics(status_data):
 
     diagnostics = []
 
-    # --- CPU temperatur ---
-    cpu_temp = status_data.get("cpu_temp_c")
+    # --- CPU-temperatur ---
+    cpu_temp = status_data.get("cpu", {}).get("cpu_temp_c")
     if cpu_temp is not None:
         max_temp = thresholds.get("cpu_temp_max", 70)
         if cpu_temp > max_temp:
@@ -202,8 +203,8 @@ def get_diagnostics(status_data):
         else:
             diagnostics.append(f"CPU-temperatur {cpu_temp}°C under terskel {max_temp}°C")
 
-    # --- Minnebruk ---
-    mem_percent = status_data.get("percent_used_mem")
+    # --- Minnebruk (i prosent) ---
+    mem_percent = status_data.get("memory", {}).get("percent_used_mem")
     if mem_percent is not None:
         max_mem = thresholds.get("memory_usage_max_percent", 85)
         if mem_percent > max_mem:
@@ -211,8 +212,8 @@ def get_diagnostics(status_data):
         else:
             diagnostics.append(f"Minnebruk {mem_percent}% under terskel {max_mem}%")
 
-    # --- Diskbruk ---
-    disk_used = status_data.get("percent_used")
+    # --- Diskbruk (i prosent) ---
+    disk_used = status_data.get("disk", {}).get("percent_used")
     if disk_used is not None:
         max_disk = thresholds.get("disk_usage_max_percent", 90)
         if disk_used > max_disk:
@@ -220,8 +221,8 @@ def get_diagnostics(status_data):
         else:
             diagnostics.append(f"Diskbruk {disk_used}% under terskel {max_disk}%")
 
-    # --- Ledig diskplass (GB) ---
-    free_disk = status_data.get("free_gb")
+    # --- Ledig diskplass (i GB) ---
+    free_disk = status_data.get("disk", {}).get("free_gb")
     if free_disk is not None:
         min_free_disk = thresholds.get("min_free_disk_gb", 2.0)
         if free_disk < min_free_disk:
@@ -229,8 +230,8 @@ def get_diagnostics(status_data):
         else:
             diagnostics.append(f"{free_disk} GB ledig diskplass – over minimum {min_free_disk} GB")
 
-    # --- Ledig minne (MB) ---
-    free_mem = status_data.get("free_mb")
+    # --- Ledig minne (i MB) ---
+    free_mem = status_data.get("memory", {}).get("free_mb")
     if free_mem is not None:
         min_free_mem = thresholds.get("min_free_memory_mb", 100)
         if free_mem < min_free_mem:
@@ -238,8 +239,8 @@ def get_diagnostics(status_data):
         else:
             diagnostics.append(f"{free_mem} MB ledig minne – over minimum {min_free_mem} MB")
 
-    # --- Systemoppdateringer ---
-    updates = status_data.get("pending_updates")
+    # --- Systemoppdateringer tilgjengelig ---
+    updates = status_data.get("updates", {}).get("pending_updates")
     if updates is not None:
         if updates > 0:
             diagnostics.append(f"{updates} systemoppdateringer tilgjengelig")

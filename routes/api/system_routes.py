@@ -98,7 +98,24 @@ def rpi_diagnostics():
     try:
         status = get_system_status()
         report = get_diagnostics(status)
+
+        total = len(report)
+        warnings = [
+            r for r in report
+            if any(neg in r for neg in ["overstiger", "under minimum"])
+            or r.strip().startswith("Systemoppdateringer tilgjengelig")
+        ]
+        count_warnings = len(warnings)
+
+        if count_warnings == 0:
+            summary = "System OK – ingen advarsler"
+        elif count_warnings <= total / 2:
+            summary = f"Delvis OK – {count_warnings} av {total} forhold har avvik"
+        else:
+            summary = f"Alvorlig – {count_warnings} av {total} forhold har avvik"
+
         return jsonify({
+            "summary": summary,
             "diagnostics": report,
             "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         })

@@ -1,4 +1,4 @@
-# config/paths.py
+# config_paths.py
 
 """
 Definerer globale stier til viktige mapper i prosjektet.
@@ -29,6 +29,8 @@ CONFIG_PORTLOGIC_PATH = os.path.join(CONFIG_DIR, "config_portlogic.json")
 CONFIG_TIMING_PATH = os.path.join(CONFIG_DIR, "config_timing.json")
 CONFIG_HEALTH_PATH = os.path.join(CONFIG_DIR, "config_health.json")
 
+
+
 # === Loggfiler ===
 STATUS_LOG = os.path.join(LOG_DIR, "status.log")
 ERROR_LOG = os.path.join(LOG_DIR, "errors.log")
@@ -36,9 +38,16 @@ ACTIVITY_LOG = os.path.join(LOG_DIR, "activity.log")
 TIMING_LOG = os.path.join(LOG_DIR, "timing.log")
 BOOTSTRAP_LOG = os.path.join(LOG_DIR, "bootstrap.log")
 
+
 # === Status- og helsefiler ===
 PIGPIO_STATUS_PATH = os.path.join(STATUS_DIR, "pigpio_status.json")
 BOOTSTRAP_STATUS_PATH = os.path.join(STATUS_DIR, "bootstrap_status.json")
 
 FRONTEND_VERSION_PATH = os.path.join(STATUS_DIR, "frontend_version.json")
+
+# === Sensorsystem ===
+CONFIG_SENSORS_PATH = os.path.join(CONFIG_DIR, "config_sensors.json")
+SENSOR_STATUS_PATH = os.path.join(STATUS_DIR, "sensor_data.json")
+SENSOR_LOG_PATH = os.path.join(LOG_DIR, "sensor_data.log")
+
 
