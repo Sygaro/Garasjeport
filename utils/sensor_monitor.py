@@ -1,4 +1,3 @@
-from utils.logging.unified_logger import get_logger
 # utils/sensor_monitor.py
 
 import pigpio
@@ -6,7 +5,7 @@ from utils.logging.logger_manager import get_logger
 from config.config_paths import CONFIG_GPIO_PATH
 from utils.file_utils import load_json
 
-logger = get_logger("sensor_monitor")
+logger = get_logger("sensor_monitor", category="activity")
 
 class SensorMonitor:
     def __init__(self, config_gpio, logger=None, pi=None):

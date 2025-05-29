@@ -253,7 +253,7 @@ class GarageController:
         flags = self._operation_flags.get(port, {})
         if flags.get("first_sensor_time") is None:
             self._set_status(port, self.status.get(port))  # behold forrige status
-            self.status_logger(port, "Ingen sensorrespons – motor trolig ikke aktivert")
+            self.status_logger.warning(port, "Ingen sensorrespons – motor trolig ikke aktivert")
             self.controller_logger.error(port, "Puls sendt, men ingen sensor endret status")
             flags["moving"] = False
 
@@ -262,7 +262,7 @@ class GarageController:
         if flags.get("moving"):
             source = "system" if flags.get("stopped_by_system") else "manuell"
             self._set_status(port, "partial")
-            self.controller_logger.status(port, f"Port stoppet – delvis åpen (kilde: {source})")
+            self.controller_logger.info(port, f"Port stoppet – delvis åpen (kilde: {source})")
             self.controller_logger.error(port, f"{port} | bevegelse ikke fullført innen forventet tid | kilde: {source}")
             flags["moving"] = False
 
@@ -286,7 +286,7 @@ class GarageController:
             closed_active = self.sensor_monitor.is_sensor_active(port, "closed")
             if not open_active and not closed_active:
                 self.status[port] = "partial"
-                self.status_logger(f"{port}: Manuell bevegelse? Ingen sensorer aktive.")
+                self.status_logger.info(f"{port}: Manuell bevegelse? Ingen sensorer aktive.")
             return
 
         expected_sensor = "open" if direction == "open" else "closed"
@@ -317,7 +317,7 @@ class GarageController:
                 "movement_detected_time": None
             }
 
-            self.status_logger.status("status", f"{port} er nå {direction}")
+            self.status_logger.info(f"{port} er nå {direction}")
             self.save_config()
 
         elif sensor_type == opposite_sensor and level == self.sensor_monitor.active_state:

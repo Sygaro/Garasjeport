@@ -16,6 +16,7 @@ CATEGORY_TO_PATH = {
     "default": config_paths.LOG_STATUS_PATH,
     "garage_controller": config_paths.LOG_GARAGE_CONTROLLER_PATH,
     "system_monitor": config_paths.LOG_GARAGE_CONTROLLER_PATH,
+    
 
 }
 

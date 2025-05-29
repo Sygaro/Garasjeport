@@ -15,7 +15,7 @@ def run_sensor_monitor_loop():
     Håndterer dynamisk intervall for hver sensor via EnvironmentSensorManager.
     """
     sensor_manager = EnvironmentSensorManager()
-    logger.status("SensorMonitor", "Starter sensor-overvåking...")
+    logger.info("Starter sensor-overvåking...")
 
     try:
         while True:
@@ -27,6 +27,6 @@ def run_sensor_monitor_loop():
                     env_logger(sid, msg)
             time.sleep(5)
     except KeyboardInterrupt:
-        logger.status("SensorMonitor", "Overvåking avsluttet manuelt")
+        logger.info("Overvåking avsluttet manuelt")
     except Exception as e:
-        logger.error("SensorMonitor", f"Uventet feil: {str(e)}")
+        logger.error(f"Uventet feil: {str(e)}")

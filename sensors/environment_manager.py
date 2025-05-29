@@ -35,7 +35,7 @@ class EnvironmentSensorManager:
             config = load_config(config_paths.CONFIG_SENSOR_ENV_PATH)
             for sensor_conf in config.get("sensors", []):
                 if not sensor_conf.get("enabled", True):
-                    self.status_logger(f"Sensor '{sensor_conf['id']}' er deaktivert i config")
+                    self.status_logger.info(f"Sensor '{sensor_conf['id']}' er deaktivert i config")
                     continue
 
                 sensor_type = sensor_conf.get("type")
@@ -43,7 +43,7 @@ class EnvironmentSensorManager:
                 if cls:
                     try:
                         self.sensors.append(cls(sensor_conf))
-                        self.status_logger(f"Sensor '{sensor_conf['id']}' ({sensor_type}) lastet")
+                        self.status_logger.info(f"Sensor '{sensor_conf['id']}' ({sensor_type}) lastet")
                         self.buffer[sensor_conf['id']] = []
                     except Exception as e:
                         self.status_logger.error(f"Feil ved sensor '{sensor_conf['id']}': {e}")
@@ -59,7 +59,7 @@ class EnvironmentSensorManager:
             self.log_interval = int(3600 / avg_config.get("samples_per_hour", 15))
             self.day_start = avg_config.get("day_range", {}).get("start", "06:00")
             self.day_end = avg_config.get("day_range", {}).get("end", "21:00")
-            self.status_logger(f"Averaging config lastet. log_interval: {self.log_interval}s")
+            self.status_logger.info(f"Averaging config lastet. log_interval: {self.log_interval}s")
         except Exception as e:
             self.status_logger.error(f"Feil ved lasting av averaging config: {e}")
 
@@ -102,20 +102,20 @@ class EnvironmentSensorManager:
             os.makedirs(os.path.dirname(self.status_file), exist_ok=True)
             with open(self.status_file, "w") as f:
                 json.dump(data, f, indent=2)
-            self.status_logger(f"Lagret siste sensorverdier til {self.status_file}")
+            self.status_logger.info(f"Lagret siste sensorverdier til {self.status_file}")
         except Exception as e:
             self.status_logger.error(f"Feil ved skriving av sensorstatus: {e}")
 
     def set_logging_enabled(self, enabled: bool):
         self.logging_enabled = enabled
-        self.status_logger(f"Logging {'aktivert' if enabled else 'deaktivert'}")
+        self.status_logger.info(f"Logging {'aktivert' if enabled else 'deaktivert'}")
 
     def is_logging_enabled(self):
         return self.logging_enabled
 
     def set_log_interval(self, seconds: int):
         self.log_interval = seconds
-        self.status_logger(f"Oppdatert loggeintervall til {seconds} sekunder")
+        self.status_logger.info(f"Oppdatert loggeintervall til {seconds} sekunder")
 
     def calculate_hourly_averages(self):
         now = datetime.now()
@@ -147,6 +147,6 @@ class EnvironmentSensorManager:
             with open(self.averages_file, "a") as f:
                 for item in hour_summary:
                     f.write(json.dumps(item) + "\n")
-            self.status_logger(f"Lagret timelig snitt for {len(hour_summary)} sensorer")
+            self.status_logger.info(f"Lagret timelig snitt for {len(hour_summary)} sensorer")
         except Exception as e:
             self.status_logger.error(f"Feil ved skriving av snitt: {e}")
