@@ -89,5 +89,6 @@ def get_log(logtype):
         })
 
     except FileNotFoundError:
+        routes_logger.warning("API/get_log 404: Loggfil ikke funnet")
         return jsonify({"error": "Loggfil ikke funnet"}), 404
     

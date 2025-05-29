@@ -30,7 +30,7 @@ CONFIG_LOGGING_PATH = os.path.join(CONFIG_DIR, "config_logging.json")
 CONFIG_PORTLOGIC_PATH = os.path.join(CONFIG_DIR, "config_portlogic.json")
 CONFIG_TIMING_PATH = os.path.join(CONFIG_DIR, "config_timing.json")
 CONFIG_HEALTH_PATH = os.path.join(CONFIG_DIR, "config_health.json")
-CONFIG_SENSOR_ENV_PATH = os.path.join(CONFIG_DIR, "config_sensors_env.json")
+CONFIG_SENSOR_ENV_PATH = os.path.join(CONFIG_DIR, "config_sensor_env.json")
 
 
 # API og datafiler

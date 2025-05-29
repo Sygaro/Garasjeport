@@ -10,6 +10,9 @@ from utils.logging.logger_manager import get_logger
 
 from sensors.bme280_sensor import BME280Sensor
 
+logger = get_logger("environment_manager", category="env")
+
+
 class EnvironmentSensorManager:
     SENSOR_TYPES = {
         "BME280": BME280Sensor
@@ -20,7 +23,7 @@ class EnvironmentSensorManager:
         self.status_logger = get_logger("env_sensor_manager", category="system")
 
         self.sensors = []
-        self.status_file = config_paths.CONFIG_SENSOR_ENV_PATH
+        self.status_file = config_paths.STATUS_SENSOR_ENV_PATH
         self.averages_file = config_paths.LOG_SENSOR_ENV_AVERAGES_PATH
         self.logging_enabled = True
         self.log_interval = 5

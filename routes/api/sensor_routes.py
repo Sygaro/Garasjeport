@@ -18,7 +18,7 @@ sensor_manager = EnvironmentSensorManager()
 @token_required
 def get_latest_sensor_data():
     try:
-        path = config_paths.SENSOR_STATUS_PATH
+        path = config_paths.STATUS_SENSOR_ENV_PATH
         if not os.path.exists(path):
             return jsonify({"error": "Ingen sensordata funnet"}), 404
 
@@ -33,7 +33,7 @@ def get_latest_sensor_data():
 @sensor_routes.route("/history", methods=["GET"])
 @token_required
 def get_sensor_history():
-    path = config_paths.SENSOR_LOG_PATH
+    path = config_paths.LOG_SENSOR_ENV_PATH
     sensor_filter = request.args.get("sensor")
     limit = int(request.args.get("limit", 50))
 
@@ -71,7 +71,7 @@ def get_sensor_history():
 @sensor_routes.route("/averages", methods=["GET"])
 @token_required
 def get_sensor_averages():
-    path = config_paths.SENSOR_AVERAGES_PATH
+    path = config_paths.LOG_SENSOR_ENV_AVERAGES_PATH
     sensor_filter = request.args.get("sensor")
     limit = int(request.args.get("limit", 24))
 

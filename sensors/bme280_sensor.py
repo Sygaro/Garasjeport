@@ -5,7 +5,9 @@ from bme280 import load_calibration_params, sample
 from utils.logging.unified_logger import get_logger
 
 
-logger = get_logger("sensor_bme280", category="bootstrap")
+#logger = get_logger("sensor_bme280", category="bootstrap")
+logger = get_logger("bme280_sensor", category="env")
+
 
 class BME280Sensor:
     def __init__(self, sensor_config):
@@ -22,9 +24,9 @@ class BME280Sensor:
         try:
             self.bus = smbus2.SMBus(self.bus_number)
             self.calibration_params = load_calibration_params(self.bus, self.address)
-            logger.info(self.id, f"BME280Sensor initialisert @ 0x{self.address:02X} på bus {self.bus_number}")
+            logger.info(f"{self.id}: BME280Sensor initialisert @ 0x{self.address:02X} på bus {self.bus_number}")
         except Exception as e:
-            logger.error(self.id, f"Klarte ikke å initialisere BME280: {e}")
+            logger.error(f"{self.id}: Klarte ikke å initialisere BME280: {e}")
             raise
 
     def read_data(self):
@@ -55,8 +57,8 @@ class BME280Sensor:
                 "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             }
             self.last_read_time = now
-            logger.debug(self.id, f"Sensorverdier: {result}")
+            logger.debug(f"{self.id}: Sensorverdier: {result}")
             return result
         except Exception as e:
-            logger.error(self.id, f"Feil ved lesing fra BME280: {e}")
+            logger.error(f"{self.id}: Feil ved lesing fra BME280: {e}")
             return None
