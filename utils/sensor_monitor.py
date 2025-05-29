@@ -1,9 +1,11 @@
 # utils/sensor_monitor.py
 
 import pigpio
-from utils.garage_logger import get_logger
+from utils.logging.logger_manager import get_logger
 from config.config_paths import CONFIG_GPIO_PATH
 from utils.file_utils import load_json
+
+logger = get_logger("sensor_monitor")
 
 class SensorMonitor:
     def __init__(self, config_gpio, logger=None, pi=None):
@@ -11,7 +13,9 @@ class SensorMonitor:
         Overvåker porter og registrerer sensor-endringer via pigpio edge detection.
         """
         self.pi = pi  # Delt pigpio-instans (fra pigpio_manager.get_pi())
-        self.logger = logger or get_logger()
+        self.logger = logger or get_logger("sensor_monitor", category="sensor")
+        self.logger.info("SensorMonitor startet")
+
         self.config = config_gpio or load_json(CONFIG_GPIO_PATH)
 
         self.sensor_config = self.config.get("sensor_config", {})
@@ -37,7 +41,7 @@ class SensorMonitor:
         Registrerer ekstern callback som trigges ved sensorendring.
         """
         self.callback_function = callback_function
-        self.logger.log_debug("sensor_monitor", "Callback-funksjon registrert")
+        self.logger.debug("Callback-funksjon registrert")
         self._setup_callbacks()
 
     def _setup_callbacks(self):
@@ -58,7 +62,7 @@ class SensorMonitor:
                     f"Callback satt på port: {port}, sensor: {sensor_type}, GPIO: {gpio}"
                 )
             except Exception as e:
-                self.logger.log_error("sensor_monitor", f"Feil ved registrering av callback på GPIO {gpio}: {e}")
+                self.logger.error(f"Feil ved registrering av callback på GPIO {gpio}: {e}")
 
     def _generate_handler(self, gpio):
         """
@@ -95,4 +99,4 @@ class SensorMonitor:
             cb.cancel()
         self.callbacks.clear()
 
-        self.logger.log_debug("sensor_monitor", "Alle sensor-callbacks er deaktivert og fjernet")
+        self.logger.debug("Alle sensor-callbacks er deaktivert og fjernet")

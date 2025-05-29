@@ -7,23 +7,25 @@ from datetime import datetime
 from monitor.system_monitor_task import get_system_status, check_thresholds_and_log
 from utils.config_loader import load_config
 from utils.version_utils import get_git_version
-from utils.bootstrap_logger import bootstrap_logger as logger
+from utils.logging.unified_logger import get_logger
 from config import config_paths as paths
 from utils.file_utils import ensure_directory_exists
 
 
-status_path = paths.BOOTSTRAP_STATUS_PATH
+status_path = paths.STATUS_BOOTSTRAP_PATH
+bootstrap_logger = get_logger("system_bootstrap", category="bootstrap")
+
 
 
 def validate_json_file(path, description=""):
     if not os.path.exists(path):
-        logger.log_error("bootstrap", f"{description} mangler: {path}")
+        bootstrap_logger.error("bootstrap", f"{description} mangler: {path}")
         raise FileNotFoundError(f"{description} mangler: {path}")
     try:
         with open(path, "r") as f:
             json.load(f)
     except json.JSONDecodeError:
-        logger.log_error("bootstrap", f"{description} er ikke gyldig JSON: {path}")
+        bootstrap_logger.error("bootstrap", f"{description} er ikke gyldig JSON: {path}")
         raise
 
 
@@ -38,7 +40,7 @@ def ensure_required_directories():
         paths.DOCS_DIR
     ]:
         ensure_directory_exists(directory)
-        logger.log_status("bootstrap", f"Verifisert mappe: {directory}")
+        bootstrap_logger.info("bootstrap", f"Verifisert mappe: {directory}")
 
 
 def ensure_required_config_files():
@@ -57,25 +59,25 @@ def ensure_required_config_files():
         backup_path = os.path.join(paths.BACKUP_DIR, os.path.basename(file_path))
         if not os.path.exists(backup_path):
             shutil.copy(file_path, backup_path)
-            logger.log_status("bootstrap", f"Tok sikkerhetskopi av {description} til {backup_path}")
+            bootstrap_logger.info("bootstrap", f"Tok sikkerhetskopi av {description} til {backup_path}")
 
 
 def ensure_pigpiod_running():
     try:
         subprocess.check_output(["pgrep", "pigpiod"])
-        logger.log_status("bootstrap", "pigpiod er allerede kjørende")
+        bootstrap_logger.info("bootstrap", "pigpiod er allerede kjørende")
         return
     except subprocess.CalledProcessError:
-        logger.log_warning("pigpiod er ikke startet – prøver å starte...")
+        bootstrap_logger.warning("pigpiod er ikke startet – prøver å starte...")
 
     subprocess.run(["pigpiod"])
     time.sleep(1)
 
     try:
         subprocess.check_output(["pgrep", "pigpiod"])
-        logger.log_status("bootstrap", "pigpiod startet OK")
+        bootstrap_logger.info("bootstrap", "pigpiod startet OK")
     except subprocess.CalledProcessError:
-        logger.log_error("bootstrap", "FEIL: pigpiod kunne ikke startes – systemet vil sannsynligvis feile")
+        bootstrap_logger.error("bootstrap", "FEIL: pigpiod kunne ikke startes – systemet vil sannsynligvis feile")
 
 
 def log_version_info():
@@ -83,9 +85,9 @@ def log_version_info():
         with open(paths.CONFIG_SYSTEM_PATH, "r") as f:
             system_config = json.load(f)
         version = system_config.get("version", "ukjent")
-        logger.log_status("bootstrap", f"Starter system – versjon: {version}")
+        bootstrap_logger.info("bootstrap", f"Starter system – versjon: {version}")
     except Exception:
-        logger.log_warning("Kunne ikke lese versjon fra systemkonfig")
+        bootstrap_logger.warning("Kunne ikke lese versjon fra systemkonfig")
 
 
 def write_bootstrap_status_file():
@@ -107,11 +109,11 @@ def write_bootstrap_status_file():
 
     with open(paths.BOOTSTRAP_STATUS_PATH, "w") as f:
         json.dump(status_data, f, indent=2)
-    logger.log_status("bootstrap", f"Skrev status til {status_path}")
+    bootstrap_logger.info("bootstrap", f"Skrev status til {status_path}")
 
 def log_version_info():
     version = get_git_version()
-    logger.log_status("bootstrap", f"Starter system – versjon: {version}")
+    bootstrap_logger.info("bootstrap", f"Starter system – versjon: {version}")
 
 def validate_gpio_config(config_gpio):
     from utils.bootstrap_logger import log_to_bootstrap
@@ -279,7 +281,7 @@ def validate_config_health(config):
 
 
 def initialize_system_environment():
-    logger.log_status("bootstrap", "Starter systeminitialisering")
+    bootstrap_logger.info("bootstrap", "Starter systeminitialisering")
     ensure_required_directories()
     ensure_required_config_files()
     ensure_pigpiod_running()
@@ -288,30 +290,29 @@ def initialize_system_environment():
     try:
         config_timing = load_config(paths.CONFIG_TIMING_PATH)
         validate_config_timing(config_timing)
-        logger.log_status("bootstrap", "config_timing.json validert OK")
+        bootstrap_logger.info("bootstrap", "config_timing.json validert OK")
     except Exception as e:
-        logger.log_error("bootstrap", f"Feil ved validering av config_timing.json: {e}")
+        bootstrap_logger.error("bootstrap", f"Feil ved validering av config_timing.json: {e}")
         raise
     
     try:
         config_system = load_config(paths.CONFIG_SYSTEM_PATH)
         validate_config_system(config_system)
-        logger.log_status("bootstrap", "config_system.json validert OK")
+        bootstrap_logger.info("bootstrap", "config_system.json validert OK")
     except Exception as e:
-        logger.log_error("bootstrap", f"Feil ved validering av config_system.json: {e}")
+        bootstrap_logger.error("bootstrap", f"Feil ved validering av config_system.json: {e}")
         raise
     try:
         config_health = load_config(paths.CONFIG_HEALTH_PATH)
         validate_config_health(config_health)
-        logger.log_status("bootstrap", "config_health.json validert OK")
+        bootstrap_logger.info("bootstrap", "config_health.json validert OK")
     except Exception as e:
-        logger.log_error("bootstrap", f"Validering av config_health.json feilet: {e}")
+        bootstrap_logger.error("bootstrap", f"Validering av config_health.json feilet: {e}")
         raise
     log_version_info()
     write_bootstrap_status_file()
-    logger.log_status("bootstrap", "Systeminitialisering fullført")
+    bootstrap_logger.info("bootstrap", "Systeminitialisering fullført")
 
     status = get_system_status()
     check_thresholds_and_log(status)
-    logger.log_status("system_monitor", f"Systemstatus ved oppstart: {status}")
-
+    bootstrap_logger.info("system_monitor", f"Systemstatus ved oppstart: {status}")

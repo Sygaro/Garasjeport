@@ -14,7 +14,7 @@ system_routes = Blueprint("system_routes", __name__, url_prefix="/system")
 @token_required
 def get_pigpio_status():
     try:
-        with open(paths.PIGPIO_STATUS_PATH, "r") as f:
+        with open(paths.STATUS_PIGPIO_PATH, "r") as f:
             data = f.read()
         return jsonify(json.loads(data))
     except Exception as e:
@@ -38,7 +38,7 @@ def get_bootstrap_status():
     }
 
     try:
-        with open(paths.BOOTSTRAP_STATUS_PATH, "r") as f:
+        with open(paths.STATUS_BOOTSTRAP_PATH, "r") as f:
             data = json.load(f)
             version_backend = data.get("version") or "ukjent"
 

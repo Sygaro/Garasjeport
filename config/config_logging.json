@@ -1,23 +1,77 @@
 {
   "log_directory": "logs",
-  "max_file_size_kb": 10024,
+  "max_file_size_mb": 10,
   "rotation_days": 14,
   "retention_days": 90,
-  "log_levels": {
-    "status": "IMFO",
-    "activity": "DEBUG",
-    "timing": "DEBUG",
-    "errors": "DEBUG",
-    "bootstrap": "DEBUG",
-    "sensor": "INFO"
-
-  },
-  "enabled_logs": {
-    "status": true,
-    "activity": true,
-    "timing": true,
-    "errors": true,
-    "bootstrap": true,
-    "sensor": true
+  "timestamp_format": "%Y-%m-%d %H:%M:%S",
+  "log_settings": {
+    
+    "garage_controller": {
+      "enabled": true,
+      "level": "DEBUG",
+      "format": "plain",
+      "output": [
+        "file",
+        "console"
+      ]
+    },
+    "system_monitor": {
+      "enabled": true,
+      "level": "DEBUG",
+      "format": "plain",
+      "output": [
+        "file",
+        "console"
+      ]
+    },
+    "environment": {
+      "enabled": true,
+      "level": "DEBUG",
+      "format": "plain",
+      "output": [
+        "file"
+      ]
+    },
+    "port_timing": {
+      "enabled": true,
+      "level": "DEBUG",
+      "format": "plain",
+      "output": [
+        "file"
+      ]
+    },
+    "port_activity": {
+      "enabled": true,
+      "level": "INFO",
+      "format": "plain",
+      "output": [
+        "file"
+      ]
+    },
+    "port_status": {
+      "enabled": true,
+      "level": "INFO",
+      "format": "plain",
+      "output": [
+        "file"
+      ]
+    },
+    "error": {
+      "enabled": true,
+      "level": "WARNING",
+      "format": "plain",
+      "output": [
+        "file",
+        "console"
+      ]
+    },
+    "console_debug": {
+      "enabled": false,
+      "level": "DEBUG",
+      "format": "plain",
+      "output": [
+        "console"
+      ]
+    }
   }
 }

@@ -4,9 +4,10 @@ import time
 from utils.system_monitor import get_system_status, check_thresholds_and_log
 from utils.config_loader import load_config
 from config import config_paths as paths
-from utils.garage_logger import GarageLogger
+from utils.logging.logger_manager import get_logger
 
-logger = GarageLogger()
+logger = get_logger("system_monitor")
+status_logger = get_logger("system_monitor", category="system_monitor")
 
 def start_system_monitor_task():
     def monitor_loop():
@@ -18,7 +19,7 @@ def start_system_monitor_task():
                 warnings = check_thresholds_and_log(status)
 
                 if config.get("alerts", {}).get("log_warning", True):
-                    logger.log_status("system_monitor", f"Statussjekk OK: {status}")
+                    status_logger.status("system_monitor", f"Statussjekk OK: {status}")
 
             except Exception as e:
                 logger.log_error("system_monitor", f"Feil i monitor-task: {e}")

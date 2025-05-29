@@ -49,13 +49,18 @@ def load_portlogic_config():
 
 
 def load_logging_config():
-    config = _load_json_file(paths.CONFIG_LOGGING_PATH)
+    with open(paths.CONFIG_LOGGING_PATH, "r") as f:
+        config = json.load(f)
 
-    required_keys = [
-        "log_directory", "max_file_size_kb", "rotation_days",
-        "retention_days", "log_levels", "enabled_logs"
+    required_top_keys = [
+        "log_directory",
+        "max_file_size_mb",
+        "rotation_days",
+        "retention_days",
+        "timestamp_format",
+        "log_settings"
     ]
-    for key in required_keys:
+    for key in required_top_keys:
         if key not in config:
             raise KeyError(f"Mangler konfigurasjonsnøkkel i logging: '{key}'")
 

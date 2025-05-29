@@ -4,12 +4,14 @@ import json
 from flask import Blueprint, jsonify, request
 from utils.auth import token_required
 from config import config_paths
-from utils.garage_logger import get_logger
-from sensors.sensor_manager import SensorManager
+from utils.logging.logger_manager import get_logger
+from sensors.environment_manager import EnvironmentSensorManager
 
-logger = get_logger("sensor_api")
-sensor_routes = Blueprint("sensor_routes", __name__, url_prefix="/sensors")
-sensor_manager = SensorManager()
+
+sensor_api_logger = get_logger("sensor_routes", category="system")
+
+sensor_routes = Blueprint("sensor_routes", __name__, url_prefix="/sensors/environment")
+sensor_manager = EnvironmentSensorManager()
 
 @sensor_routes.route("/latest", methods=["GET"])
 @token_required
@@ -24,7 +26,7 @@ def get_latest_sensor_data():
         return jsonify({"sensors": data})
 
     except Exception as e:
-        logger.log_error("sensor_routes", f"Feil i /sensors/latest: {str(e)}")
+        sensor_api_logger.error("sensor_routes", f"Feil i /sensors/environment/latest: {str(e)}")
         return jsonify({"error": "Kunne ikke hente sensorstatus"}), 500
 
 @sensor_routes.route("/history", methods=["GET"])
@@ -62,7 +64,7 @@ def get_sensor_history():
         return jsonify({"history": list(reversed(entries))})
 
     except Exception as e:
-        logger.log_error("sensor_routes", f"Feil i /sensors/history: {str(e)}")
+        sensor_api_logger.error("sensor_routes", f"Feil i /sensors/environment/history: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 @sensor_routes.route("/averages", methods=["GET"])
@@ -94,7 +96,7 @@ def get_sensor_averages():
         return jsonify({"averages": list(reversed(entries))})
 
     except Exception as e:
-        logger.log_error("sensor_routes", f"Feil i /sensors/averages: {str(e)}")
+        sensor_api_logger.error("sensor_routes", f"Feil i /sensors/environment/averages: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 @sensor_routes.route("/logging", methods=["GET"])
@@ -106,7 +108,7 @@ def get_logging_status():
             "log_interval_seconds": sensor_manager.log_interval
         })
     except Exception as e:
-        logger.log_error("sensor_routes", f"Feil i GET /sensors/logging: {str(e)}")
+        sensor_api_logger.error("sensor_routes", f"Feil i GET /sensors/environment/logging: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 @sensor_routes.route("/logging", methods=["POST"])
@@ -125,5 +127,5 @@ def set_logging_status():
             "log_interval_seconds": sensor_manager.log_interval
         })
     except Exception as e:
-        logger.log_error("sensor_routes", f"Feil i POST /sensors/logging: {str(e)}")
+        sensor_api_logger.error("sensor_routes", f"Feil i POST /sensors/environment/logging: {str(e)}")
         return jsonify({"error": str(e)}), 500

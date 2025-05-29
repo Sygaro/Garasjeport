@@ -2,10 +2,12 @@ import os
 import time
 import subprocess
 from datetime import datetime
-from utils.bootstrap_logger import log_to_bootstrap
+from utils.logging.unified_logger import get_logger
 
 from config import config_paths as paths
 STATUS_FILE = paths.PIGPIO_STATUS_PATH
+logger = get_logger("garapigpiod_monitor", category="system")
+
 
 def is_pigpiod_running():
     try:
@@ -33,18 +35,18 @@ while True:
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     if not running:
-        log_to_bootstrap("pigpiod ikke kjørende – forsøker oppstart...")
+        logger.warning("pigpiod ikke kjørende – forsøker oppstart...")
         os.system("sudo pigpiod")
         time.sleep(2)
 
         if is_pigpiod_running():
             restarts += 1
             failures = 0
-            log_to_bootstrap("pigpiod startet OK")
+            logger.info("pigpiod startet OK")
             write_status(True, restarts, now)
         else:
             failures += 1
-            log_to_bootstrap("pigpiod feilet ved oppstart")
+            logger.ierror("pigpiod feilet ved oppstart")
             write_status(False, restarts, "-")
             time.sleep(min(2 ** failures, max_backoff))
     else:

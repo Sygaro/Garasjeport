@@ -3,19 +3,21 @@
 from flask import Blueprint, jsonify, request
 from utils.auth import token_required
 from config import config_paths as paths
-from controllers.logger_controller import logger_controller
+from utils.logging.logger_manager import get_logger
 import os
 import time
+
+routes_logger = get_logger("routes", category="system")
 
 log_routes = Blueprint("log_routes", __name__)
 
 # Gyldige loggtyper og deres filbaner
 VALID_LOGS = {
-    "status": paths.STATUS_LOG,
-    "error": paths.ERROR_LOG,
-    "activity": paths.ACTIVITY_LOG,
-    "timing": paths.TIMING_LOG,
-    "bootstrap": paths.BOOTSTRAP_LOG
+    "status": paths.LOG_STATUS_PATH,
+    "error": paths.LOG_ERROR_PATH,
+    "activity": paths.LOG_ACTIVITY_PATH,
+    "timing": paths.LOG_TIMING_PATH,
+    "bootstrap": paths.LOG_BOOTSTRAP_PATH
 }
 
 @log_routes.route("/log", methods=["GET"])
@@ -32,7 +34,7 @@ def api_get_log():
     except (ValueError, TypeError):
         lines_requested = 50
 
-    logs = logger_controller.get_recent_logs(limit=lines_requested)
+    logs = routes_logger.get_recent_logs(limit=lines_requested)
     return jsonify({
         "logs": logs,
         "returned_lines": len(logs),
@@ -87,3 +89,4 @@ def get_log(logtype):
 
     except FileNotFoundError:
         return jsonify({"error": "Loggfil ikke funnet"}), 404
+    

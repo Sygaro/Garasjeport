@@ -2,9 +2,10 @@ import time
 from datetime import datetime
 import smbus2
 from bme280 import load_calibration_params, sample
-from utils.garage_logger import get_logger
+from utils.logging.unified_logger import get_logger
 
-logger = get_logger("sensor_bme280")
+
+logger = get_logger("sensor_bme280", category="bootstrap")
 
 class BME280Sensor:
     def __init__(self, sensor_config):
@@ -21,9 +22,9 @@ class BME280Sensor:
         try:
             self.bus = smbus2.SMBus(self.bus_number)
             self.calibration_params = load_calibration_params(self.bus, self.address)
-            logger.log_status(self.id, f"BME280Sensor initialisert @ 0x{self.address:02X} på bus {self.bus_number}")
+            logger.info(self.id, f"BME280Sensor initialisert @ 0x{self.address:02X} på bus {self.bus_number}")
         except Exception as e:
-            logger.log_error(self.id, f"Klarte ikke å initialisere BME280: {e}")
+            logger.error(self.id, f"Klarte ikke å initialisere BME280: {e}")
             raise
 
     def read_data(self):
