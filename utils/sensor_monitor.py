@@ -1,3 +1,4 @@
+from utils.logging.unified_logger import get_logger
 # utils/sensor_monitor.py
 
 import pigpio
@@ -57,7 +58,7 @@ class SensorMonitor:
                     self._generate_handler(gpio)
                 )
                 self.callbacks.append(cb)
-                self.logger.log_debug(
+                self.logger.debug(
                     "sensor_monitor",
                     f"Callback satt på port: {port}, sensor: {sensor_type}, GPIO: {gpio}"
                 )
@@ -75,13 +76,13 @@ class SensorMonitor:
         Behandler sensorendring og videresender til registrert callback.
         """
         if gpio not in self._gpio_to_port:
-            self.logger.log_warning("sensor_monitor", f"Ukjent GPIO: {gpio} – finnes ikke i konfig")
+            self.logger.warning("sensor_monitor", f"Ukjent GPIO: {gpio} – finnes ikke i konfig")
             return
 
         port, sensor_type = self._gpio_to_port[gpio]
         active_text = "aktiv" if level == self.active_state else "inaktiv"
 
-        self.logger.log_debug(
+        self.logger.debug(
             "sensor_monitor",
             f"Sensor-endring: {port} ({sensor_type}) GPIO {gpio} = {level} → {active_text}"
         )
@@ -89,7 +90,7 @@ class SensorMonitor:
         if self.callback_function:
             self.callback_function(port, sensor_type, level)
         else:
-            self.logger.log_warning("sensor_monitor", "Ingen callback-funksjon satt – ignorerer signal")
+            self.logger.warning("sensor_monitor", "Ingen callback-funksjon satt – ignorerer signal")
 
     def cleanup(self):
         """

@@ -107,7 +107,7 @@ def write_bootstrap_status_file():
         status_data["version"] = "ukjent"
         status_data["config_validated"] = False
 
-    with open(paths.BOOTSTRAP_STATUS_PATH, "w") as f:
+    with open(paths.STATUS_BOOTSTRAP_PATH, "w") as f:
         json.dump(status_data, f, indent=2)
     bootstrap_logger.info("bootstrap", f"Skrev status til {status_path}")
 

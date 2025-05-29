@@ -1,3 +1,4 @@
+from utils.logging.unified_logger import get_logger
 import time
 import datetime
 from sensors.environment_manager import EnvironmentSensorManager

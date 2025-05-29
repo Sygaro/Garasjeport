@@ -1,3 +1,4 @@
+from utils.logging.unified_logger import get_logger
 # utils/relay_initializer.py
 
 import pigpio

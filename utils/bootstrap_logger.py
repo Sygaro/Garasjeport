@@ -1,10 +1,11 @@
+from utils.logging.unified_logger import get_logger
 # utils/bootstrap_logger.py
 import os
 import logging
 from datetime import datetime
 from config import config_paths as paths
 
-logfile_path = paths.BOOTSTRAP_LOG
+logfile_path = paths.LOG_BOOTSTRAP_PATH
 
 # Sørg for at loggmappe eksisterer
 os.makedirs(os.path.dirname(logfile_path), exist_ok=True)

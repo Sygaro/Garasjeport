@@ -1,3 +1,4 @@
+from utils.logging.unified_logger import get_logger
 import os
 import time
 import subprocess
@@ -109,7 +110,7 @@ def check_thresholds_and_log(status_data):
     if cpu_temp is not None and cpu_temp > max_cpu_temp:
         msg = f"CPU-temperatur {cpu_temp}°C overstiger terskel {max_cpu_temp}°C"
         warnings.append(msg)
-        logger.log_warning("health", msg)
+        logger.warning("health", msg)
 
     # Disk
     disk_usage = status_data.get("percent_used")
@@ -117,7 +118,7 @@ def check_thresholds_and_log(status_data):
     if disk_usage is not None and disk_usage > max_disk:
         msg = f"Diskbruk {disk_usage}% overstiger grense på {max_disk}%"
         warnings.append(msg)
-        logger.log_warning("health", msg)
+        logger.warning("health", msg)
 
     # Memory
     mem_usage = status_data.get("percent_used_mem")
@@ -125,7 +126,7 @@ def check_thresholds_and_log(status_data):
     if mem_usage is not None and mem_usage > max_mem:
         msg = f"Minnebruk {mem_usage}% overstiger grense på {max_mem}%"
         warnings.append(msg)
-        logger.log_warning("health", msg)
+        logger.warning("health", msg)
 
     # CPU load
     load_1min = status_data.get("load_1min", 0)
@@ -133,14 +134,14 @@ def check_thresholds_and_log(status_data):
     if load_1min > max_load:
         msg = f"CPU load 1min er {load_1min} som overstiger terskel {max_load}"
         warnings.append(msg)
-        logger.log_warning("health", msg)
+        logger.warning("health", msg)
 
     # Updates
     pending = status_data.get("pending_updates", 0)
     if config.get("warn_if_pending_updates", True) and pending > 0:
         msg = f"{pending} systemoppdateringer tilgjengelig"
         warnings.append(msg)
-        logger.log_warning("health", msg)
+        logger.warning("health", msg)
 
     return warnings
 

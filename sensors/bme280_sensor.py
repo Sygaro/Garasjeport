@@ -55,8 +55,8 @@ class BME280Sensor:
                 "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             }
             self.last_read_time = now
-            logger.log_debug(self.id, f"Sensorverdier: {result}")
+            logger.debug(self.id, f"Sensorverdier: {result}")
             return result
         except Exception as e:
-            logger.log_error(self.id, f"Feil ved lesing fra BME280: {e}")
+            logger.error(self.id, f"Feil ved lesing fra BME280: {e}")
             return None

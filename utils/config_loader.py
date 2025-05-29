@@ -1,3 +1,4 @@
+from utils.logging.unified_logger import get_logger
 import json
 import os
 from config import config_paths as paths

@@ -1,3 +1,4 @@
+from utils.logging.unified_logger import get_logger
 # utils/pigpio_manager.py
 
 import pigpio

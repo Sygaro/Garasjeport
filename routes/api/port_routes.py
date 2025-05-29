@@ -1,3 +1,4 @@
+from utils.logging.unified_logger import get_logger
 # routes/api/port_routes.py
 
 from flask import Blueprint, jsonify, request

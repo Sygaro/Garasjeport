@@ -1,3 +1,4 @@
+from utils.logging.unified_logger import get_logger
 import os
 import time
 import threading
@@ -53,7 +54,7 @@ class EnvironmentSensorManager:
 
     def load_config(self):
         try:
-            config = load_config(config_paths.CONFIG_SENSORS_PATH)
+            config = load_config(config_paths.CONFIG_SENSOR_ENV_PATH)
             avg_config = config.get("averaging", {})
             self.log_interval = int(3600 / avg_config.get("samples_per_hour", 15))
             self.day_start = avg_config.get("day_range", {}).get("start", "06:00")

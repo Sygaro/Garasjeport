@@ -1,3 +1,4 @@
+from utils.logging.unified_logger import get_logger
 # utils/gpio_utils.py
 
 def get_gpio_info(gpio_config):

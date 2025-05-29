@@ -1,3 +1,4 @@
+from utils.logging.unified_logger import get_logger
 import subprocess
 
 def get_git_version():

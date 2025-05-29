@@ -1,3 +1,4 @@
+from utils.logging.unified_logger import get_logger
 """
 🔧 config.py: Felles funksjoner for konfigurasjon
 ✨ Innhold:

@@ -1,3 +1,4 @@
+from utils.logging.unified_logger import get_logger
 # ==========================================
 # Filnavn: garage.py
 # Håndtering av portstyring via motorpuls

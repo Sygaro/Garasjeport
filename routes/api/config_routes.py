@@ -1,3 +1,4 @@
+from utils.logging.unified_logger import get_logger
 from flask import Blueprint, jsonify, request
 from core.config_manager import ConfigManager
 

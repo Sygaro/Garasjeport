@@ -1,3 +1,4 @@
+from utils.logging.unified_logger import get_logger
 import threading
 import time
 
@@ -22,7 +23,7 @@ def start_system_monitor_task():
                     status_logger.status("system_monitor", f"Statussjekk OK: {status}")
 
             except Exception as e:
-                logger.log_error("system_monitor", f"Feil i monitor-task: {e}")
+                logger.error("system_monitor", f"Feil i monitor-task: {e}")
 
             time.sleep(interval * 60)
 
