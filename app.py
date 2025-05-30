@@ -2,27 +2,28 @@
 
 import os
 import atexit
-from flask import Flask, render_template
+from flask import Flask
+
+from utils.logging.unified_logger import get_logger
 
 from config.config_paths import LOG_DIR
+from core import system_init
 from core.system import controller
 from core.bootstrap import initialize_system_environment
 from monitor.system_monitor_task import start_system_monitor_task
-from routes.api.system_routes import system_routes
-from routes.api.sensor_routes import sensor_routes
 from monitor.sensor_monitor_task import run_sensor_monitor_loop
 import threading
-
-
 from routes.api import api
 
+
+logger = get_logger("system", category="system")
 
 
 # Flask-app
 app = Flask(__name__)
 app.config["JSONIFY_PRETTYPRINT_REGULAR"] = True
 app.register_blueprint(api)
-app.register_blueprint(sensor_routes)
+#app.register_blueprint(sensor_routes)
 
 
 #app.register_blueprint(system_routes)
@@ -61,8 +62,10 @@ def health_check():
 
 # Kjør applikasjonen
 if __name__ == "__main__":
+    logger.debug("Starter Flask-applikasjon...")
+    logger.info("Initierer system og validerer loggkonfigurasjon...")
+    system_init.init()  # Initierer system og validerer logger
     # Start sensor-monitor i bakgrunnen
     threading.Thread(target=run_sensor_monitor_loop, daemon=True).start()
-    print("[APP] Starter Flask-applikasjon...")
     atexit.register(controller.shutdown)
     app.run(host="0.0.0.0", port=5000, debug=True, use_reloader=False)

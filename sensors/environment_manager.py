@@ -6,11 +6,8 @@ import json
 from datetime import datetime, time as dt_time
 from utils.config_loader import load_config
 from config import config_paths
-from utils.logging.logger_manager import get_logger
 
 from sensors.bme280_sensor import BME280Sensor
-
-logger = get_logger("environment_manager", category="env")
 
 
 class EnvironmentSensorManager:
@@ -20,8 +17,7 @@ class EnvironmentSensorManager:
 
     def __init__(self):
 
-        self.status_logger = get_logger("env_sensor_manager", category="system")
-
+        self.status_logger = get_logger("environment_manager", category="system")
         self.sensors = []
         self.status_file = config_paths.STATUS_SENSOR_ENV_PATH
         self.averages_file = config_paths.LOG_SENSOR_ENV_AVERAGES_PATH

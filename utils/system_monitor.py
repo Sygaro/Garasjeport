@@ -7,9 +7,8 @@ import psutil
 
 from utils.config_loader import load_config
 from config import config_paths
-from utils.logging.logger_manager import get_logger
 
-logger = get_logger("system_monitor")
+logger = get_logger("system_monitor", category="system")
 
 APP_START_TIME = time.time()
 

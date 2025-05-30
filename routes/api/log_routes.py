@@ -4,7 +4,6 @@ from utils.logging.unified_logger import get_logger
 from flask import Blueprint, jsonify, request
 from utils.auth import token_required
 from config import config_paths as paths
-from utils.logging.logger_manager import get_logger
 import os
 import time
 

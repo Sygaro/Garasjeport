@@ -1,13 +1,13 @@
 from utils.logging.unified_logger import get_logger
+
 import threading
 import time
 
 from utils.system_monitor import get_system_status, check_thresholds_and_log
 from utils.config_loader import load_config
 from config import config_paths as paths
-from utils.logging.logger_manager import get_logger
 
-logger = get_logger("system_monitor", category="system_monitor")
+logger = get_logger("system_monitor", category="system")
 
 def start_system_monitor_task():
     def monitor_loop():

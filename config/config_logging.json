@@ -15,7 +15,7 @@
         "console"
       ]
     },
-    "system_monitor": {
+    "system": {
       "enabled": true,
       "level": "DEBUG",
       "format": "plain",
@@ -26,10 +26,11 @@
     },
     "environment": {
       "enabled": true,
-      "level": "DEBUG",
+      "level": "warn",
       "format": "plain",
       "output": [
-        "file"
+        "file",
+        "console"
       ]
     },
     "port_timing": {
@@ -37,28 +38,49 @@
       "level": "DEBUG",
       "format": "plain",
       "output": [
-        "file"
+        "file",
+        "console"
       ]
     },
     "port_activity": {
       "enabled": true,
-      "level": "INFO",
+      "level": "DEBUG",
       "format": "plain",
       "output": [
-        "file"
+        "file",
+        "console"
       ]
     },
     "port_status": {
       "enabled": true,
-      "level": "INFO",
+      "level": "DEBUG",
       "format": "plain",
       "output": [
-        "file"
+        "file",
+        "console"
       ]
     },
     "error": {
       "enabled": true,
-      "level": "WARNING",
+      "level": "DEBUG",
+      "format": "plain",
+      "output": [
+        "file",
+        "console"
+      ]
+    },
+     "api": {
+      "enabled": true,
+      "level": "DEBUG",
+      "format": "plain",
+      "output": [
+        "file",
+        "console"
+      ]
+    },
+    "bootstrap": {
+      "enabled": true,
+      "level": "DEBUG",
       "format": "plain",
       "output": [
         "file",

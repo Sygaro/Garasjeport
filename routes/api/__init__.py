@@ -1,9 +1,19 @@
-from utils.logging.unified_logger import get_logger
 # routes/api/__init__.py
 
 from flask import Blueprint
 
 api = Blueprint("api", __name__, url_prefix="/api")
+
+# Import all route modules
+__all__ = [
+    "config_routes",
+    "port_routes",
+    "status_routes",
+    "timing_routes",
+    "system_routes",
+    "log_routes",
+    "sensor_routes"
+]
 
 from .config_routes import config_routes
 from .port_routes import port_routes

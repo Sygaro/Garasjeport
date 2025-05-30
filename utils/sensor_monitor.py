@@ -1,11 +1,10 @@
 # utils/sensor_monitor.py
 
 import pigpio
-from utils.logging.logger_manager import get_logger
+from utils.logging.unified_logger import get_logger
 from config.config_paths import CONFIG_GPIO_PATH
 from utils.file_utils import load_json
 
-logger = get_logger("sensor_monitor", category="activity")
 
 class SensorMonitor:
     def __init__(self, config_gpio, logger=None, pi=None):
@@ -13,7 +12,10 @@ class SensorMonitor:
         Overvåker porter og registrerer sensor-endringer via pigpio edge detection.
         """
         self.pi = pi  # Delt pigpio-instans (fra pigpio_manager.get_pi())
-        self.logger = logger or get_logger("sensor_monitor", category="sensor")
+        
+        # set logger, eller bruk standard logger
+        self.port_logger = get_logger("sensor_monitor", category="port_activity")
+        self.logger = logger or get_logger("sensor_monitor", category="system")
         self.logger.info("SensorMonitor startet")
 
         self.config = config_gpio or load_json(CONFIG_GPIO_PATH)
@@ -57,10 +59,7 @@ class SensorMonitor:
                     self._generate_handler(gpio)
                 )
                 self.callbacks.append(cb)
-                self.logger.debug(
-                    "sensor_monitor",
-                    f"Callback satt på port: {port}, sensor: {sensor_type}, GPIO: {gpio}"
-                )
+                self.logger.debug(f"Callback satt på port: {port}, sensor: {sensor_type}, GPIO: {gpio}")
             except Exception as e:
                 self.logger.error(f"Feil ved registrering av callback på GPIO {gpio}: {e}")
 
@@ -75,16 +74,13 @@ class SensorMonitor:
         Behandler sensorendring og videresender til registrert callback.
         """
         if gpio not in self._gpio_to_port:
-            self.logger.warning("sensor_monitor", f"Ukjent GPIO: {gpio} – finnes ikke i konfig")
+            self.logger.warning(f"Ukjent GPIO: {gpio} – finnes ikke i konfig")
             return
 
         port, sensor_type = self._gpio_to_port[gpio]
         active_text = "aktiv" if level == self.active_state else "inaktiv"
 
-        self.logger.debug(
-            "sensor_monitor",
-            f"Sensor-endring: {port} ({sensor_type}) GPIO {gpio} = {level} → {active_text}"
-        )
+        self.logger.debug(f"Sensor-endring: {port} ({sensor_type}) GPIO {gpio} = {level} → {active_text}")
 
         if self.callback_function:
             self.callback_function(port, sensor_type, level)

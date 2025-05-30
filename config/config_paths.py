@@ -41,13 +41,14 @@ ACCESS_SESSION_LOG_PATH = os.path.join(DATA_DIR, "access_session_log.json")
 # === Loggfiler ===
 LOG_STATUS_PATH = os.path.join(LOG_DIR, "status.log")
 LOG_ERROR_PATH = os.path.join(LOG_DIR, "errors.log")
-LOG_ACTIVITY_PATH = os.path.join(LOG_DIR, "activity.log")
+LOG_ACTIVITY_PATH = os.path.join(LOG_DIR, "port_activity.log")
 LOG_TIMING_PATH = os.path.join(LOG_DIR, "timing.log")
 LOG_BOOTSTRAP_PATH = os.path.join(LOG_DIR, "bootstrap.log")
 LOG_SENSOR_ENV_AVERAGES_PATH = os.path.join(LOG_DIR, "sensor_env_averages.log")
 LOG_SENSOR_ENV_PATH = os.path.join(LOG_DIR, "environment.log")
 LOG_GARAGE_CONTROLLER_PATH = os.path.join(LOG_DIR, "garage_controller.log")
 LOG_SYSTEM_PATH = os.path.join(LOG_DIR, "system.log")
+LOG_API_PATH= os.path.join(LOG_DIR, "api_system.log")
 
 
 

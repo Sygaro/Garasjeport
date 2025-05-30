@@ -25,12 +25,12 @@ class GarageController:
        
         ### Setter opp logging ###
         # Logger instanser for ulike kategorier
-        self.status_logger = get_logger("port_status", category="status")
-        self.timing_logger = get_logger("port_timing", category="timing")
-        self.activity_logger = get_logger("port_activity", category="activity")
-        self.controller_logger = get_logger("controller", category="garage_controller")
+        self.status_logger = get_logger("GarageController", category="port_status")
+        self.timing_logger = get_logger("GarageController", category="port_timing")
+        self.activity_logger = get_logger("GarageController", category="port_activity")
+        self.logger = get_logger("GarageController", category="system")
 
-        self.controller_logger.info("GarageController startet")
+        self.logger.info("GarageController startet")
        
         self.config_gpio = config_gpio
         self.config_system = config_system
@@ -43,7 +43,7 @@ class GarageController:
         # Hent pigpio-instans via delt manager
         self.pi = get_pi()
         if self.pi is None or not self.pi.connected:
-            self.controller_logger.error("pigpio er ikke tilgjengelig – sjekk tilkoblingen.")
+            self.logger.error("pigpio er ikke tilgjengelig – sjekk tilkoblingen.")
             raise RuntimeError("Feil: pigpio er ikke tilgjengelig")
                 
 
@@ -91,7 +91,7 @@ class GarageController:
                 self.status_logger.info(f"{port} sensorstatus ved oppstart: {self.status[port]}")
 
             except Exception as e:
-                self.controller_logger.warning(f"Kunne ikke lese initial status for port {port}: {e}")
+                self.logger.warning(f"Kunne ikke lese initial status for port {port}: {e}")
                 self.status[port] = "unknown"
 
 
@@ -104,7 +104,7 @@ class GarageController:
             with open(paths.CONFIG_SYSTEM_PATH, "w") as f:
                 json.dump(self.config_system, f, indent=4)
         except Exception as e:
-            self.controller_logger.error(f"Kunne ikke lagre systemkonfig: {e}")
+            self.logger.error(f"Kunne ikke lagre systemkonfig: {e}")
 
     def sensor_event_callback(self, port, sensor_type, level):
         active_state = self.config_gpio["sensor_config"]["active_state"]
@@ -241,7 +241,7 @@ class GarageController:
 
             self.save_config()
         except Exception as e:
-            self.controller_logger.error(f"Feil i _update_timing_data: {e}")
+            self.logger.error(f"Feil i _update_timing_data: {e}")
 
 
 
@@ -254,7 +254,7 @@ class GarageController:
         if flags.get("first_sensor_time") is None:
             self._set_status(port, self.status.get(port))  # behold forrige status
             self.status_logger.warning(port, "Ingen sensorrespons – motor trolig ikke aktivert")
-            self.controller_logger.error(port, "Puls sendt, men ingen sensor endret status")
+            self.logger.error(port, "Puls sendt, men ingen sensor endret status")
             flags["moving"] = False
 
     def _handle_movement_timeout(self, port):
@@ -262,8 +262,8 @@ class GarageController:
         if flags.get("moving"):
             source = "system" if flags.get("stopped_by_system") else "manuell"
             self._set_status(port, "partial")
-            self.controller_logger.info(port, f"Port stoppet – delvis åpen (kilde: {source})")
-            self.controller_logger.error(port, f"{port} | bevegelse ikke fullført innen forventet tid | kilde: {source}")
+            self.logger.info(port, f"Port stoppet – delvis åpen (kilde: {source})")
+            self.logger.error(port, f"{port} | bevegelse ikke fullført innen forventet tid | kilde: {source}")
             flags["moving"] = False
 
     def _sensor_callback(self, gpio, level, tick, port, sensor_type):
@@ -274,7 +274,7 @@ class GarageController:
         self.status_logger.change(f"{port} {sensor_type} sensor endret: level={level} @ {timestamp}")
 
         if port not in self.status:
-            self.controller_logger.error(f"Ukjent port i callback: {port}")
+            self.logger.error(f"Ukjent port i callback: {port}")
             return
 
         direction = self._operation_flags[port].get("direction")
@@ -296,7 +296,7 @@ class GarageController:
         # Registrer t0 dersom dette er første sensor-endring (sensor blir inaktiv)
         if "movement_detected_time" not in self._operation_flags[port] and sensor_type == opposite_sensor and level == 0:
             self._operation_flags[port]["movement_detected_time"] = now
-            self.controller_logger.debug(f"{port}: movement_detected_time satt ({sensor_type} = 0)")
+            self.logger.debug(f"{port}: movement_detected_time satt ({sensor_type} = 0)")
 
         # Dette er "mål-sensoren" – porten ferdig åpnet/lukket
         if sensor_type == expected_sensor and level == self.sensor_monitor.active_state:
@@ -328,17 +328,17 @@ class GarageController:
                 "direction": None,
                 "movement_detected_time": None
             }
-            self.controller_logger.warning(""f"{port}: Motsatt sensor aktivert – manuell stopp eller avbrudd")
+            self.logger.warning(""f"{port}: Motsatt sensor aktivert – manuell stopp eller avbrudd")
 
     def shutdown(self):
         if getattr(self, "_already_shutdown", False):
             return
         self._already_shutdown = True
-        self.controller_logger.debug("Shutdown pågår – rydder opp rele og sensorer")
+        self.logger.debug("Shutdown pågår – rydder opp rele og sensorer")
         try:
             if hasattr(self.sensor_monitor, "cleanup"):
                 self.sensor_monitor.cleanup()
         except Exception as e:
-            self.controller_logger.error("shutdown", f"Feil ved opprydding: {e}")
+            self.logger.error("shutdown", f"Feil ved opprydding: {e}")
         else:
-            self.controller_logger.info("GarageController shutdown fullført.")
+            self.logger.info("GarageController shutdown fullført.")

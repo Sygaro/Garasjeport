@@ -6,7 +6,7 @@ from utils.logging.unified_logger import get_logger
 
 
 #logger = get_logger("sensor_bme280", category="bootstrap")
-logger = get_logger("bme280_sensor", category="env")
+logger = get_logger("bme280_sensor", category="environment")
 
 
 class BME280Sensor:
