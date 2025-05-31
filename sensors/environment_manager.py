@@ -1,4 +1,3 @@
-from utils.logging.unified_logger import get_logger
 import os
 import time
 import threading
@@ -6,7 +5,7 @@ import json
 from datetime import datetime, time as dt_time
 from utils.config_loader import load_config
 from config import config_paths
-
+from utils.logging.unified_logger import get_logger
 from sensors.bme280_sensor import BME280Sensor
 
 
@@ -101,7 +100,7 @@ class EnvironmentSensorManager:
             os.makedirs(os.path.dirname(self.status_file), exist_ok=True)
             with open(self.status_file, "w") as f:
                 json.dump(data, f, indent=2)
-            self.status_logger.info(f"Lagret siste sensorverdier til {self.status_file}")
+            self.status_logger.debug(f"Lagret siste sensorverdier til {self.status_file}")
         except Exception as e:
             self.status_logger.error(f"Feil ved skriving av sensorstatus: {e}")
 

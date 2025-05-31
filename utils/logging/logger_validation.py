@@ -50,7 +50,7 @@ def validate_logging_config():
                 with open(fpath, "r", encoding="utf-8") as src:
                     content = src.read()
                     if "\x00" in content:
-                        print(f"  ⚠️  Hopper over fil med null-bytes: {fpath}")
+                        #print(f"  ⚠️  Hopper over fil med null-bytes: {fpath}")
                         continue
                     tree = ast.parse(content, filename=fname)
             except (SyntaxError, UnicodeDecodeError, ValueError):

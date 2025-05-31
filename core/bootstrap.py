@@ -315,4 +315,4 @@ def initialize_system_environment():
 
     status = get_system_status()
     check_thresholds_and_log(status)
-    bootstrap_logger.info(f"Systemstatus ved oppstart: {status}")
+    bootstrap_logger.debug(f"Systemstatus ved oppstart: {status}")

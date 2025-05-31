@@ -23,7 +23,7 @@ def run_sensor_monitor_loop():
                 sensor_manager.save_latest(readings)
                 for sid, values in readings.items():
                     msg = f"Temp: {values['temperature']}°C, Hum: {values['humidity']}%, Press: {values['pressure']} hPa"
-                    env_logger(sid, msg)
+                    env_logger.info(f"{sid}: {msg}")
             time.sleep(5)
     except KeyboardInterrupt:
         logger.info("Overvåking avsluttet manuelt")

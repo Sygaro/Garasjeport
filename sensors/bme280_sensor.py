@@ -24,7 +24,7 @@ class BME280Sensor:
         try:
             self.bus = smbus2.SMBus(self.bus_number)
             self.calibration_params = load_calibration_params(self.bus, self.address)
-            logger.info(f"{self.id}: BME280Sensor initialisert @ 0x{self.address:02X} på bus {self.bus_number}")
+            logger.debug(f"{self.id}: BME280Sensor initialisert @ 0x{self.address:02X} på bus {self.bus_number}")
         except Exception as e:
             logger.error(f"{self.id}: Klarte ikke å initialisere BME280: {e}")
             raise
@@ -53,8 +53,8 @@ class BME280Sensor:
             result = {
                 "temperature": temperature,
                 "humidity": humidity,
-                "pressure": pressure,
-                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                "pressure": pressure
+                #"timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             }
             self.last_read_time = now
             logger.debug(f"{self.id}: Sensorverdier: {result}")

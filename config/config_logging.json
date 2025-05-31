@@ -5,95 +5,75 @@
   "retention_days": 90,
   "timestamp_format": "%Y-%m-%d %H:%M:%S",
   "log_settings": {
-    
     "garage_controller": {
-      "enabled": true,
-      "level": "DEBUG",
-      "format": "plain",
-      "output": [
-        "file",
-        "console"
-      ]
+      "file_enabled": true,
+      "file_level": "DEBUG",
+      "console_enabled": true,
+      "console_level": "DEBUG",
+      "format": "plain"
     },
     "system": {
-      "enabled": true,
-      "level": "DEBUG",
-      "format": "plain",
-      "output": [
-        "file",
-        "console"
-      ]
+      "file_enabled": true,
+      "file_level": "DEBUG",
+      "console_enabled": true,
+      "console_level": "DEBUG",
+      "format": "plain"
     },
     "environment": {
-      "enabled": true,
-      "level": "warn",
-      "format": "plain",
-      "output": [
-        "file",
-        "console"
-      ]
+      "file_enabled": true,
+      "file_level": "DEBUG",
+      "console_enabled": true,
+      "console_level": "DEBUG",
+      "format": "plain"
     },
     "port_timing": {
-      "enabled": true,
-      "level": "DEBUG",
-      "format": "plain",
-      "output": [
-        "file",
-        "console"
-      ]
+      "file_enabled": true,
+      "file_level": "DEBUG",
+      "console_enabled": true,
+      "console_level": "DEBUG",
+      "format": "plain"
     },
     "port_activity": {
-      "enabled": true,
-      "level": "DEBUG",
-      "format": "plain",
-      "output": [
-        "file",
-        "console"
-      ]
+      "file_enabled": true,
+      "file_level": "DEBUG",
+      "console_enabled": true,
+      "console_level": "DEBUG",
+      "format": "plain"
     },
     "port_status": {
-      "enabled": true,
-      "level": "DEBUG",
-      "format": "plain",
-      "output": [
-        "file",
-        "console"
-      ]
+      "file_enabled": true,
+      "file_level": "DEBUG",
+      "console_enabled": true,
+      "console_level": "DEBUG",
+      "format": "plain"
     },
     "error": {
-      "enabled": true,
-      "level": "DEBUG",
-      "format": "plain",
-      "output": [
-        "file",
-        "console"
-      ]
+      "file_enabled": true,
+      "file_level": "DEBUG",
+      "console_enabled": true,
+      "console_level": "DEBUG",
+      "format": "plain"
     },
-     "api": {
-      "enabled": true,
-      "level": "DEBUG",
-      "format": "plain",
-      "output": [
-        "file",
-        "console"
-      ]
+    "api": {
+      "file_enabled": true,
+      "file_level": "DEBUG",
+      "console_enabled": true,
+      "console_level": "DEBUG",
+      "format": "plain"
     },
     "bootstrap": {
-      "enabled": true,
-      "level": "DEBUG",
-      "format": "plain",
-      "output": [
-        "file",
-        "console"
-      ]
+      "file_enabled": true,
+      "file_level": "INFO",
+      "console_enabled": true,
+      "console_level": "DEBUG",
+      "format": "plain"
     },
     "console_debug": {
-      "enabled": true,
-      "level": "DEBUG",
-      "format": "plain",
-      "output": [
-        "console"
-      ]
+      "file_enabled": false,
+      "file_level": "WARNING",
+      "console_enabled": true,
+      "console_level": "WARNING",
+      "format": "plain"
     }
   }
 }

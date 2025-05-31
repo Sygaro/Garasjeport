@@ -132,7 +132,7 @@ class GarageController:
         if self.status.get(port) == "open":
             return {"port": port, "status": "already open"}
 
-        self.activity_logger.open(port, "open", source="api")
+        self.activity_logger.info(port, "open", source="api")
         self.activate_relay(port)
         self._operation_flags[port]["moving"] = True
         self._operation_flags[port]["start_time"] = time.time()
@@ -146,7 +146,7 @@ class GarageController:
         if self.status.get(port) == "closed":
             return {"port": port, "status": "already closed"}
 
-        self.activity_logger.close(port, "close", source="api")
+        self.activity_logger.info(port, "close", source="api")
         self.activate_relay(port)
         self._operation_flags[port]["moving"] = True
         self._operation_flags[port]["start_time"] = time.time()
@@ -161,7 +161,7 @@ class GarageController:
             return {"port": port, "status": "not moving"}
 
         self._operation_flags[port]["moving"] = False
-        self.activity_logger.stop(port, "stop", source="api")
+        self.activity_logger.info(port, "stop", source="api")
         return {"port": port, "status": "stopped"}
     
     def activate_relay(self, port):

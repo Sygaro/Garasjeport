@@ -17,30 +17,13 @@ VALID_LOGS = {
     "error": paths.LOG_ERROR_PATH,
     "activity": paths.LOG_ACTIVITY_PATH,
     "timing": paths.LOG_TIMING_PATH,
-    "bootstrap": paths.LOG_BOOTSTRAP_PATH
+    "bootstrap": paths.LOG_BOOTSTRAP_PATH,
+    "sensor_avg": paths.LOG_SENSOR_ENV_AVERAGES_PATH,
+    "environment": paths.LOG_SENSOR_ENV_PATH,
+    "controller": paths.LOG_GARAGE_CONTROLLER_PATH,
+    "system": paths.LOG_SYSTEM_PATH,
+    "api_system": paths.LOG_API_PATH
 }
-
-@log_routes.route("/log", methods=["GET"])
-@token_required
-def api_get_log():
-    """
-    Returnerer de siste linjene fra aktivitetsloggen.
-    Valgfri query-param: ?lines=50 (default: 50)
-    """
-    try:
-        lines_requested = int(request.args.get("lines", 50))
-        if lines_requested <= 0:
-            lines_requested = 50
-    except (ValueError, TypeError):
-        lines_requested = 50
-
-    logs = routes_logger.get_recent_logs(limit=lines_requested)
-    return jsonify({
-        "logs": logs,
-        "returned_lines": len(logs),
-        "requested_lines": lines_requested
-    })
-
 
 @log_routes.route("/api/logs", methods=["GET"])
 @token_required
