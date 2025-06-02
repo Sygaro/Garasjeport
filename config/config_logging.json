@@ -1,15 +1,13 @@
 {
-  "log_directory": "logs",
   "max_file_size_mb": 10,
-  "rotation_days": 14,
-  "retention_days": 90,
+  "max_backups_files": 5,
   "timestamp_format": "%Y-%m-%d %H:%M:%S",
   "log_settings": {
     "garage_controller": {
       "file_enabled": true,
       "file_level": "DEBUG",
       "console_enabled": true,
-      "console_level": "DEBUG",
+      "console_level": "info",
       "format": "plain"
     },
     "system": {
@@ -21,40 +19,40 @@
     },
     "environment": {
       "file_enabled": true,
-      "file_level": "DEBUG",
+      "file_level": "INFO",
       "console_enabled": true,
-      "console_level": "DEBUG",
+      "console_level": "WARNING",
       "format": "plain"
     },
     "port_timing": {
       "file_enabled": true,
-      "file_level": "DEBUG",
+      "file_level": "INFO",
       "console_enabled": true,
       "console_level": "DEBUG",
       "format": "plain"
     },
     "port_activity": {
       "file_enabled": true,
-      "file_level": "DEBUG",
+      "file_level": "INFO",
       "console_enabled": true,
       "console_level": "DEBUG",
       "format": "plain"
     },
     "port_status": {
       "file_enabled": true,
-      "file_level": "DEBUG",
+      "file_level": "INFO",
       "console_enabled": true,
       "console_level": "DEBUG",
       "format": "plain"
-    },
-    "error": {
+    },  
+    "api": {
       "file_enabled": true,
       "file_level": "DEBUG",
       "console_enabled": true,
       "console_level": "DEBUG",
       "format": "plain"
     },
-    "api": {
+    "unknown_category": {
       "file_enabled": true,
       "file_level": "DEBUG",
       "console_enabled": true,
@@ -63,14 +61,7 @@
     },
     "bootstrap": {
       "file_enabled": true,
-      "file_level": "INFO",
-      "console_enabled": true,
-      "console_level": "DEBUG",
-      "format": "plain"
-    },
-    "console_debug": {
-      "file_enabled": false,
-      "file_level": "WARNING",
+      "file_level": "DEBUG",
       "console_enabled": true,
       "console_level": "WARNING",
       "format": "plain"

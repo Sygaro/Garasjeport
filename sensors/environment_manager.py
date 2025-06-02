@@ -16,7 +16,7 @@ class EnvironmentSensorManager:
 
     def __init__(self):
 
-        self.status_logger = get_logger("environment_manager", category="system")
+        self.status_logger = get_logger("env_manager", category="system")
         self.sensors = []
         self.status_file = config_paths.STATUS_SENSOR_ENV_PATH
         self.averages_file = config_paths.LOG_SENSOR_ENV_AVERAGES_PATH

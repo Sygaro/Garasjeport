@@ -1,6 +1,9 @@
 # app.py
 
-import os
+# import os, multiprocessing  ## for logger_tester
+from tools import logger_tester
+
+
 import atexit
 from flask import Flask
 
@@ -18,6 +21,8 @@ from routes.api import api
 
 logger = get_logger("system", category="system")
 
+# Logger-tester
+# multiprocessing.Process(target=logger_tester.test_loggers, daemon=True).start()
 
 # Flask-app
 app = Flask(__name__)

@@ -80,12 +80,12 @@ class SensorMonitor:
         port, sensor_type = self._gpio_to_port[gpio]
         active_text = "aktiv" if level == self.active_state else "inaktiv"
 
-        self.logger.debug(f"Sensor-endring: {port} ({sensor_type}) GPIO {gpio} = {level} → {active_text}")
+        self.port_logger.debug(f"Sensor-endring: {port} ({sensor_type}) GPIO {gpio} = {level} → {active_text}")
 
         if self.callback_function:
             self.callback_function(port, sensor_type, level)
         else:
-            self.logger.warning("sensor_monitor", "Ingen callback-funksjon satt – ignorerer signal")
+            self.logger.warning("Ingen callback-funksjon satt – ignorerer signal")
 
     def cleanup(self):
         """

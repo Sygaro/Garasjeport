@@ -1,5 +1,6 @@
 import datetime
 import time, json #, threading 
+
 #import pigpio
 from datetime import datetime
 
@@ -25,10 +26,11 @@ class GarageController:
        
         ### Setter opp logging ###
         # Logger instanser for ulike kategorier
-        self.status_logger = get_logger("GarageController", category="port_status")
-        self.timing_logger = get_logger("GarageController", category="port_timing")
-        self.activity_logger = get_logger("GarageController", category="port_activity")
-        self.logger = get_logger("GarageController", category="system")
+      
+        self.activity_logger = get_logger(name="GarageController", category="port_activity", source="API")
+        self.status_logger = get_logger("GarageController", category="port_status", source="controller")
+        self.timing_logger = get_logger("GarageController", category="port_timing", source="controller")
+        self.logger = get_logger("GarageController", category="system", source="controller")
 
         self.logger.info("GarageController startet")
        
@@ -110,7 +112,7 @@ class GarageController:
         active_state = self.config_gpio["sensor_config"]["active_state"]
         is_active = (level == active_state)
 
-        self.status_logger.change(port, f"{sensor_type} sensor {'aktiv' if is_active else 'inaktiv'}")
+        self.status_logger.change(f"{port}: {sensor_type} sensor {'aktiv' if is_active else 'inaktiv'}")
 
         if is_active:
             new_status = "open" if sensor_type == "open" else "closed"
@@ -132,7 +134,7 @@ class GarageController:
         if self.status.get(port) == "open":
             return {"port": port, "status": "already open"}
 
-        self.activity_logger.info(port, "open", source="api")
+        self.activity_logger.info(f"Åpner port {port}")
         self.activate_relay(port)
         self._operation_flags[port]["moving"] = True
         self._operation_flags[port]["start_time"] = time.time()
@@ -146,7 +148,7 @@ class GarageController:
         if self.status.get(port) == "closed":
             return {"port": port, "status": "already closed"}
 
-        self.activity_logger.info(port, "close", source="api")
+        self.activity_logger.info(f"Lukker port {port}")
         self.activate_relay(port)
         self._operation_flags[port]["moving"] = True
         self._operation_flags[port]["start_time"] = time.time()
@@ -161,7 +163,7 @@ class GarageController:
             return {"port": port, "status": "not moving"}
 
         self._operation_flags[port]["moving"] = False
-        self.activity_logger.info(port, "stop", source="api")
+        self.activity_logger.info(f"Stopper port {port}")
         return {"port": port, "status": "stopped"}
     
     def activate_relay(self, port):
@@ -328,7 +330,7 @@ class GarageController:
                 "direction": None,
                 "movement_detected_time": None
             }
-            self.logger.warning(""f"{port}: Motsatt sensor aktivert – manuell stopp eller avbrudd")
+        self.logger.warning(f"{port}: Motsatt sensor aktivert – manuell stopp eller avbrudd")
 
     def shutdown(self):
         if getattr(self, "_already_shutdown", False):

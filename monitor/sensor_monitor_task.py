@@ -1,10 +1,10 @@
 from utils.logging.unified_logger import get_logger
 import time
-import datetime
+# import datetime
 from sensors.environment_manager import EnvironmentSensorManager
 
-logger = get_logger("EnvironmentSensorManager", category="system")
-env_logger = get_logger("EnvironmentSensorManager", category="environment")
+logger = get_logger("env_sensor_mgmr", category="system")
+env_logger = get_logger("env_sensor_mgmr", category="environment")
 
 
 

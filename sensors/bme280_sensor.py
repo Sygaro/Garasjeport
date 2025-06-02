@@ -5,8 +5,8 @@ from bme280 import load_calibration_params, sample
 from utils.logging.unified_logger import get_logger
 
 
-#logger = get_logger("sensor_bme280", category="bootstrap")
-logger = get_logger("bme280_sensor", category="environment")
+logger = get_logger("bme280_sensor", category="system")
+#logger = get_logger("bme280_sensor", category="environment")
 
 
 class BME280Sensor:
