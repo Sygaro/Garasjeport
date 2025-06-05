@@ -10,10 +10,19 @@ from utils.version_utils import get_git_version
 from utils.logging.unified_logger import get_logger
 from config import config_paths as paths
 from utils.file_utils import ensure_directory_exists
+from utils.bootstrap_logger import bootstrap_logger
+
 
 
 status_path = paths.STATUS_BOOTSTRAP_PATH
 logger = get_logger("bootstrap", category="bootstrap")
+
+bootstrap_logger.log_status("Starter bootstrap prosess...")
+try:
+    validate_logging_config()
+    bootstrap_logger.log_status("Logging-konfigurasjon validert")
+except Exception as e:
+    bootstrap_logger.log_error(f"Feil ved validering av logging-konfig: {e}")
 
 
 

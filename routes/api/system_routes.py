@@ -7,6 +7,8 @@ from utils.auth import token_required
 #from utils.config_loader import load_config
 from config import config_paths as paths
 from utils.system_monitor import get_system_status, check_thresholds_and_log, run_system_health_check, get_diagnostics
+from monitor.monitor_registry import get_registry_status
+
 
 system_routes = Blueprint("system_routes", __name__, url_prefix="/system")
 
@@ -122,3 +124,12 @@ def rpi_diagnostics():
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+    
+@system_routes.route("/monitors", methods=["GET"])
+@token_required
+def get_monitors_status():
+    """
+    Returnerer status for alle aktive monitorer.
+    """
+    status = get_registry_status()
+    return jsonify(status)

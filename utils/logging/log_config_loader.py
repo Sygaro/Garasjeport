@@ -5,6 +5,8 @@ import logging
 from config import config_paths as paths
 from config.log_levels import LOG_LEVELS
 
+
+
 _logging_config_cache = None
 
 
@@ -63,5 +65,6 @@ def get_effective_config(category: str) -> dict:
     # Gi sensibel fallback for navn
     if "filename" not in merged:
         merged["filename"] = f"{category}.log"
+        logger.debug("Ingen filnavn spesifisert, bruker standard: %s", merged["filename"])
 
     return merged

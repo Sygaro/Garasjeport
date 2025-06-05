@@ -20,6 +20,7 @@ LOG_CATEGORIES: dict[str, str] = {
     "environment": config_paths.LOG_SENSOR_ENV_PATH,
     "api": config_paths.LOG_API_PATH,
     "system": config_paths.LOG_SYSTEM_PATH,
+    "env_manager": config_paths.LOG_ENV_MANAGER_PATH,
     "unknown_category": config_paths.LOG_UNKNOWN_CATEGORY_PATH #"Logger for ugyldige eller udefinerte kategorier"
 }
 

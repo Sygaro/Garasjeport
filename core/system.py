@@ -1,4 +1,6 @@
 from utils.logging.unified_logger import get_logger
+from tasks.system_status_reporter import start_system_status_reporter
+
 # core/system.py
 
 import atexit
@@ -9,18 +11,24 @@ from utils.gpio_initializer import initialize_gpio
 from utils.relay_initializer import initialize_relays
 from core.garage_controller import GarageController
 
+logger = get_logger("system_init", category="system")
+
+
 # Last inn config for sensorer og system
 gpio_config = load_config(paths.CONFIG_GPIO_PATH)
 system_config = load_config(paths.CONFIG_SYSTEM_PATH)
 
 # Sett opp GPIO-modus og pull for sensorer
 initialize_gpio()
+logger.info("GPIO-modus og pull satt opp for sensorer")
 
 # Sett opp reléutganger
 relay_pins, relay_config = initialize_relays()
-
+logger.info("Reléutganger satt opp")
 # Start delt pigpio-instans
 pi = get_pi()
+logger.info("Delt pigpio-instans startet")
+# Registrer stopp av pigpio-instans ved nedstenging
 atexit.register(stop_pi)
 
 # Start GarageController
@@ -31,6 +39,10 @@ controller = GarageController(
     relay_config=relay_config,
     testing_mode=False
 )
+logger.info("GarageController initialisert")
+
+start_system_status_reporter()
+logger.info("System status reporter startet")
 
 # Ryddig nedstenging
 def shutdown():

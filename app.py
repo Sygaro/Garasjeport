@@ -14,7 +14,7 @@ from core import system_init
 from core.system import controller
 from core.bootstrap import initialize_system_environment
 from monitor.system_monitor_task import start_system_monitor_task
-from monitor.sensor_monitor_task import run_sensor_monitor_loop
+from monitor.env_sensor_monitor_task import run_sensor_monitor_loop
 import threading
 from routes.api import api
 

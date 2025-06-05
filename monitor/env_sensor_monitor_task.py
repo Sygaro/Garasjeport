@@ -2,6 +2,8 @@ from utils.logging.unified_logger import get_logger
 import time
 # import datetime
 from sensors.environment_manager import EnvironmentSensorManager
+from monitor.monitor_registry import register_monitor, update_monitor
+
 
 logger = get_logger("env_sensor_mgmr", category="system")
 env_logger = get_logger("env_sensor_mgmr", category="environment")
@@ -29,3 +31,10 @@ def run_sensor_monitor_loop():
         logger.info("Overvåking avsluttet manuelt")
     except Exception as e:
         logger.error(f"Uventet feil: {str(e)}")
+
+def monitor_loop():
+    register_monitor("env_sensor_monitor")
+    logger.info("Starter overvåking av miljøsensorer...")
+    while True:
+        update_monitor("env_sensor_monitor")
+        logger.debug("Oppdaterer monitor status")

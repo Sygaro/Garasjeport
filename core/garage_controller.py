@@ -10,13 +10,13 @@ from utils.logging.unified_logger import get_logger
 # from utils.config_loader import load_config, load_portlogic_config
 # from utils.gpio_initializer import configure_gpio_pins
 from utils.pigpio_manager import get_pi, stop_pi
-from utils.sensor_monitor import SensorMonitor
+from monitor.port_sensor_monitor import SensorMonitor
 
 
 
 # Forsøk å importere pigpio-monitor, fallback til None hvis ikke tilgjengelig
 try:
-    from utils.sensor_monitor import SensorMonitor
+    from monitor.port_sensor_monitor import SensorMonitor
 except ImportError:
     SensorMonitor = None
 

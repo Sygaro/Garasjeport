@@ -7,7 +7,7 @@
       "file_enabled": true,
       "file_level": "DEBUG",
       "console_enabled": true,
-      "console_level": "info",
+      "console_level": "DEBUG",
       "format": "plain"
     },
     "system": {
@@ -52,6 +52,13 @@
       "console_level": "DEBUG",
       "format": "plain"
     },
+    "env_manager": {
+      "file_enabled": true,
+      "file_level": "DEBUG",
+      "console_enabled": true,
+      "console_level": "DEBUG",
+      "format": "plain"
+    },
     "unknown_category": {
       "file_enabled": true,
       "file_level": "DEBUG",
@@ -63,7 +70,7 @@
       "file_enabled": true,
       "file_level": "DEBUG",
       "console_enabled": true,
-      "console_level": "WARNING",
+      "console_level": "DEBUG",
       "format": "plain"
     }
   }

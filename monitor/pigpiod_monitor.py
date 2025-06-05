@@ -1,12 +1,17 @@
+# pigpiod_monitor.py
+
 import os
-import time
 import subprocess
+import time
+import json
 from datetime import datetime
 from utils.logging.unified_logger import get_logger
+from utils import config_paths
+from monitor.monitor_registry import monitor_registry
 
-from config import config_paths as paths
-STATUS_FILE = paths.PIGPIO_STATUS_PATH
-logger = get_logger("garapigpiod_monitor", category="system")
+logger = get_logger("pigpiod_monitor", category="system", source="SYSTEM")
+
+STATUS_FILE = config_paths.STATUS_PIGPIO_STATUS_PATH
 
 
 def is_pigpiod_running():
@@ -16,39 +21,60 @@ def is_pigpiod_running():
     except subprocess.CalledProcessError:
         return False
 
+
+def restart_pigpiod():
+    try:
+        subprocess.call(["sudo", "systemctl", "restart", "pigpiod"])
+        logger.info("pigpiod ble restartet")
+    except Exception as e:
+        logger.error(f"Feil ved restart av pigpiod: {e}")
+
+
+def load_status():
+    if not os.path.exists(STATUS_FILE):
+        return 0, None
+    try:
+        with open(STATUS_FILE, "r") as f:
+            data = json.load(f)
+            return data.get("restarts", 0), data.get("last_restart")
+    except Exception as e:
+        logger.warning(f"Kunne ikke laste pigpiod status: {e}")
+        return 0, None
+
+
 def write_status(running, restarts, last_restart):
-    os.makedirs(paths.STATUS_DIR, exist_ok=True)
-    with open(STATUS_FILE, "w") as f:
-        f.write('{\n')
-        f.write(f'  "pigpiod_running": {str(running).lower()},\n')
-        f.write(f'  "last_checked": "{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}",\n')
-        f.write(f'  "restarts": {restarts},\n')
-        f.write(f'  "last_restart_time": "{last_restart}"\n')
-        f.write('}\n')
+    try:
+        with open(STATUS_FILE, "w") as f:
+            json.dump({
+                "running": running,
+                "restarts": restarts,
+                "last_restart": last_restart,
+                "last_checked": datetime.now().isoformat()
+            }, f)
+        logger.debug("Status skrevet til fil: running=%s, restarts=%s", running, restarts)
+    except Exception as e:
+        logger.error(f"Kunne ikke skrive pigpiod status: {e}")
 
-restarts = 0
-failures = 0
-max_backoff = 60
 
-while True:
+def start_pigpiod_monitor():
+    logger.info("Starter pigpiod monitor")
     running = is_pigpiod_running()
-    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    restarts, last_restart = load_status()
 
     if not running:
-        logger.warning("pigpiod ikke kjørende – forsøker oppstart...")
-        os.system("sudo pigpiod")
-        time.sleep(2)
+        restarts += 1
+        last_restart = datetime.now().isoformat()
+        restart_pigpiod()
+        logger.warning("pigpiod ikke kjørende – restartes")
 
-        if is_pigpiod_running():
-            restarts += 1
-            failures = 0
-            logger.info("pigpiod startet OK")
-            write_status(True, restarts, now)
-        else:
-            failures += 1
-            logger.ierror("pigpiod feilet ved oppstart")
-            write_status(False, restarts, "-")
-            time.sleep(min(2 ** failures, max_backoff))
-    else:
-        write_status(True, restarts, now)
-        time.sleep(10)
+    write_status(running, restarts, last_restart)
+
+    # Legg inn status i monitor_registry
+    monitor_registry["pigpiod"] = {
+        "running": running,
+        "last_checked": datetime.now().isoformat(),
+        "restarts": restarts,
+        "last_restart": last_restart
+    }
+
+    logger.info("pigpiod monitor fullført")

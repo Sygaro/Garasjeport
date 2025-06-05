@@ -50,7 +50,7 @@ LOG_GARAGE_CONTROLLER_PATH = os.path.join(LOG_DIR, "garage_controller.log")
 LOG_SYSTEM_PATH = os.path.join(LOG_DIR, "system.log")
 LOG_API_PATH= os.path.join(LOG_DIR, "api_system.log")
 LOG_UNKNOWN_CATEGORY_PATH = os.path.join(LOG_DIR, "unknown_category.log")
-
+LOG_ENV_MANAGER_PATH = os.path.join(LOG_DIR, "env_manager.log")
 
 
 
