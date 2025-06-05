@@ -6,6 +6,8 @@ import os
 from pathlib import Path
 from config.log_categories import LOG_CATEGORIES
 from utils.logging import log_config_loader
+from utils.bootstrap_logger import bootstrap_logger
+
 
 _formatter_cache = {}
 _logger_cache = {}

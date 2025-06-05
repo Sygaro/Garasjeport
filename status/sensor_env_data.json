@@ -1,12 +1,12 @@
 {
   "bme1": {
-    "temperature": 21.97,
-    "humidity": 51.04,
-    "pressure": 994.07
+    "temperature": 21.31,
+    "humidity": 52.62,
+    "pressure": 997.3
   },
   "bme2": {
-    "temperature": 22.27,
-    "humidity": 54.52,
-    "pressure": 995.53
+    "temperature": 21.6,
+    "humidity": 56.07,
+    "pressure": 998.6
   }
 }

@@ -17,12 +17,12 @@ from utils.bootstrap_logger import bootstrap_logger
 status_path = paths.STATUS_BOOTSTRAP_PATH
 logger = get_logger("bootstrap", category="bootstrap")
 
-bootstrap_logger.log_status("Starter bootstrap prosess...")
-try:
-    validate_logging_config()
-    bootstrap_logger.log_status("Logging-konfigurasjon validert")
-except Exception as e:
-    bootstrap_logger.log_error(f"Feil ved validering av logging-konfig: {e}")
+# bootstrap_logger.log_status("Starter bootstrap prosess...")
+#try:
+ #   validate_logging_config()
+    #bootstrap_logger.log_status("Logging-konfigurasjon validert")
+#except Exception as e:
+    #bootstrap_logger.log_error(f"Feil ved validering av logging-konfig: {e}")
 
 
 
