@@ -12,7 +12,8 @@ __all__ = [
     "timing_routes",
     "system_routes",
     "log_routes",
-    "sensor_routes"
+    "sensor_routes",
+    "bootstrap_routes"
 ]
 
 from .config_routes import config_routes
@@ -22,6 +23,8 @@ from .timing_routes import timing_routes
 from .system_routes import system_routes
 from .log_routes import log_routes
 from .sensor_routes import sensor_routes
+from .bootstrap_routes import bootstrap_routes
+
 
 api.register_blueprint(config_routes)
 api.register_blueprint(port_routes)
@@ -30,4 +33,5 @@ api.register_blueprint(timing_routes)
 api.register_blueprint(system_routes)
 api.register_blueprint(log_routes)
 api.register_blueprint(sensor_routes)
+api.register_blueprint(bootstrap_routes)
 

@@ -8,11 +8,10 @@ import atexit
 from flask import Flask
 
 from utils.logging.unified_logger import get_logger
-
+from core.bootstrap.startup_manager import run_bootstrap
 from config.config_paths import LOG_DIR
 from core import system_init
 from core.system import controller
-from core.bootstrap import initialize_system_environment
 from monitor.system_monitor_task import start_system_monitor_task
 from monitor.env_sensor_monitor_task import run_sensor_monitor_loop
 import threading
@@ -35,7 +34,6 @@ app.register_blueprint(api)
 
 
 # Init system
-initialize_system_environment()
 start_system_monitor_task()
 
 # Ruter
@@ -45,7 +43,8 @@ from routes.api import (
     config_routes,
     log_routes,
     system_routes,
-    sensor_routes
+    sensor_routes,
+    bootstrap_routes
 )
 from routes.web import web
 
@@ -64,6 +63,12 @@ for bp in [
 @app.route("/health")
 def health_check():
     return {"status": "ok", "version": "1.0"}
+
+def main():
+    run_bootstrap()
+
+    from core import system_entrypoint
+    system_entrypoint.start()
 
 # Kjør applikasjonen
 if __name__ == "__main__":

@@ -20,7 +20,7 @@ STATUS_DIR = os.path.join(BASE_DIR, "status")
 #TEMPLATE_DIR = os.path.join(BASE_DIR, "templates")
 DOCS_DIR = os.path.join(BASE_DIR, "docs")
 DATA_DIR = os.path.join(BASE_DIR, "data")
-
+TEMP_DIR = os.path.join(BASE_DIR, "temp")
 
 # === Konfigurasjonsfiler ===
 CONFIG_GPIO_PATH = os.path.join(CONFIG_DIR, "config_gpio.json")
@@ -31,6 +31,7 @@ CONFIG_PORTLOGIC_PATH = os.path.join(CONFIG_DIR, "config_portlogic.json")
 CONFIG_TIMING_PATH = os.path.join(CONFIG_DIR, "config_timing.json")
 CONFIG_HEALTH_PATH = os.path.join(CONFIG_DIR, "config_health.json")
 CONFIG_SENSOR_ENV_PATH = os.path.join(CONFIG_DIR, "config_sensor_env.json")
+CONFIG_BOOTSTRAP_PATH = os.path.join(CONFIG_DIR, "config_bootstrap.json")
 
 
 # API og datafiler
@@ -61,3 +62,6 @@ STATUS_FRONTEND_VERSION_PATH = os.path.join(STATUS_DIR, "frontend_version.json")
 STATUS_SENSOR_ENV_PATH = os.path.join(STATUS_DIR, "sensor_env_data.json")
 
 
+# === Liste for bootstrap-bruk av mapper ===
+REQUIRED_DIRECTORIES = [LOG_DIR, CONFIG_DIR]
+OPTIONAL_DIRECTORIES = [DATA_DIR, TEMP_DIR]
