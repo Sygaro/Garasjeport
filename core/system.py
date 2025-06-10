@@ -44,6 +44,21 @@ logger.info("GarageController initialisert")
 start_system_status_reporter()
 logger.info("System status reporter startet")
 
+_controller = None
+
+def get_controller(config_gpio, config_system, relay_pins, relay_config, testing_mode=False):
+    global _controller
+    if _controller is None:
+        from core.garage_controller import GarageController
+        _controller = GarageController(
+            config_gpio=config_gpio,
+            config_system=config_system,
+            relay_pins=relay_pins,
+            relay_config=relay_config,
+            testing_mode=testing_mode,
+        )
+    return _controller
+
 # Ryddig nedstenging
 def shutdown():
     controller.shutdown()

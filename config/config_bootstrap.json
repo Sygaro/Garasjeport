@@ -1,0 +1,11 @@
+{
+ "timestamp_format": "%Y-%m-%d %H:%M:%S",
+ "check_optional_directories": true,
+ "bootstrap_log_settings": {
+   "file_enabled": true,
+   "file_level": "INFO",
+   "console_enabled": true,
+   "console_level": "WARNING",
+   "format": "plain"
+ }
+}

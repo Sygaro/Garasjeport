@@ -21,7 +21,7 @@
       "file_enabled": true,
       "file_level": "INFO",
       "console_enabled": true,
-      "console_level": "WARNING",
+      "console_level": "DEBUG",
       "format": "plain"
     },
     "port_timing": {

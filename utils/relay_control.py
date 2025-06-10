@@ -21,7 +21,7 @@ def trigger(port, pi, relay_pins, relay_config, logger=None):
     if pin is None:
         msg = f"[RELAY] Ugyldig portnavn: '{port}' ikke funnet i relay_pins"
         if logger:
-            logger.log_error("relay", msg)
+            logger.log.error("relay", msg)
         raise ValueError(msg)
 
     active_state = relay_config.get("active_state", 1)

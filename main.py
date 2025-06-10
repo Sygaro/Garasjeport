@@ -1,81 +1,45 @@
-# app.py
+# main.py
 
-# import os, multiprocessing  ## for logger_tester
-from tools import logger_tester
-
-
-import atexit
-from flask import Flask
-
-from utils.logging.unified_logger import get_logger
-from core.bootstrap.startup_manager import run_bootstrap
-from config.config_paths import LOG_DIR
-from core import system_init
-from core.system import controller
-from monitor.system_monitor_task import start_system_monitor_task
-from monitor.env_sensor_monitor_task import run_sensor_monitor_loop
-import threading
-from routes.api import api
-
-
-logger = get_logger("system", category="system")
-
-# Logger-tester
-# multiprocessing.Process(target=logger_tester.test_loggers, daemon=True).start()
-
-# Flask-app
-app = Flask(__name__)
-app.config["JSONIFY_PRETTYPRINT_REGULAR"] = True
-app.register_blueprint(api)
-#app.register_blueprint(sensor_routes)
-
-
-#app.register_blueprint(system_routes)
-
-
-# Init system
-start_system_monitor_task()
-
-# Ruter
-from routes.api import (
-    port_routes,
-    status_routes,
-    config_routes,
-    log_routes,
-    system_routes,
-    sensor_routes,
-    bootstrap_routes
-)
-from routes.web import web
-
-# Registrer alle blueprints
-for bp in [
-    port_routes,
-    status_routes,
-    config_routes,
-    log_routes,
-    system_routes,
-    web,
-]:
-    app.register_blueprint(bp)
-
-# Helse-endepunkt
-@app.route("/health")
-def health_check():
-    return {"status": "ok", "version": "1.0"}
+import sys
+from core.bootstrap import run_bootstrap
 
 def main():
-    run_bootstrap()
+    # --- Kjør alltid bootstrap FØR noe annet! ---
+    status = run_bootstrap()
+    if not status["ok"]:
+        print("[FATAL] Bootstrap feilet – systemet starter IKKE. Sjekk logg.")
+        sys.exit(1)
 
-    from core import system_entrypoint
-    system_entrypoint.start()
+    # --- Nå er det trygt å importere logger og systemmoduler ---
+    from flask import Flask
+    from utils.logging.unified_logger import get_logger
+    from core import system_init
+    from routes.api import api, port_routes, status_routes, config_routes, log_routes, system_routes, sensor_routes, bootstrap_routes
+    from routes.web import web
 
-# Kjør applikasjonen
-if __name__ == "__main__":
-    logger.debug("Starter Flask-applikasjon...")
-    logger.info("Initierer system og validerer loggkonfigurasjon...")
-    system_init.init()  # Initierer system og validerer logger
-    # Start sensor-monitor i bakgrunnen
-    threading.Thread(target=run_sensor_monitor_loop, daemon=True).start()
-    atexit.register(controller.shutdown)
+    logger = get_logger("main", category="system")
+    logger.info("=== System oppstart: starter Flask-app og kjører systeminitiering ===")
+
+    try:
+        system_init.init()
+        logger.info("Systeminitiering OK.")
+    except Exception as e:
+        logger.error(f"Feil under systeminitiering: {e}", exc_info=True)
+        sys.exit(2)
+
+    app = Flask(__name__)
+    app.config["JSONIFY_PRETTYPRINT_REGULAR"] = True
+
+    # Registrer API-blueprints
+    for bp in [api, port_routes, status_routes, config_routes, log_routes, system_routes, sensor_routes, bootstrap_routes, web]:
+        app.register_blueprint(bp)
+
+    @app.route("/health")
+    def health_check():
+        return {"status": "ok", "version": "1.0"}
+
+    logger.info("=== Starter Flask web-server ===")
     app.run(host="0.0.0.0", port=5000, debug=True, use_reloader=False)
+
+if __name__ == "__main__":
+    main()

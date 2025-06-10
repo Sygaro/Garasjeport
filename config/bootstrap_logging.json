@@ -1,7 +1,0 @@
-{
-  "console": true,
-  "file": true,
-  "level": "DEBUG",
-  "format": "plain",
-  "log_path": "LOG_BOOTSTRAP_PATH"
-}
