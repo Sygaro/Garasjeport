@@ -10,8 +10,8 @@ Et robust og modulært system for styring og overvåkning av garasjeporter via R
 
 #### Kloning og oppstart
 ```bash
-git clone --branch feature/v1.06_pigpio https://github.com/Sygaro/Garasjeport.git
-cd garasjeport_v1.06
+git clone https://github.com/Sygaro/Garasjeport.git
+cd Garasjeport
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
