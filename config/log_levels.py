@@ -1,28 +1,13 @@
-# Fil: config/log_levels.py
-
 import logging
 
-# Egendefinerte nivåer
-CUSTOM_LOG_LEVELS = {
-    "CHANGE": 25,
-    "TIMING": 15,
-
-    "SECURITY": 35
-}
-
-# Legg til navn i logging-systemet
-for name, level in CUSTOM_LOG_LEVELS.items():
-    logging.addLevelName(level, name)
-
-# Gjør dem tilgjengelig for andre moduler
-LOG_LEVELS = {
-    **{
-        "CRITICAL": logging.CRITICAL,
-        "ERROR": logging.ERROR,
-        "WARNING": logging.WARNING,
-        "INFO": logging.INFO,
-        "DEBUG": logging.DEBUG,
-        "NOTSET": logging.NOTSET,
-    },
-    **CUSTOM_LOG_LEVELS,
+LEVELS = {
+    "DEBUG": logging.DEBUG,
+    "INFO": logging.INFO,
+    "CHANGE": 23,
+    "NOTICE": 25,
+    "ACTIVITY": 30,  # Custom level for activity messages
+    "TIMING": 35,  # Custom level for timing messages
+    "WARNING": logging.WARNING,
+    "ERROR": logging.ERROR,
+    "CRITICAL": logging.CRITICAL,
 }

@@ -270,7 +270,9 @@ def run_bootstrap():
     disk_ok = check_disk_space(paths.LOG_DIR, min_mb=50, logger=logger)
 
     # Single instance (f.eks. bruk en pid-fil i TEMP_DIR)
-    pid_file = os.path.join(paths.TEMP_DIR, "garasjeport.pid")
+    #pid_file = os.path.join(paths.TEMP_DIR, "garasjeport.pid")
+    pid_file = getattr(paths, "PID_FILE", None)
+
     single_ok = check_single_instance(pid_file, logger)
 
       # Sjekk statusfiler (definert i config_paths.py)

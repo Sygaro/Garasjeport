@@ -9,9 +9,12 @@ from utils.logging.unified_logger import get_logger
 from utils import config_paths
 from monitor.monitor_registry import monitor_registry
 
-logger = get_logger("pigpiod_monitor", category="system", source="SYSTEM")
+logger = get_logger("pigpiod_monitor", category="system")
 
-STATUS_FILE = config_paths.STATUS_PIGPIO_STATUS_PATH
+logger.info("=== Starter pigpiod monitor ===")
+STATUS_FILE = config_paths.STATUS_PIGPIO_PATH
+logger.debug(f"Statusfil for pigpiod: {STATUS_FILE}")
+# Sjekk at statusfilen finnes, opprett den hvis ikke
 
 
 def is_pigpiod_running():

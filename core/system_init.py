@@ -1,6 +1,6 @@
 # core/system_init.py
 
-import json
+import json, os, sys, signal
 from utils.logging.unified_logger import get_logger
 from core.system import get_controller
 from config import config_paths
@@ -77,10 +77,21 @@ def init():
 
 def shutdown():
     logger.info("=== Starter system shutdown ===")
+    pid_file = getattr(config_paths, "PID_FILE", None)
     try:
         controller = get_controller(None, None, None, None)  # Henter singleton
         controller.shutdown()
         logger.info("GarageController shutdown fullført.")
     except Exception as e:
         logger.error(f"Feil ved GarageController shutdown: {e}", exc_info=True)
+        pid_file = getattr(config_paths, "PID_FILE", None)
+    
+    if pid_file and os.path.exists(pid_file):
+        try:
+            logger.debug(f"Sletter pid-fil: {pid_file}")
+            os.remove(pid_file)
+            logger.info(f"Pid-fil slettet: {pid_file}")
+        except Exception as e:
+            logger.error(f"Kunne ikke slette pid-fil: {e}", exc_info=True)
+
     logger.info("=== System shutdown fullført ===")

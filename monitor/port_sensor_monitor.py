@@ -5,6 +5,7 @@ from utils.logging.unified_logger import get_logger
 from config.config_paths import CONFIG_GPIO_PATH
 from utils.file_utils import load_json
 
+#logger = get_logger("sensor_monitor", category="system")
 
 class SensorMonitor:
     def __init__(self, config_gpio, logger=None, pi=None):
@@ -15,7 +16,7 @@ class SensorMonitor:
         
         # set logger, eller bruk standard logger
         self.port_logger = get_logger("sensor_monitor", category="port_activity")
-        self.logger = logger or get_logger("sensor_monitor", category="system")
+        self.logger = get_logger("sensor_monitor", category="system")
         self.logger.info("SensorMonitor startet")
 
         self.config = config_gpio or load_json(CONFIG_GPIO_PATH)

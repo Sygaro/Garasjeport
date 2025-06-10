@@ -73,5 +73,42 @@
       "console_level": "DEBUG",
       "format": "plain"
     }
+  },
+"color_settings": {
+  "level": {
+    "INFO": "GREEN",
+    "DEBUG": "CYAN",
+    "ERROR": "RED",
+    "WARNING": "YELLOW",
+    "CRITICAL": "BRIGHT_RED"
+  },
+  "name": {
+    "GarageController": "MAGENTA",
+    "sensor_monitor": "CYAN",
+    "system_status_reporter": "BRIGHT_BLUE",
+    "env_sensor_mgmr": "BRIGHT_GREEN",
+    "controller": "BLUE",
+    "sensor": "CYAN",
+    "bme280_sensor": "GREEN",
+    "env_manager": "GREEN",
+    "SYSTEM": "BRIGHT_YELLOW",
+    "system_init": "BRIGHT_YELLOW",
+    "system_monitor": "BRIGHT_YELLOW"
+  },
+  "category": {
+    "system": "BLUE",
+    "api": "BLUE",
+    "port_activity": "CYAN",
+    "environment": "GREEN",
+    "garage_controller": "MAGENTA",
+    "port_status": "CYAN",
+    "port_timing": "BRIGHT_YELLOW",
+    "sensor_monitor": "BRIGHT_CYAN",
+    "unknown_category": "WHITE"
+  },
+  "source": {
+    "API": "RED"
+
   }
+}
 }

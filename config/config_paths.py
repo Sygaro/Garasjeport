@@ -59,6 +59,8 @@ STATUS_PIGPIO_PATH = os.path.join(STATUS_DIR, "pigpio_status.json")
 STATUS_BOOTSTRAP_PATH = os.path.join(STATUS_DIR, "bootstrap_status.json")
 STATUS_FRONTEND_VERSION_PATH = os.path.join(STATUS_DIR, "frontend_version.json")
 STATUS_SENSOR_ENV_PATH = os.path.join(STATUS_DIR, "sensor_env_data.json")
+PID_FILE = os.path.join(TEMP_DIR, "garasjeport.pid")
+
 
 
 # === Lister for bootstrap/startup-sjekk av systemet ===

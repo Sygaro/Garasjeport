@@ -1,45 +1,64 @@
-# main.py
+#!/usr/bin/env python3
 
 import sys
-from core.bootstrap import run_bootstrap
+import signal
+from utils.bootstrap_logger import get_bootstrap_logger
 
 def main():
-    # --- Kjør alltid bootstrap FØR noe annet! ---
-    status = run_bootstrap()
-    if not status["ok"]:
-        print("[FATAL] Bootstrap feilet – systemet starter IKKE. Sjekk logg.")
+    # === 1. Kjør bootstrap FØRST ===
+    from core import bootstrap
+    bootstrap_logger = get_bootstrap_logger()
+    try:
+        status = bootstrap.run_bootstrap()
+    except Exception as e:
+        bootstrap_logger.error(f"Bootstrap feilet: {e}", exc_info=True)
         sys.exit(1)
 
-    # --- Nå er det trygt å importere logger og systemmoduler ---
-    from flask import Flask
-    from utils.logging.unified_logger import get_logger
+    if not status.get("ok"):
+        bootstrap_logger.error("Bootstrap feilet! Avslutter.")
+        sys.exit(1)
+    bootstrap_logger.info("Bootstrap OK – starter resten av systemet.")
+
+    # === 2. Importer og start resten av systemet ===
     from core import system_init
-    from routes.api import api, port_routes, status_routes, config_routes, log_routes, system_routes, sensor_routes, bootstrap_routes
-    from routes.web import web
 
-    logger = get_logger("main", category="system")
-    logger.info("=== System oppstart: starter Flask-app og kjører systeminitiering ===")
+    # === 3. Signalhåndtering for shutdown (CTRL+C, kill, systemstop) ===
+    def handle_signal(signum, frame):
+        from utils.logging.unified_logger import get_logger
+        logger = get_logger("main", category="system")
+        logger.info(f"Mottok signal {signum}. Kjører shutdown.")
+        system_init.shutdown()
+        sys.exit(0)
 
+    signal.signal(signal.SIGTERM, handle_signal)
+    signal.signal(signal.SIGINT, handle_signal)
+
+    # === 4. System-initialisering ===
     try:
         system_init.init()
-        logger.info("Systeminitiering OK.")
     except Exception as e:
+        from utils.logging.unified_logger import get_logger
+        logger = get_logger("main", category="system")
         logger.error(f"Feil under systeminitiering: {e}", exc_info=True)
-        sys.exit(2)
+        system_init.shutdown()
+        sys.exit(1)
 
-    app = Flask(__name__)
-    app.config["JSONIFY_PRETTYPRINT_REGULAR"] = True
+    # === 5. Start Flask-app (webserver) ===
+    try:
+        from app import app
+        app.run(host="0.0.0.0", port=5000, debug=True, use_reloader=False)
+    except (KeyboardInterrupt, SystemExit):
+        # Normal avslutning
+        system_init.shutdown()
+    except Exception as e:
+        from utils.logging.unified_logger import get_logger
+        logger = get_logger("main", category="system")
+        logger.error(f"Feil under Flask-app: {e}", exc_info=True)
+        system_init.shutdown()
+        sys.exit(1)
 
-    # Registrer API-blueprints
-    for bp in [api, port_routes, status_routes, config_routes, log_routes, system_routes, sensor_routes, bootstrap_routes, web]:
-        app.register_blueprint(bp)
-
-    @app.route("/health")
-    def health_check():
-        return {"status": "ok", "version": "1.0"}
-
-    logger.info("=== Starter Flask web-server ===")
-    app.run(host="0.0.0.0", port=5000, debug=True, use_reloader=False)
+    # === 6. Sikkerhetsnett for shutdown (vanlig exit) ===
+    system_init.shutdown()
 
 if __name__ == "__main__":
     main()

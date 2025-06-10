@@ -28,9 +28,9 @@ class GarageController:
         # Logger instanser for ulike kategorier
       
         self.activity_logger = get_logger(name="GarageController", category="port_activity", source="API")
-        self.status_logger = get_logger("GarageController", category="port_status", source="controller")
-        self.timing_logger = get_logger("GarageController", category="port_timing", source="controller")
-        self.logger = get_logger("GarageController", category="system", source="controller")
+        self.status_logger = get_logger("GarageController", category="port_status")
+        self.timing_logger = get_logger("GarageController", category="port_timing")
+        self.logger = get_logger("GarageController", category="garage_controller")
 
         self.logger.info("GarageController startet")
        
@@ -134,7 +134,9 @@ class GarageController:
         if self.status.get(port) == "open":
             return {"port": port, "status": "already open"}
 
-        self.activity_logger.info(f"Åpner port {port}")
+        print([m for m in dir(logger) if not m.startswith("_")])
+
+        self.activity_logger.change(f"Åpner port {port}")
         self.activate_relay(port)
         self._operation_flags[port]["moving"] = True
         self._operation_flags[port]["start_time"] = time.time()
@@ -148,7 +150,7 @@ class GarageController:
         if self.status.get(port) == "closed":
             return {"port": port, "status": "already closed"}
 
-        self.activity_logger.info(f"Lukker port {port}")
+        self.activity_logger.change(f"Lukker port {port}")
         self.activate_relay(port)
         self._operation_flags[port]["moving"] = True
         self._operation_flags[port]["start_time"] = time.time()
@@ -163,7 +165,7 @@ class GarageController:
             return {"port": port, "status": "not moving"}
 
         self._operation_flags[port]["moving"] = False
-        self.activity_logger.info(f"Stopper port {port}")
+        self.activity_logger.change(f"Stopper port {port}")
         return {"port": port, "status": "stopped"}
     
     def activate_relay(self, port):

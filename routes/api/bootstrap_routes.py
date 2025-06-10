@@ -10,7 +10,7 @@ import json, os
 from datetime import datetime
 
 bootstrap_routes = Blueprint("bootstrap_routes", __name__, url_prefix="/bootstrap")
-logger = logging.getLogger("bootstrap_routes")
+logger = get_logger("bootstrap_routes", category="api")
 
 # logger = get_logger("bootstrap_routes" category="system", source="API")
 
