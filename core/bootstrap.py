@@ -7,7 +7,7 @@ import subprocess
 import time
 from datetime import datetime
 from config import config_paths as paths
-# from utils.file_utils import ensure_directory_exists
+from utils.file_utils import ensure_dir_exists
 from utils.bootstrap_logger import get_bootstrap_logger, shutdown_bootstrap_logger
 
 

@@ -24,7 +24,7 @@ TEMP_DIR = os.path.join(BASE_DIR, "temp")
 
 # === Konfigurasjonsfiler ===
 CONFIG_GPIO_PATH = os.path.join(CONFIG_DIR, "config_gpio.json")
-CONFIG_SYSTEM_PATH = os.path.join(CONFIG_DIR, "config_system.json")
+CONFIG_STATUS_PATH = os.path.join(CONFIG_DIR, "config_system.json")
 CONFIG_AUTH_PATH = os.path.join(CONFIG_DIR, "config_auth.json")
 CONFIG_LOGGING_PATH = os.path.join(CONFIG_DIR, "config_logging.json")
 CONFIG_PORTLOGIC_PATH = os.path.join(CONFIG_DIR, "config_portlogic.json")
@@ -32,6 +32,8 @@ CONFIG_TIMING_PATH = os.path.join(CONFIG_DIR, "config_timing.json")
 CONFIG_HEALTH_PATH = os.path.join(CONFIG_DIR, "config_health.json")
 CONFIG_SENSOR_ENV_PATH = os.path.join(CONFIG_DIR, "config_sensor_env.json")
 CONFIG_BOOTSTRAP_PATH = os.path.join(CONFIG_DIR, "config_bootstrap.json")
+CONFIG_PORT_STATUS_PATH = os.path.join(CONFIG_DIR, "config_port_status.json")
+CONFIG_MONITOR_MANAGER_PATH = os.path.join(CONFIG_DIR, "config_monitor_manager.json")
 
 
 # API og datafiler
@@ -84,7 +86,7 @@ OPTIONAL_DIRECTORIES = [
 # Konfigurasjonsfiler som er KRITISKE for å starte systemet – med beskrivelse for logging/debugging
 REQUIRED_CONFIG_FILES = [
     (CONFIG_GPIO_PATH,         "GPIO-konfig (oppsett av GPIO-pinner for releer og sensorer)"),
-    (CONFIG_SYSTEM_PATH,       "System-konfig (generelle systeminnstillinger, navn osv.)"),
+    (CONFIG_PORT_STATUS_PATH,  "System-konfig (generelle systeminnstillinger, navn osv.)"),
     (CONFIG_AUTH_PATH,         "Autentisering (API/admin-brukere og tilgang)"),
     (CONFIG_LOGGING_PATH,      "Logging-konfig (oppsett og struktur for logger)"),
     (CONFIG_PORTLOGIC_PATH,    "Portlogikk-konfig (styringsregler og logikk for porter)"),

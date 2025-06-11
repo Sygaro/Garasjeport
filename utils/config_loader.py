@@ -22,7 +22,7 @@ def load_config(path=None):
     with open(path, "r") as f:
         return json.load(f)
     config_gpio = _load_json_file(paths.CONFIG_GPIO_PATH)
-    config_system = _load_json_file(paths.CONFIG_SYSTEM_PATH)
+    config_system = _load_json_file(paths.CONFIG_PORT_STATUS_PATH)
     return config_gpio, config_system
 
 def load_auth_config():

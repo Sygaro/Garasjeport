@@ -103,7 +103,7 @@ class GarageController:
     def save_config(self):
         """Skriver oppdatert systemkonfig til fil"""
         try:
-            with open(paths.CONFIG_SYSTEM_PATH, "w") as f:
+            with open(paths.CONFIG_PORT_STATUS_PATH, "w") as f:
                 json.dump(self.config_system, f, indent=4)
         except Exception as e:
             self.logger.error(f"Kunne ikke lagre systemkonfig: {e}")
@@ -250,7 +250,7 @@ class GarageController:
 
 
     def _write_config_to_disk(self):
-        with open(paths.CONFIG_SYSTEM_PATH, "w") as f:
+        with open(paths.CONFIG_PORT_STATUS_PATH, "w") as f:
             json.dump(self.config_system, f, indent=2)
 
     def _handle_relay_timeout(self, port):

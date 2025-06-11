@@ -1,0 +1,86 @@
+{
+    "port1": {
+        "status": "open",
+        "status_timestamp": "2025-05-25 21:11:26",
+        "timing": {
+            "open": {
+                "last": 12.4,
+                "avg": 12.3,
+                "history": [
+                    12.2,
+                    12.3,
+                    12.4
+                ],
+                "t0": 1.0,
+                "t1": 11.4,
+                "t2": 12.4
+            },
+            "close": {
+                "last": 13.0,
+                "avg": 13.1,
+                "history": [
+                    13.0,
+                    13.2,
+                    13.1
+                ],
+                "t0": 1.2,
+                "t1": 11.8,
+                "t2": 13.0
+            },
+            "null": {
+                "history": [
+                    16.41
+                ],
+                "last": 16.41,
+                "avg": 16.41,
+                "t2": 16.41
+            }
+        },
+        "alarm_state": {
+            "active": false,
+            "last_triggered": null,
+            "retries_left": 3
+        }
+    },
+    "port2": {
+        "status": "open",
+        "status_timestamp": "2025-05-28 16:30:45",
+        "timing": {
+            "open": {
+                "last": 11.8,
+                "avg": 11.6,
+                "history": [
+                    11.4,
+                    11.6,
+                    11.8
+                ],
+                "t0": 0.9,
+                "t1": 10.9,
+                "t2": 11.8
+            },
+            "close": {
+                "last": 12.6,
+                "avg": 12.5,
+                "history": [
+                    12.3,
+                    12.5,
+                    12.6
+                ],
+                "t0": 1.0,
+                "t1": 11.6,
+                "t2": 12.6
+            }
+        },
+        "alarm_state": {
+            "active": true,
+            "last_triggered": "2025-05-28 16:45:00",
+            "retries_left": 2
+        }
+    },
+    "alarm_config": {
+        "enabled": true,
+        "trigger_after_minutes": 5,
+        "repeat_interval_minutes": 10,
+        "max_retries": 3
+    }
+}

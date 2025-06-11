@@ -104,7 +104,7 @@
     "port_status": "CYAN",
     "port_timing": "BRIGHT_YELLOW",
     "sensor_monitor": "BRIGHT_CYAN",
-    "unknown_category": "WHITE"
+    "unknown_category": "RED"
   },
   "source": {
     "API": "RED"

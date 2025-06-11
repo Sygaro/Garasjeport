@@ -4,6 +4,8 @@ from utils.logging.unified_logger import get_logger
 import pigpio
 
 _shared_pi = None
+PI_EITHER_EDGE = pigpio.EITHER_EDGE
+
 
 def get_pi():
     """

@@ -16,7 +16,7 @@ logger = get_logger("system_init", category="system")
 
 # Last inn config for sensorer og system
 gpio_config = load_config(paths.CONFIG_GPIO_PATH)
-system_config = load_config(paths.CONFIG_SYSTEM_PATH)
+system_config = load_config(paths.CONFIG_PORT_STATUS_PATH)
 
 # Sett opp GPIO-modus og pull for sensorer
 initialize_gpio()

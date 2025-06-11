@@ -15,7 +15,7 @@ timing_routes = Blueprint("timing_routes", __name__)
 
 def get_port_timing(port):
     try:
-        config = load_config(paths.CONFIG_SYSTEM_PATH)
+        config = load_config(paths.CONFIG_PORT_STATUS_PATH)
         port_data = config.get(port)
 
         if not port_data or "timing" not in port_data:
@@ -45,7 +45,7 @@ def get_port_timing(port):
 @token_required
 def get_all_port_timing():
     try:
-        config = load_config(paths.CONFIG_SYSTEM_PATH)
+        config = load_config(paths.CONFIG_PORT_STATUS_PATH)
         result = {}
 
         for port in config:

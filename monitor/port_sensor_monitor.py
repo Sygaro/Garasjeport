@@ -1,9 +1,10 @@
-# utils/sensor_monitor.py
+# monitor/sensor_monitor.py
 
-import pigpio
+#import pigpio
+from utils.pigpio_manager import get_pi, PI_EITHER_EDGE
 from utils.logging.unified_logger import get_logger
 from config.config_paths import CONFIG_GPIO_PATH
-from utils.file_utils import load_json
+from utils.file_utils import read_json
 
 #logger = get_logger("sensor_monitor", category="system")
 
@@ -56,7 +57,7 @@ class SensorMonitor:
             try:
                 cb = self.pi.callback(
                     gpio,
-                    pigpio.EITHER_EDGE,
+                    PI_EITHER_EDGE,
                     self._generate_handler(gpio)
                 )
                 self.callbacks.append(cb)

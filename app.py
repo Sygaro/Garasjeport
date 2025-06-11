@@ -4,7 +4,6 @@ from flask import Flask
 from routes.api import api
 from routes.api.port_routes import port_routes
 from routes.api.status_routes import status_routes
-from routes.api.config_routes import config_routes
 from routes.api.log_routes import log_routes
 from routes.api.system_routes import system_routes
 from routes.api.sensor_routes import sensor_routes
@@ -15,7 +14,7 @@ app = Flask(__name__)
 
 
 # Registrer alle blueprints
-for bp in [api, port_routes, status_routes, config_routes, log_routes, system_routes, sensor_routes, bootstrap_routes, web]:
+for bp in [api, port_routes, status_routes, log_routes, system_routes, sensor_routes, bootstrap_routes, web]:
     app.register_blueprint(bp)
 
 # Ekstra direkte-ruter om ønskelig

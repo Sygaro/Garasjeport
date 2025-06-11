@@ -6,7 +6,6 @@ api = Blueprint("api", __name__, url_prefix="/api")
 
 # Import all route modules
 __all__ = [
-    "config_routes",
     "port_routes",
     "status_routes",
     "timing_routes",
@@ -16,7 +15,6 @@ __all__ = [
     "bootstrap_routes"
 ]
 
-from .config_routes import config_routes
 from .port_routes import port_routes
 from .status_routes import status_routes
 from .timing_routes import timing_routes
@@ -26,7 +24,6 @@ from .sensor_routes import sensor_routes
 from .bootstrap_routes import bootstrap_routes
 
 
-api.register_blueprint(config_routes)
 api.register_blueprint(port_routes)
 api.register_blueprint(status_routes)
 api.register_blueprint(timing_routes)

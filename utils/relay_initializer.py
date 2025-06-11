@@ -3,7 +3,7 @@ from utils.logging.unified_logger import get_logger
 
 import pigpio
 from utils.pigpio_manager import get_pi
-from utils.file_utils import load_json
+from utils.file_utils import read_json
 from config.config_paths import CONFIG_GPIO_PATH
 
 def initialize_relays():
@@ -12,7 +12,7 @@ def initialize_relays():
     Returnerer relay_pins og relay_config som videre brukes i systemet.
     """
     pi = get_pi()
-    config = load_json(CONFIG_GPIO_PATH)
+    config = read_json(CONFIG_GPIO_PATH)
 
     relay_pins = config.get("relay_pins", {})
     relay_config = config.get("relay_config", {})
