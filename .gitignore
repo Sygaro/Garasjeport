@@ -28,6 +28,8 @@ backups/
 # Cache-filer
 temp/
 status/
+status/sensor_env_data.json
+
 
 # helper-scripts
 tools/
