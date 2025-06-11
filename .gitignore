@@ -24,6 +24,15 @@ backups/
 *.gz
 *.zip
 
+
+# Cache-filer
+temp/
+status/
+
+# helper-scripts
+tools/
+
+
 # Systemd og install-script-cache
 *.service
 *.deb
