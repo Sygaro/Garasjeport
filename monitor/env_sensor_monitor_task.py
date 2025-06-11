@@ -1,7 +1,7 @@
 from utils.logging.unified_logger import get_logger
 import time
 # import datetime
-from sensors.environment_manager import EnvironmentSensorManager
+from monitor.environment_manager import EnvironmentSensorManager
 from monitor.monitor_registry import register_monitor, update_monitor
 
 

@@ -6,7 +6,7 @@ from datetime import datetime, time as dt_time
 from utils.config_loader import load_config
 from config import config_paths
 from utils.logging.unified_logger import get_logger
-from sensors.bme280_sensor import BME280Sensor
+from drivers.bme280_sensor import BME280Sensor
 
 
 class EnvironmentSensorManager:

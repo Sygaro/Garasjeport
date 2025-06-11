@@ -7,7 +7,7 @@ import atexit
 from config import config_paths as paths
 from utils.config_loader import load_config
 from utils.pigpio_manager import get_pi, stop_pi
-from utils.gpio_initializer import initialize_gpio
+from system.gpio_initializer import initialize_gpio
 from utils.relay_initializer import initialize_relays
 from core.garage_controller import GarageController
 

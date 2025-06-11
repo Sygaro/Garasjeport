@@ -6,7 +6,7 @@ from flask import Blueprint, jsonify, request
 from utils.auth import token_required
 #from utils.config_loader import load_config
 from config import config_paths as paths
-from utils.system_monitor import get_system_status, check_thresholds_and_log, run_system_health_check, get_diagnostics
+from monitor.system_monitor import get_system_status, check_thresholds_and_log, run_system_health_check, get_diagnostics
 from monitor.monitor_registry import get_registry_status
 
 

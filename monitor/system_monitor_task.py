@@ -2,7 +2,7 @@ import threading
 import time
 from config import config_paths as paths
 from utils.logging.unified_logger import get_logger
-from utils.system_monitor import get_system_status, check_thresholds_and_log
+from monitor.system_monitor import get_system_status, check_thresholds_and_log
 from utils.config_loader import load_config
 
 logger = get_logger("system_monitor", category="system", source="health")

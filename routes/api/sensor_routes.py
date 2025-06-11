@@ -5,7 +5,7 @@ import json
 from flask import Blueprint, jsonify, request
 from utils.auth import token_required
 from config import config_paths
-from sensors.environment_manager import EnvironmentSensorManager
+from monitor.environment_manager import EnvironmentSensorManager
 
 
 sensor_api_logger = get_logger("sensor_routes", category="system")
