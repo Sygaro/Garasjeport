@@ -1,34 +1,6 @@
-# Web & API
-Flask==2.3.2
-Flask-Cors==3.0.10
-
-# Logging og filhåndtering
-loguru==0.7.2
-
-# JSON-validering og konfig
-jsonschema==4.21.1
-
-# GPIO – utvikling/test og produksjon
-#lgpio==1.0.1        # fallback for RPi5 nå
-pigpio==1.78        # for edge detection på RPi4
-# Merk: pigpiod må kjøres som service!
-
-# Verktøy
-python-dotenv==1.0.1
-schedule==1.2.1
-
-# Test og CI
-pytest==7.4.4
-pytest-mock==3.12.0
-mypy==1.9.0
-flake8==7.0.0
-black==24.4.2
-
-# Dokumentasjon
-mkdocs==1.5.3
-mkdocs-material==9.5.14
-
+Flask==3.1.1
+colorama==0.4.6
+pigpio==1.78
 psutil==7.0.0
-smbus2
+smbus2==0.5.0
 RPi.bme280
-colorama
