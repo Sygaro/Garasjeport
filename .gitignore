@@ -29,7 +29,7 @@ backups/
 temp/
 status/
 status/sensor_env_data.json
-
+sensor_env_data.json
 
 # helper-scripts
 tools/
