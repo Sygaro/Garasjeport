@@ -10,19 +10,11 @@ from utils.logging.unified_logger import get_logger
 # from utils.config_loader import load_config, load_portlogic_config
 # from utils.gpio_initializer import configure_gpio_pins
 from utils.pigpio_manager import get_pi, stop_pi
-from monitor.port_sensor_monitor import SensorMonitor
-
-
-
-# Forsøk å importere pigpio-monitor, fallback til None hvis ikke tilgjengelig
-try:
-    from monitor.port_sensor_monitor import SensorMonitor
-except ImportError:
-    SensorMonitor = None
+from monitor.port_status_monitor import PortStatusMonitor
 
 
 class GarageController:
-    def __init__(self, config_gpio, config_system, relay_pins, relay_config, testing_mode=False):
+    def __init__(self, config_gpio, config_port_status, relay_pins, relay_config):
        
         ### Setter opp logging ###
         # Logger instanser for ulike kategorier
@@ -35,10 +27,9 @@ class GarageController:
         self.logger.info("GarageController startet")
        
         self.config_gpio = config_gpio
-        self.config_system = config_system
+        self.config_port_status = config_port_status
         self.relay_pins = relay_pins
         self.relay_config = relay_config
-        self.testing_mode = testing_mode
         self.status = {}
         self._operation_flags = {}
 
@@ -49,14 +40,14 @@ class GarageController:
             raise RuntimeError("Feil: pigpio er ikke tilgjengelig")
                 
 
-        self.sensor_monitor = SensorMonitor(
-            config_gpio=config_gpio,
-            pi=self.pi
-        )
+        self.sensor_monitor = PortStatusMonitor(config_gpio)
+        self.logger.info("PortStatusMonitor initialisert")
         if hasattr(self.sensor_monitor, "set_callback"):
             self.sensor_monitor.set_callback(self.sensor_event_callback)
+            self.logger.info("Callback for sensor_event_callback satt opp")
 
         self._initialize_port_states()
+        self.logger.info("Port-tilstander initialisert")
 
 
 
@@ -104,7 +95,7 @@ class GarageController:
         """Skriver oppdatert systemkonfig til fil"""
         try:
             with open(paths.CONFIG_PORT_STATUS_PATH, "w") as f:
-                json.dump(self.config_system, f, indent=4)
+                json.dump(self.config_port_status, f, indent=4)
         except Exception as e:
             self.logger.error(f"Kunne ikke lagre systemkonfig: {e}")
 
@@ -141,9 +132,6 @@ class GarageController:
         self._operation_flags[port]["moving"] = True
         self._operation_flags[port]["start_time"] = time.time()
 
-        if self.testing_mode:
-            self.sensor_event_callback(port, "open", 0)
-
         return {"port": port, "action": "open initiated"}
 
     def close_port(self, port):
@@ -154,9 +142,6 @@ class GarageController:
         self.activate_relay(port)
         self._operation_flags[port]["moving"] = True
         self._operation_flags[port]["start_time"] = time.time()
-
-        if self.testing_mode:
-            self.sensor_event_callback(port, "closed", 0)
 
         return {"port": port, "action": "close initiated"}
 
@@ -210,10 +195,10 @@ class GarageController:
 
     def _update_timing_data(self, port, direction, duration, t0=None, t1=None):
         """
-        Oppdaterer timinginformasjon i config_system.json.
+        Oppdaterer timinginformasjon i config_port_status.json.
         """
         try:
-            timing = self.config_system.setdefault(port, {}).setdefault("timing", {})
+            timing = self.config_port_status.setdefault(port, {}).setdefault("timing", {})
             timing_dir = timing.setdefault(direction, {})
 
             # Oppdater historikk
@@ -251,7 +236,7 @@ class GarageController:
 
     def _write_config_to_disk(self):
         with open(paths.CONFIG_PORT_STATUS_PATH, "w") as f:
-            json.dump(self.config_system, f, indent=2)
+            json.dump(self.config_port_status, f, indent=2)
 
     def _handle_relay_timeout(self, port):
         flags = self._operation_flags.get(port, {})
@@ -311,8 +296,8 @@ class GarageController:
 
             self._update_timing_data(port, direction, elapsed_total, t0, t1)
             self.status[port] = direction
-            self.config_system[port]["status"] = direction
-            self.config_system[port]["status_timestamp"] = timestamp
+            self.config_port_status[port]["status"] = direction
+            self.config_port_status[port]["status_timestamp"] = timestamp
 
             self._operation_flags[port] = {
                 "moving": False,

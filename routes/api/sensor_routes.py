@@ -5,13 +5,16 @@ import json
 from flask import Blueprint, jsonify, request
 from utils.auth import token_required
 from config import config_paths
-from monitor.environment_manager import EnvironmentSensorManager
+from monitor.env_sensor_monitor import EnvSensorMonitor
+from utils.config_helpers import load_config
 
 
 sensor_api_logger = get_logger("sensor_routes", category="system")
 
 sensor_routes = Blueprint("sensor_routes", __name__, url_prefix="/sensors/environment")
-sensor_manager = EnvironmentSensorManager()
+
+sensor_env_config = load_config("CONFIG_SENSOR_ENV_PATH")
+sensor_manager = EnvSensorMonitor(sensor_env_config)
 
 @sensor_routes.route("/latest", methods=["GET"])
 @token_required

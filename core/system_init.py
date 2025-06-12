@@ -6,34 +6,17 @@ Integrerer MonitorManager i system-initiering og shutdown.
 Bruker prosjektets standard for import av paths.
 """
 
-import json, os #, sys, signal
+import os, threading, atexit
 from utils.logging.unified_logger import get_logger
 from core.system import get_controller
 from config import config_paths as paths
-from monitor.system_monitor_task import start_system_monitor_task
-from monitor.env_sensor_monitor_task import run_sensor_monitor_loop
 from monitor.monitor_manager import MonitorManager
-#from monitor.port_status_monitor import PortStatusMonitor
-#from monitor.env_sensor_monitor import EnvSensorMonitor
-#from utils.config_helpers import load_config
-#from monitor.monitor_manager import MonitorManager
+from utils.config_helpers import load_config
 
-
-import threading
-import atexit
 
 
 logger = get_logger("system_init", category="system")
 
-def load_json_config(path):
-    try:
-        with open(path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        logger.debug(f"Leste konfigurasjon: {path}")
-        return data
-    except Exception as e:
-        logger.error(f"Kunne ikke lese konfigurasjon fra {path}: {e}", exc_info=True)
-        raise
 
 
 def init():
@@ -41,11 +24,10 @@ def init():
 
     # Last konfigurasjoner fra fil via paths
     try:
-        config_gpio = load_json_config(paths.CONFIG_GPIO_PATH)
-        config_system = load_json_config(paths.CONFIG_PORT_STATUS_PATH)
+        config_gpio = load_config("CONFIG_GPIO_PATH")
+        config_port_status = load_config("CONFIG_PORT_STATUS_PATH")
         relay_pins = config_gpio.get("relay_pins") or []  # eller bruk riktig nøkkel
         relay_config = config_gpio.get("relay_config") or {}  # eller bruk riktig nøkkel
-        testing_mode = config_system.get("testing_mode", False)
     except Exception as e:
         logger.error(f"Feil ved lasting av konfigurasjon: {e}", exc_info=True)
         raise
@@ -53,30 +35,13 @@ def init():
     try:
         controller = get_controller(
             config_gpio=config_gpio,
-            config_system=config_system,
+            config_port_status=config_port_status,
             relay_pins=relay_pins,
             relay_config=relay_config,
-            testing_mode=testing_mode,
         )
         logger.info("GarageController initialisert OK.")
     except Exception as e:
         logger.error(f"Feil under initiering av GarageController: {e}", exc_info=True)
-        raise
-
-    try:
-        logger.info("Starter system monitor task ...")
-        start_system_monitor_task()
-        logger.info("System monitor task startet OK.")
-    except Exception as e:
-        logger.error(f"Feil under oppstart av system_monitor_task: {e}", exc_info=True)
-        raise
-
-    try:
-        logger.info("Starter sensor monitor (bakgrunnstråd)...")
-        threading.Thread(target=run_sensor_monitor_loop, daemon=True).start()
-        logger.info("Sensor monitor tråd startet OK.")
-    except Exception as e:
-        logger.error(f"Feil under oppstart av sensor_monitor_loop: {e}", exc_info=True)
         raise
 
     try:

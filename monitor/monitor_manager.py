@@ -13,24 +13,30 @@ from utils.config_helpers import load_config
 from config import config_paths as paths
 from monitor.port_status_monitor import PortStatusMonitor
 from monitor.env_sensor_monitor import EnvSensorMonitor
+from monitor.pigpiod_monitor import PigpiodMonitor
+
 
 class MonitorManager:
     def __init__(self):
-        self.logger = get_logger("MonitorManager", category="system", source="monitor_manager")
-        # Laster inn all relevant config via helpers
+        self.logger = get_logger("MonitorManager", category="system")
+        self.monitors = []
+
         try:
             self.config = load_config("CONFIG_MONITOR_MANAGER_PATH")
             self.port_status_config = load_config("CONFIG_PORT_STATUS_PATH")
             self.env_sensor_config = load_config("CONFIG_SENSOR_ENV_PATH")
+            pigpiod_config = load_config("CONFIG_PIGPIOD_MONITOR_PATH")
+            self.pigpiod_monitor = PigpiodMonitor(pigpiod_config)
+            self.monitors.append(self.pigpiod_monitor)
             self.gpio_config = load_config("CONFIG_GPIO_PATH")
             self.logger.info("Alle monitor-konfigurasjoner lastet inn.")
         except Exception as e:
             self.logger.error(f"Feil under lasting av monitor-konfigurasjon: {e}", exc_info=True)
             raise
 
-        self.monitors = []
         self.heartbeat_timeout = self.config.get("heartbeat_timeout", 15)
         self._init_monitors()
+
 
     def _init_monitors(self):
         try:

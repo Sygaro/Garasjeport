@@ -14,7 +14,7 @@ from utils.logging.unified_logger import get_logger
 
 class EnvSensorMonitor(MonitorBase):
     def __init__(self, config):
-        logger = get_logger("EnvSensorMonitor", category="enviroment")
+        logger = get_logger("EnvSensorMonitor", category="environment")
         super().__init__(config, logger)
         sensor_conf = self._get_active_sensor(config)
         if not sensor_conf:

@@ -34,6 +34,7 @@ CONFIG_SENSOR_ENV_PATH = os.path.join(CONFIG_DIR, "config_sensor_env.json")
 CONFIG_BOOTSTRAP_PATH = os.path.join(CONFIG_DIR, "config_bootstrap.json")
 CONFIG_PORT_STATUS_PATH = os.path.join(CONFIG_DIR, "config_port_status.json")
 CONFIG_MONITOR_MANAGER_PATH = os.path.join(CONFIG_DIR, "config_monitor_manager.json")
+CONFIG_PIGPIOD_MONITOR_PATH = os.path.join(CONFIG_DIR, "config_pigpiod_monitor.json")
 
 
 # API og datafiler

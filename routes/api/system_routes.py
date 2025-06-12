@@ -6,8 +6,8 @@ from flask import Blueprint, jsonify, request
 from utils.auth import token_required
 #from utils.config_loader import load_config
 from config import config_paths as paths
-from monitor.system_monitor import get_system_status, check_thresholds_and_log, run_system_health_check, get_diagnostics
-from monitor.monitor_registry import get_registry_status
+from monitor.monitor_manager import MonitorManager
+from tasks.system_status_reporter import SystemStatusReporter
 
 
 system_routes = Blueprint("system_routes", __name__, url_prefix="/system")
@@ -131,5 +131,5 @@ def get_monitors_status():
     """
     Returnerer status for alle aktive monitorer.
     """
-    status = get_registry_status()
+    status = monitor_manager.get_status()
     return jsonify(status)
